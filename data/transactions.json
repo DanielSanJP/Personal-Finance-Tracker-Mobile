@@ -1,0 +1,172 @@
+{
+  "transactions": [
+    {
+      "id": "txn_001",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-07-29",
+      "description": "Grocery Store",
+      "amount": -45.2,
+      "category": "Food & Dining",
+      "type": "expense",
+      "merchant": "Whole Foods",
+      "status": "completed"
+    },
+    {
+      "id": "txn_002",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-07-28",
+      "description": "Salary Payment",
+      "amount": 1600.0,
+      "category": "Income",
+      "type": "income",
+      "merchant": "Tech Corp Inc",
+      "status": "completed"
+    },
+    {
+      "id": "txn_003",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-07-27",
+      "description": "Gas Station",
+      "amount": -35.0,
+      "category": "Transportation",
+      "type": "expense",
+      "merchant": "Shell",
+      "status": "completed"
+    },
+    {
+      "id": "txn_004",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-07-26",
+      "description": "Netflix Subscription",
+      "amount": -15.99,
+      "category": "Entertainment",
+      "type": "expense",
+      "merchant": "Netflix",
+      "status": "completed"
+    },
+    {
+      "id": "txn_005",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-07-25",
+      "description": "Coffee Shop",
+      "amount": -4.5,
+      "category": "Food & Dining",
+      "type": "expense",
+      "merchant": "Starbucks",
+      "status": "completed"
+    },
+    {
+      "id": "txn_006",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-07-24",
+      "description": "Rent Payment",
+      "amount": -1200.0,
+      "category": "Housing",
+      "type": "expense",
+      "merchant": "Property Management",
+      "status": "completed"
+    },
+    {
+      "id": "txn_007",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-07-30",
+      "description": "Electronics Store",
+      "amount": -300.0,
+      "category": "Shopping",
+      "type": "expense",
+      "merchant": "Best Buy",
+      "status": "completed"
+    },
+    {
+      "id": "txn_008",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-07-30",
+      "description": "Fine Dining",
+      "amount": -450.0,
+      "category": "Food & Dining",
+      "type": "expense",
+      "merchant": "The Capital Grille",
+      "status": "completed"
+    },
+    {
+      "id": "txn_009",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-06-25",
+      "description": "Grocery Store",
+      "amount": -50.0,
+      "category": "Food & Dining",
+      "type": "expense",
+      "merchant": "Grocery Store",
+      "status": "completed"
+    },
+    {
+      "id": "txn_014",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-05-15",
+      "description": "Car Purchase",
+      "amount": -3500.0,
+      "category": "Transportation",
+      "type": "expense",
+      "merchant": "AutoMax Dealership",
+      "status": "completed"
+    },
+    {
+      "id": "txn_010",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-04-30",
+      "description": "Monthly Salary",
+      "amount": 4000.0,
+      "category": "Income",
+      "type": "income",
+      "merchant": "Tech Solutions LLC",
+      "status": "completed"
+    },
+    {
+      "id": "txn_011",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-04-25",
+      "description": "Freelance Web Development",
+      "amount": 1500.0,
+      "category": "Income",
+      "type": "income",
+      "merchant": "StartupXYZ",
+      "status": "completed"
+    },
+    {
+      "id": "txn_012",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-04-15",
+      "description": "Monthly Rent",
+      "amount": -300.0,
+      "category": "Bills & Utilities",
+      "type": "expense",
+      "merchant": "Downtown Apartments",
+      "status": "completed"
+    },
+    {
+      "id": "txn_013",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-04-10",
+      "description": "Electronics Purchase",
+      "amount": -200.0,
+      "category": "Shopping",
+      "type": "expense",
+      "merchant": "Best Buy",
+      "status": "completed"
+    }
+  ]
+}

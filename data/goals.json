@@ -1,0 +1,48 @@
+{
+  "goals": [
+    {
+      "id": "goal_001",
+      "userId": "1",
+      "name": "Emergency Fund",
+      "targetAmount": 5000.0,
+      "currentAmount": 1200.0,
+      "targetDate": "2025-12-01",
+      "category": "Savings",
+      "priority": "high",
+      "status": "active"
+    },
+    {
+      "id": "goal_002",
+      "userId": "1",
+      "name": "New Car",
+      "targetAmount": 15000.0,
+      "currentAmount": 2800.0,
+      "targetDate": "2026-06-01",
+      "category": "Transportation",
+      "priority": "medium",
+      "status": "active"
+    },
+    {
+      "id": "goal_003",
+      "userId": "1",
+      "name": "Holiday Trip",
+      "targetAmount": 1500.0,
+      "currentAmount": 750.0,
+      "targetDate": "2025-10-01",
+      "category": "Travel",
+      "priority": "high",
+      "status": "active"
+    },
+    {
+      "id": "goal_004",
+      "userId": "1",
+      "name": "New Laptop",
+      "targetAmount": 1000.0,
+      "currentAmount": 1000.0,
+      "targetDate": "2025-07-12",
+      "category": "Technology",
+      "priority": "low",
+      "status": "active"
+    }
+  ]
+}

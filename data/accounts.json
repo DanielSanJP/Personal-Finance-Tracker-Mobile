@@ -1,0 +1,22 @@
+{
+  "accounts": [
+    {
+      "id": "acc_001",
+      "userId": "1",
+      "name": "Everyday Account",
+      "balance": 599.31,
+      "type": "checking",
+      "accountNumber": "****1234",
+      "isActive": true
+    },
+    {
+      "id": "acc_002",
+      "userId": "1",
+      "name": "Savings Account",
+      "balance": 400.0,
+      "type": "savings",
+      "accountNumber": "****5678",
+      "isActive": true
+    }
+  ]
+}
