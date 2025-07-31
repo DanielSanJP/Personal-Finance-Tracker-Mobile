@@ -8,16 +8,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
-        secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        default: "bg-primary text-primary-foreground shadow-xs",
+        destructive: "bg-destructive text-destructive-foreground shadow-xs",
+        outline: "border border-input bg-background text-foreground shadow-xs",
+        secondary: "bg-secondary text-secondary-foreground shadow-xs",
+        ghost: "text-foreground",
+        link: "text-primary underline-offset-4",
       },
       size: {
         default: "h-9 px-4 py-2",
@@ -73,7 +69,11 @@ function Button({
       activeOpacity={0.7}
       {...props}
     >
-      <Text className={cn(buttonTextVariants({ variant }))}>{children}</Text>
+      {typeof children === "string" ? (
+        <Text className={cn(buttonTextVariants({ variant }))}>{children}</Text>
+      ) : (
+        children
+      )}
     </TouchableOpacity>
   );
 }

@@ -6,44 +6,64 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        border: "oklch(var(--border))",
-        input: "oklch(var(--input))",
-        ring: "oklch(var(--ring))",
-        background: "oklch(var(--background))",
-        foreground: "oklch(var(--foreground))",
+        // Exact colors from web app globals.css (:root)
+        border: "oklch(0.922 0 0)",
+        input: "oklch(0.922 0 0)",
+        ring: "oklch(0.708 0 0)",
+        background: "oklch(1 0 0)",
+        foreground: "oklch(0.145 0 0)",
         primary: {
-          DEFAULT: "oklch(var(--primary))",
-          foreground: "oklch(var(--primary-foreground))",
+          DEFAULT: "oklch(0.205 0 0)",
+          foreground: "oklch(0.985 0 0)",
         },
         secondary: {
-          DEFAULT: "oklch(var(--secondary))",
-          foreground: "oklch(var(--secondary-foreground))",
+          DEFAULT: "oklch(0.97 0 0)",
+          foreground: "oklch(0.205 0 0)",
         },
         destructive: {
-          DEFAULT: "oklch(var(--destructive))",
-          foreground: "oklch(var(--destructive-foreground))",
+          DEFAULT: "oklch(0.577 0.245 27.325)",
+          foreground: "oklch(0.985 0 0)",
         },
         muted: {
-          DEFAULT: "oklch(var(--muted))",
-          foreground: "oklch(var(--muted-foreground))",
+          DEFAULT: "oklch(0.97 0 0)",
+          foreground: "oklch(0.556 0 0)",
         },
         accent: {
-          DEFAULT: "oklch(var(--accent))",
-          foreground: "oklch(var(--accent-foreground))",
+          DEFAULT: "oklch(0.97 0 0)",
+          foreground: "oklch(0.205 0 0)",
         },
         popover: {
-          DEFAULT: "oklch(var(--popover))",
-          foreground: "oklch(var(--popover-foreground))",
+          DEFAULT: "oklch(1 0 0)",
+          foreground: "oklch(0.145 0 0)",
         },
         card: {
-          DEFAULT: "oklch(var(--card))",
-          foreground: "oklch(var(--card-foreground))",
+          DEFAULT: "oklch(1 0 0)",
+          foreground: "oklch(0.145 0 0)",
+        },
+        // Chart colors from web app
+        chart: {
+          1: "oklch(0.646 0.222 41.116)",
+          2: "oklch(0.6 0.118 184.704)",
+          3: "oklch(0.398 0.07 227.392)",
+          4: "oklch(0.828 0.189 84.429)",
+          5: "oklch(0.769 0.188 70.08)",
+        },
+        // Sidebar colors from web app
+        sidebar: {
+          DEFAULT: "oklch(0.985 0 0)",
+          foreground: "oklch(0.145 0 0)",
+          primary: "oklch(0.205 0 0)",
+          "primary-foreground": "oklch(0.985 0 0)",
+          accent: "oklch(0.97 0 0)",
+          "accent-foreground": "oklch(0.205 0 0)",
+          border: "oklch(0.922 0 0)",
+          ring: "oklch(0.708 0 0)",
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "0.625rem",
+        md: "calc(0.625rem - 2px)",
+        sm: "calc(0.625rem - 4px)",
       },
     },
   },

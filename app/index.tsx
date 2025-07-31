@@ -18,41 +18,12 @@ export default function Home() {
       <View className="flex-1 items-center justify-center px-8">
         <View className="flex items-center gap-8">
           <View className="items-center gap-4">
-            <Text className="text-3xl font-bold text-center text-gray-900">
-              Personal Finance Tracker
-            </Text>
             <Text className="text-lg text-center text-gray-600">
-              Take control of your finances with smart budgeting and tracking
+              Welcome to your personal finance tracker
             </Text>
           </View>
 
-          <View className="w-full max-w-sm gap-4">
-            {user ? (
-              <Button
-                onPress={() => router.push("/dashboard")}
-                className="w-full"
-              >
-                <Text className="text-white font-semibold">
-                  Go to Dashboard
-                </Text>
-              </Button>
-            ) : (
-              <>
-                <Button
-                  onPress={() => router.push("/login")}
-                  className="w-full"
-                >
-                  <Text className="text-white font-semibold">Get Started</Text>
-                </Button>
-
-                <TouchableOpacity onPress={() => router.push("/login")}>
-                  <Text className="text-center text-blue-600 font-medium">
-                    Already have an account? Sign in
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
+          <View className="w-full max-w-sm gap-4"></View>
         </View>
       </View>
     </SafeAreaView>
