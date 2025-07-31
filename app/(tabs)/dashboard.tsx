@@ -1,13 +1,13 @@
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Nav from "../../components/nav";
 import {
+  formatCurrency,
+  getCurrentUser,
   getCurrentUserAccounts,
   getCurrentUserSummary,
-  getCurrentUser,
-  formatCurrency,
 } from "../../lib/data";
-import Nav from "../../components/nav";
 
 export default function Dashboard() {
   const accounts = getCurrentUserAccounts();

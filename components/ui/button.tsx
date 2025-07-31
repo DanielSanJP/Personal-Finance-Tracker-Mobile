@@ -8,13 +8,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-neutral-900 shadow-xs hover:bg-neutral-800",
-        destructive: "bg-red-600 shadow-xs hover:bg-red-700",
+        default:
+          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90",
         outline:
-          "border border-neutral-300 bg-white shadow-xs hover:bg-neutral-50",
-        secondary: "bg-neutral-100 shadow-xs hover:bg-neutral-200",
-        ghost: "hover:bg-neutral-100",
-        link: "text-neutral-900 underline-offset-4 hover:underline",
+          "border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",
@@ -33,12 +36,12 @@ const buttonVariants = cva(
 const buttonTextVariants = cva("text-sm font-medium", {
   variants: {
     variant: {
-      default: "text-white",
-      destructive: "text-white",
-      outline: "text-neutral-900",
-      secondary: "text-neutral-900",
-      ghost: "text-neutral-900",
-      link: "text-neutral-900",
+      default: "text-primary-foreground",
+      destructive: "text-destructive-foreground",
+      outline: "text-foreground",
+      secondary: "text-secondary-foreground",
+      ghost: "text-foreground",
+      link: "text-primary",
     },
   },
   defaultVariants: {

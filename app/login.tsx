@@ -1,13 +1,14 @@
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  View,
-  Text,
   ScrollView,
+  Text,
   TextInput,
   TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import Nav from "../components/nav";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -15,14 +16,13 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import Nav from "../components/nav";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = () => {
-    // For now, just navigate to dashboard
+    // Navigate to the dashboard
     router.push("/dashboard");
   };
 

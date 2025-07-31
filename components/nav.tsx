@@ -1,9 +1,9 @@
+import { Link, usePathname, useRouter } from "expo-router";
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Link, useRouter, usePathname } from "expo-router";
+import { getCurrentUser } from "../lib/data";
 import { Button } from "./ui/button";
-import Logo from "./ui/logo";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { getCurrentUser } from "../lib/data";
+import Logo from "./ui/logo";
 
 export default function Nav() {
   const router = useRouter();
@@ -22,10 +22,11 @@ export default function Nav() {
   // Determine if we should show dashboard tabs (when user is logged in and on dashboard pages)
   const showDashboardTabs =
     user &&
-    (pathname?.startsWith("/dashboard") ||
+    (pathname === "/dashboard" ||
       pathname === "/transactions" ||
       pathname === "/budgets" ||
-      pathname === "/goals");
+      pathname === "/goals" ||
+      pathname?.startsWith("/(tabs)"));
 
   const navigationItems = [
     { label: "Dashboard", href: "/dashboard" },
