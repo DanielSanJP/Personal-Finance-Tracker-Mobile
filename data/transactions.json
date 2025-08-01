@@ -1,6 +1,102 @@
 {
   "transactions": [
     {
+      "id": "txn_015",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-08-01",
+      "description": "Salary Payment",
+      "amount": 1600.0,
+      "category": "Income",
+      "type": "income",
+      "merchant": "Tech Corp Inc",
+      "status": "completed"
+    },
+    {
+      "id": "txn_016",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-08-01",
+      "description": "Grocery Store",
+      "amount": -78.45,
+      "category": "Food & Dining",
+      "type": "expense",
+      "merchant": "Whole Foods",
+      "status": "completed"
+    },
+    {
+      "id": "txn_017",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-08-01",
+      "description": "Electronics Purchase",
+      "amount": -300.0,
+      "category": "Shopping",
+      "type": "expense",
+      "merchant": "Best Buy",
+      "status": "completed"
+    },
+    {
+      "id": "txn_018",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-08-01",
+      "description": "Gas Station",
+      "amount": -42.75,
+      "category": "Transportation",
+      "type": "expense",
+      "merchant": "Shell",
+      "status": "completed"
+    },
+    {
+      "id": "txn_019",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-08-01",
+      "description": "Movie Theater",
+      "amount": -28.5,
+      "category": "Entertainment",
+      "type": "expense",
+      "merchant": "AMC Theaters",
+      "status": "completed"
+    },
+    {
+      "id": "txn_020",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-08-01",
+      "description": "Internet Bill",
+      "amount": -89.99,
+      "category": "Bills & Utilities",
+      "type": "expense",
+      "merchant": "Comcast",
+      "status": "completed"
+    },
+    {
+      "id": "txn_021",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-08-01",
+      "description": "Rent Payment",
+      "amount": -850.0,
+      "category": "Housing",
+      "type": "expense",
+      "merchant": "Property Management Co",
+      "status": "completed"
+    },
+    {
+      "id": "txn_022",
+      "userId": "1",
+      "accountId": "acc_001",
+      "date": "2025-08-01",
+      "description": "Restaurant Dinner",
+      "amount": -67.85,
+      "category": "Food & Dining",
+      "type": "expense",
+      "merchant": "Olive Garden",
+      "status": "completed"
+    },
+    {
       "id": "txn_001",
       "userId": "1",
       "accountId": "acc_001",

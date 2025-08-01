@@ -1,7 +1,9 @@
-import React from "react";
+import { useFocusEffect } from "expo-router";
+import React, { useRef } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../../components/nav";
+import { SpendingChart } from "../../components/spending-chart";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -20,12 +22,39 @@ export default function Dashboard() {
   const accounts = getCurrentUserAccounts();
   const summary = getCurrentUserSummary();
   const user = getCurrentUser();
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Get current month name
+  const getCurrentMonthName = () => {
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    return months[new Date().getMonth()];
+  };
+
+  // Scroll to top when the tab is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    }, [])
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <Nav />
 
-      <ScrollView className="flex-1">
+      <ScrollView ref={scrollViewRef} className="flex-1">
         {/* Financial Summary Cards */}
         <View className="px-6 py-6">
           <Text className="text-2xl font-bold text-gray-900 mb-1">
@@ -46,7 +75,7 @@ export default function Dashboard() {
             </View>
             <View className="bg-white rounded-lg p-4 flex-1 ml-3 shadow-sm border border-gray-100">
               <Text className="text-xs text-gray-600 font-medium mb-1">
-                This Month
+                This Month ({getCurrentMonthName()})
               </Text>
               <Text className="text-lg font-bold text-red-600">
                 {formatCurrency(summary.monthlyChange)}
@@ -57,7 +86,7 @@ export default function Dashboard() {
           <View className="flex-row justify-between mb-8">
             <View className="bg-white rounded-lg p-4 flex-1 mr-3 shadow-sm border border-gray-100">
               <Text className="text-xs text-gray-600 font-medium mb-1">
-                Income (July)
+                Income ({getCurrentMonthName()})
               </Text>
               <Text className="text-lg font-bold text-green-600">
                 +{formatCurrency(summary.monthlyIncome)}
@@ -73,15 +102,8 @@ export default function Dashboard() {
             </View>
           </View>
 
-          {/* Spending Chart Placeholder */}
-          <View className="bg-white rounded-lg p-6 mb-8 shadow-sm border border-gray-100">
-            <Text className="text-lg font-semibold text-gray-900 mb-4">
-              Monthly Spending
-            </Text>
-            <View className="h-40 bg-gray-100 rounded-lg items-center justify-center">
-              <Text className="text-gray-500">Chart coming soon...</Text>
-            </View>
-          </View>
+          {/* Spending Chart */}
+          <SpendingChart />
 
           {/* Your Accounts */}
           <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">

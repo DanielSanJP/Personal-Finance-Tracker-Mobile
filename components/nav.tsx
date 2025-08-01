@@ -97,26 +97,24 @@ export default function Nav() {
                       </Text>
                     </TouchableOpacity>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onPress={() => router.push("/dashboard")}>
-                      Dashboard
+                    <DropdownMenuItem>
+                      <Text>Profile</Text>
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onPress={() => router.push("/transactions")}
-                    >
-                      Transactions
+                    <DropdownMenuItem>
+                      <Text>Settings</Text>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onPress={() => router.push("/budgets")}>
-                      Budgets
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onPress={() => router.push("/goals")}>
-                      Goals
+                    <DropdownMenuItem>
+                      <Text>Preferences</Text>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onPress={() => router.push("/login")}>
-                      Sign out
+                    <DropdownMenuItem>
+                      <Text>Help & Support</Text>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onPress={() => router.push("/")}>
+                      <Text className="text-red-600">Sign Out</Text>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

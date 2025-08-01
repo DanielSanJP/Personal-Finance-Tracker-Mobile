@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useFocusEffect } from "expo-router";
+import React, { useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../../components/nav";
@@ -32,6 +33,14 @@ export default function Budgets() {
   const { budgets } = budgetsData;
   const [addBudgetOpen, setAddBudgetOpen] = useState(false);
   const [editBudgetsOpen, setEditBudgetsOpen] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Scroll to top when the tab is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    }, [])
+  );
 
   // Add Budget form state
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -92,7 +101,7 @@ export default function Budgets() {
     <SafeAreaView className="flex-1 bg-gray-50">
       <Nav />
 
-      <ScrollView className="flex-1">
+      <ScrollView ref={scrollViewRef} className="flex-1">
         <View className="px-6 py-6">
           <Text className="text-2xl font-bold text-gray-900 mb-1">Budgets</Text>
           <Text className="text-gray-600 mb-6">Monthly Budget Overview</Text>
@@ -163,7 +172,7 @@ export default function Budgets() {
                         <Text className="text-sm text-red-600 font-medium py-2">
                           Over budget by $
                           {(budget.spentAmount - budget.budgetAmount).toFixed(
-                            0
+                            2
                           )}
                         </Text>
                       )}
@@ -186,52 +195,52 @@ export default function Budgets() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              <View className="flex-row justify-between mb-6">
+              <View className="flex-row justify-between mb-6 gap-2">
                 <View className="items-center flex-1">
-                  <Text className="text-sm text-gray-600 font-medium mb-1">
+                  <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
                     Total Budget
                   </Text>
-                  <View className="bg-gray-100 px-3 py-1 rounded-full">
-                    <Text className="text-base font-bold text-gray-900">
-                      ${totalBudget.toFixed(0)}
+                  <View className="bg-gray-100 px-2 py-1 rounded-full min-w-[80px]">
+                    <Text className="text-sm font-bold text-gray-900 text-center">
+                      ${totalBudget.toFixed(2)}
                     </Text>
                   </View>
                 </View>
                 <View className="items-center flex-1">
-                  <Text className="text-sm text-gray-600 font-medium mb-1">
+                  <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
                     Total Spent
                   </Text>
                   <View
-                    className={`px-3 py-1 rounded-full ${
+                    className={`px-2 py-1 rounded-full min-w-[80px] ${
                       totalSpent > totalBudget ? "bg-red-100" : "bg-gray-100"
                     }`}
                   >
                     <Text
-                      className={`text-base font-bold ${
+                      className={`text-sm font-bold text-center ${
                         totalSpent > totalBudget
                           ? "text-red-800"
                           : "text-gray-900"
                       }`}
                     >
-                      ${totalSpent.toFixed(0)}
+                      ${totalSpent.toFixed(2)}
                     </Text>
                   </View>
                 </View>
                 <View className="items-center flex-1">
-                  <Text className="text-sm text-gray-600 font-medium mb-1">
+                  <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
                     Remaining
                   </Text>
                   <View
-                    className={`px-3 py-1 rounded-full ${
+                    className={`px-2 py-1 rounded-full min-w-[80px] ${
                       totalRemaining < 0 ? "bg-red-100" : "bg-green-100"
                     }`}
                   >
                     <Text
-                      className={`text-base font-bold ${
+                      className={`text-sm font-bold text-center ${
                         totalRemaining < 0 ? "text-red-800" : "text-green-800"
                       }`}
                     >
-                      ${totalRemaining.toFixed(0)}
+                      ${totalRemaining.toFixed(2)}
                     </Text>
                   </View>
                 </View>
@@ -396,7 +405,7 @@ export default function Budgets() {
                           </Text>
                         </View>
 
-                        <View className="space-y-2">
+                        <View className="space-y-2 py-2">
                           <Label>Budget Amount</Label>
                           <Input
                             defaultValue={budget.budgetAmount.toString()}
@@ -407,8 +416,8 @@ export default function Budgets() {
                           />
                         </View>
 
-                        <Text className="text-sm text-gray-600">
-                          Current spending: ${budget.spentAmount.toFixed(0)}
+                        <Text className="text-sm text-gray-600 py-2">
+                          Current spending: ${budget.spentAmount.toFixed(2)}
                         </Text>
                       </View>
                     ))}

@@ -1,22 +1,23 @@
 {
   "summary": {
     "userId": "1",
-    "totalBalance": 999.31,
-    "monthlyChange": -450.69,
+    "totalBalance": 142.91,
+    "monthlyChange": 142.91,
     "monthlyIncome": 1600.0,
-    "monthlyExpenses": 2050.69,
-    "budgetRemaining": 649.31,
-    "lastUpdated": "2025-07-30",
+    "monthlyExpenses": 1457.09,
+    "budgetRemaining": 142.91,
+    "lastUpdated": "2025-08-01",
     "accountBreakdown": {
-      "checking": 599.31,
+      "checking": -257.09,
       "savings": 400.0
     },
     "categorySpending": {
-      "Housing": 1200.0,
-      "Food & Dining": 499.7,
-      "Transportation": 35.0,
-      "Entertainment": 15.99,
-      "Shopping": 300.0
+      "Food & Dining": 146.3,
+      "Transportation": 42.75,
+      "Entertainment": 28.5,
+      "Shopping": 300.0,
+      "Housing": 850.0,
+      "Bills & Utilities": 89.99
     }
   }
 }

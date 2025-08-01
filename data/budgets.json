@@ -5,44 +5,44 @@
       "userId": "1",
       "category": "Food & Dining",
       "budgetAmount": 500.0,
-      "spentAmount": 499.7,
-      "remainingAmount": 0.3,
+      "spentAmount": 146.3,
+      "remainingAmount": 353.7,
       "period": "monthly",
-      "startDate": "2025-07-01",
-      "endDate": "2025-07-31"
+      "startDate": "2025-08-01",
+      "endDate": "2025-08-31"
     },
     {
       "id": "budget_002",
       "userId": "1",
       "category": "Transportation",
       "budgetAmount": 200.0,
-      "spentAmount": 35.0,
-      "remainingAmount": 165.0,
+      "spentAmount": 42.75,
+      "remainingAmount": 157.25,
       "period": "monthly",
-      "startDate": "2025-07-01",
-      "endDate": "2025-07-31"
+      "startDate": "2025-08-01",
+      "endDate": "2025-08-31"
     },
     {
       "id": "budget_003",
       "userId": "1",
       "category": "Entertainment",
       "budgetAmount": 150.0,
-      "spentAmount": 15.99,
-      "remainingAmount": 134.01,
+      "spentAmount": 28.5,
+      "remainingAmount": 121.5,
       "period": "monthly",
-      "startDate": "2025-07-01",
-      "endDate": "2025-07-31"
+      "startDate": "2025-08-01",
+      "endDate": "2025-08-31"
     },
     {
       "id": "budget_004",
       "userId": "1",
       "category": "Housing",
       "budgetAmount": 1300.0,
-      "spentAmount": 1200.0,
-      "remainingAmount": 100.0,
+      "spentAmount": 850.0,
+      "remainingAmount": 450.0,
       "period": "monthly",
-      "startDate": "2025-07-01",
-      "endDate": "2025-07-31"
+      "startDate": "2025-08-01",
+      "endDate": "2025-08-31"
     },
     {
       "id": "budget_005",
@@ -52,19 +52,19 @@
       "spentAmount": 300.0,
       "remainingAmount": -50.0,
       "period": "monthly",
-      "startDate": "2025-07-01",
-      "endDate": "2025-07-31"
+      "startDate": "2025-08-01",
+      "endDate": "2025-08-31"
     },
     {
       "id": "budget_006",
       "userId": "1",
       "category": "Bills & Utilities",
       "budgetAmount": 300.0,
-      "spentAmount": 0.0,
-      "remainingAmount": 300.0,
+      "spentAmount": 89.99,
+      "remainingAmount": 210.01,
       "period": "monthly",
-      "startDate": "2025-07-01",
-      "endDate": "2025-07-31"
+      "startDate": "2025-08-01",
+      "endDate": "2025-08-31"
     }
   ]
 }

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useFocusEffect } from "expo-router";
+import React, { useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../../components/nav";
@@ -31,6 +32,14 @@ import { formatCurrency, getCurrentUserGoals } from "../../lib/data";
 
 export default function Goals() {
   const goals = getCurrentUserGoals();
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Scroll to top when the tab is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    }, [])
+  );
 
   // Modal state
   const [addGoalOpen, setAddGoalOpen] = useState(false);
@@ -114,7 +123,7 @@ export default function Goals() {
     <SafeAreaView className="flex-1 bg-gray-50">
       <Nav />
 
-      <ScrollView className="flex-1">
+      <ScrollView ref={scrollViewRef} className="flex-1">
         <View className="px-6 py-6">
           <Text className="text-2xl font-bold text-gray-900 mb-1">
             Financial Goals
