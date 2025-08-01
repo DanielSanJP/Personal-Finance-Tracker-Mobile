@@ -1,6 +1,15 @@
 import * as React from "react";
-import { Modal, View, Text, TouchableOpacity, ScrollView } from "react-native";
+import {
+  Dimensions,
+  Modal,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { cn } from "../../lib/utils";
+
+const { height: screenHeight } = Dimensions.get("window");
 
 interface DialogProps {
   open?: boolean;
@@ -13,7 +22,9 @@ function Dialog({ open, onOpenChange, children }: DialogProps) {
     <Modal
       visible={open}
       transparent={true}
-      animationType="fade"
+      animationType="slide"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent={true}
       onRequestClose={() => onOpenChange?.(false)}
     >
       {children}
@@ -50,34 +61,50 @@ function DialogContent({
   ...props
 }: DialogContentProps) {
   return (
-    <TouchableOpacity
-      className="flex-1 bg-black/50 justify-center items-center p-4"
-      activeOpacity={1}
-      onPress={onClose}
+    <View
+      className="flex-1 bg-black/50 justify-center px-4"
+      style={{ paddingTop: 0 }}
     >
-      <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-        <View
-          className={cn(
-            "bg-background w-full max-w-lg rounded-lg border p-6 shadow-lg relative",
-            className
-          )}
+      <TouchableOpacity
+        className="absolute inset-0"
+        activeOpacity={1}
+        onPress={onClose}
+      />
+      <View
+        className={cn(
+          "bg-white rounded-2xl shadow-2xl border border-gray-200",
+          className
+        )}
+        style={{
+          maxHeight: screenHeight * 0.85,
+          minHeight: screenHeight * 0.3,
+        }}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            padding: 20,
+            paddingBottom: 20,
+          }}
           {...props}
         >
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {children}
-          </ScrollView>
+          {/* Drag indicator */}
+          <View className="w-10 h-1 bg-gray-300 rounded-full self-center mb-4" />
+
+          {children}
+
           {showCloseButton && (
             <TouchableOpacity
-              className="absolute top-4 right-4 w-6 h-6 rounded-sm opacity-70 items-center justify-center"
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 items-center justify-center z-10"
               onPress={onClose}
               activeOpacity={0.7}
             >
-              <Text className="text-muted-foreground text-lg">×</Text>
+              <Text className="text-gray-600 text-lg font-medium">×</Text>
             </TouchableOpacity>
           )}
-        </View>
-      </TouchableOpacity>
-    </TouchableOpacity>
+        </ScrollView>
+      </View>
+    </View>
   );
 }
 
@@ -89,10 +116,7 @@ interface DialogHeaderProps {
 function DialogHeader({ className, children, ...props }: DialogHeaderProps) {
   return (
     <View
-      className={cn(
-        "flex flex-col gap-2 text-center sm:text-left mb-4",
-        className
-      )}
+      className={cn("flex flex-col gap-1 text-left mb-4", className)}
       {...props}
     >
       {children}
@@ -109,7 +133,7 @@ function DialogFooter({ className, children, ...props }: DialogFooterProps) {
   return (
     <View
       className={cn(
-        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end mt-4",
+        "flex flex-col gap-3 mt-6 pt-4 border-t border-gray-100",
         className
       )}
       {...props}
@@ -128,7 +152,7 @@ function DialogTitle({ className, children, ...props }: DialogTitleProps) {
   return (
     <Text
       className={cn(
-        "text-lg leading-none font-semibold text-foreground",
+        "text-xl font-bold text-foreground leading-tight",
         className
       )}
       {...props}

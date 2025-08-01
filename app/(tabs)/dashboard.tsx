@@ -1,7 +1,14 @@
 import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../../components/nav";
+import { Button } from "../../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
 import {
   formatCurrency,
   getCurrentUser,
@@ -97,23 +104,36 @@ export default function Dashboard() {
           </View>
 
           {/* Quick Actions */}
-          <View className="mt-8">
-            <Text className="text-lg font-semibold text-gray-900 mb-4">
-              Quick Actions
-            </Text>
-            <View className="flex-row justify-between">
-              <TouchableOpacity className="bg-blue-500 rounded-lg p-4 flex-1 mr-2">
-                <Text className="text-white font-semibold text-center">
-                  Add Transaction
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity className="bg-green-500 rounded-lg p-4 flex-1 ml-2">
-                <Text className="text-white font-semibold text-center">
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <View className="flex-row flex-wrap gap-4 justify-center">
+                <Button
+                  variant="outline"
+                  onPress={() => console.log("Add Income pressed")}
+                  className="min-w-[110px] p-6"
+                >
                   Add Income
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+                </Button>
+                <Button
+                  variant="outline"
+                  onPress={() => console.log("Add Expense pressed")}
+                  className="min-w-[110px] p-6"
+                >
+                  Add Expense
+                </Button>
+                <Button
+                  variant="outline"
+                  onPress={() => console.log("Scan Receipt pressed")}
+                  className="min-w-[110px] p-6"
+                >
+                  Scan Receipt
+                </Button>
+              </View>
+            </CardContent>
+          </Card>
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { Text, View } from "react-native";
 import { cn } from "../../lib/utils";
 
 interface BadgeProps {
@@ -9,10 +9,17 @@ interface BadgeProps {
 }
 
 const badgeVariants = {
-  default: "bg-gray-900 text-gray-50 hover:bg-gray-900/80",
-  secondary: "bg-gray-100 text-gray-900 hover:bg-gray-100/80",
-  destructive: "bg-red-500 text-gray-50 hover:bg-red-500/80",
-  outline: "text-gray-950 border border-gray-200",
+  default: "bg-gray-900",
+  secondary: "bg-gray-100",
+  destructive: "bg-red-500",
+  outline: "bg-transparent border border-gray-200",
+};
+
+const badgeTextVariants = {
+  default: "text-white",
+  secondary: "text-gray-900",
+  destructive: "text-white",
+  outline: "text-gray-950",
 };
 
 export function Badge({
@@ -23,20 +30,12 @@ export function Badge({
   return (
     <View
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2",
+        "inline-flex items-center justify-center rounded-md w-fit px-3 py-1 border-0",
         badgeVariants[variant],
         className
       )}
     >
-      <Text
-        className={cn(
-          "text-xs font-semibold",
-          variant === "default" && "text-gray-50",
-          variant === "secondary" && "text-gray-900",
-          variant === "destructive" && "text-gray-50",
-          variant === "outline" && "text-gray-950"
-        )}
-      >
+      <Text className={cn("font-bold text-base", badgeTextVariants[variant])}>
         {children}
       </Text>
     </View>

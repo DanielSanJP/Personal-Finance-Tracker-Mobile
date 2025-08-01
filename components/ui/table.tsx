@@ -1,5 +1,5 @@
 import * as React from "react";
-import { View, Text, ScrollView } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { cn } from "../../lib/utils";
 
 interface TableProps {
@@ -11,7 +11,7 @@ function Table({ className, children, ...props }: TableProps) {
   return (
     <View className="relative w-full" {...props}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View className={cn("w-full", className)}>{children}</View>
+        <View className={cn("min-w-[460px]", className)}>{children}</View>
       </ScrollView>
     </View>
   );
@@ -69,6 +69,18 @@ interface TableRowProps {
 }
 
 function TableRow({ className, children, onPress, ...props }: TableRowProps) {
+  if (onPress) {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        className={cn("border-b border-border flex flex-row", className)}
+        {...props}
+      >
+        {children}
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <View
       className={cn("border-b border-border flex flex-row", className)}
@@ -138,11 +150,11 @@ function TableCaption({ className, children, ...props }: TableCaptionProps) {
 
 export {
   Table,
-  TableHeader,
   TableBody,
+  TableCaption,
+  TableCell,
   TableFooter,
   TableHead,
+  TableHeader,
   TableRow,
-  TableCell,
-  TableCaption,
 };

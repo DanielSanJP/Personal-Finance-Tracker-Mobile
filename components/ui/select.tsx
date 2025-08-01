@@ -1,5 +1,5 @@
 import * as React from "react";
-import { TouchableOpacity, View, Text, Modal, ScrollView } from "react-native";
+import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { cn } from "../../lib/utils";
 
 interface SelectProps {
@@ -50,8 +50,8 @@ function SelectTrigger({
   return (
     <TouchableOpacity
       className={cn(
-        "border-input flex w-full items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs",
-        size === "default" ? "h-9" : "h-8",
+        "border-gray-300 flex w-full items-center justify-start gap-2 rounded-lg border bg-white px-4 py-2 text-sm shadow-xs",
+        size === "default" ? "h-14" : "h-12",
         className
       )}
       onPress={() => setOpen(!open)}
@@ -59,7 +59,6 @@ function SelectTrigger({
       {...props}
     >
       {children}
-      <Text className="text-muted-foreground">▼</Text>
     </TouchableOpacity>
   );
 }
@@ -75,8 +74,8 @@ function SelectValue({ placeholder, className }: SelectValueProps) {
   return (
     <Text
       className={cn(
-        "text-sm",
-        value ? "text-foreground" : "text-muted-foreground",
+        "text-base",
+        value ? "text-gray-900" : "text-gray-500",
         className
       )}
     >
@@ -93,17 +92,22 @@ interface SelectContentProps {
 function SelectContent({ className, children, ...props }: SelectContentProps) {
   const { open, setOpen } = useSelect();
 
+  if (!open) return null;
+
   return (
     <Modal
       visible={open}
       transparent={true}
-      animationType="fade"
+      animationType="slide"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent={true}
       onRequestClose={() => setOpen(false)}
     >
       <TouchableOpacity
-        className="flex-1 bg-black/50 justify-center items-center p-4"
+        className="flex-1 bg-black/50 justify-end"
         activeOpacity={1}
         onPress={() => setOpen(false)}
+        style={{ paddingTop: 0 }}
       >
         <TouchableOpacity
           activeOpacity={1}
@@ -111,12 +115,17 @@ function SelectContent({ className, children, ...props }: SelectContentProps) {
         >
           <View
             className={cn(
-              "bg-popover text-popover-foreground min-w-32 max-h-80 rounded-md border shadow-md",
+              "bg-white rounded-t-2xl border-t border-gray-200 shadow-lg max-h-96",
               className
             )}
             {...props}
           >
-            <ScrollView className="p-1">{children}</ScrollView>
+            {/* Drag indicator */}
+            <View className="flex items-center py-3">
+              <View className="w-10 h-1 bg-gray-300 rounded-full" />
+            </View>
+
+            <ScrollView className="px-4 pb-6">{children}</ScrollView>
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
@@ -142,8 +151,8 @@ function SelectItem({ className, children, value, ...props }: SelectItemProps) {
   return (
     <TouchableOpacity
       className={cn(
-        "relative flex w-full items-center gap-2 rounded-sm py-1.5 pr-8 pl-2",
-        isSelected ? "bg-accent" : "hover:bg-accent",
+        "relative flex w-full items-center gap-3 rounded-lg py-4 px-3 min-h-[48px]",
+        isSelected ? "bg-gray-100" : "bg-white active:bg-gray-50",
         className
       )}
       onPress={handlePress}
@@ -152,15 +161,15 @@ function SelectItem({ className, children, value, ...props }: SelectItemProps) {
     >
       <Text
         className={cn(
-          "text-sm",
-          isSelected ? "text-accent-foreground" : "text-foreground"
+          "text-base flex-1",
+          isSelected ? "text-gray-900 font-medium" : "text-gray-700"
         )}
       >
         {children}
       </Text>
       {isSelected && (
-        <View className="absolute right-2 flex items-center justify-center">
-          <Text className="text-xs">✓</Text>
+        <View className="flex items-center justify-center">
+          <Text className="text-blue-600 text-lg font-bold">✓</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -189,7 +198,7 @@ interface SelectSeparatorProps {
 
 function SelectSeparator({ className, ...props }: SelectSeparatorProps) {
   return (
-    <View className={cn("bg-border -mx-1 my-1 h-px", className)} {...props} />
+    <View className={cn("bg-gray-200 mx-3 my-2 h-px", className)} {...props} />
   );
 }
 

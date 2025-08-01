@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { TouchableOpacity, View, Text } from "react-native";
 import { router } from "expo-router";
+import React, { useState } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -81,7 +81,7 @@ export function LoginForm({ className }: LoginFormProps) {
               />
             </View>
             <View className="flex gap-3">
-              <Button onPress={handleLogin} className="w-full">
+              <Button onPress={handleLogin} className="w-full" size="lg">
                 Login
               </Button>
               <View className="mt-4 text-center">
@@ -93,6 +93,7 @@ export function LoginForm({ className }: LoginFormProps) {
                 variant="outline"
                 onPress={handleContinueAsGuest}
                 className="w-full"
+                size="lg"
               >
                 Continue as Guest
               </Button>

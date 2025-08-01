@@ -1,44 +1,113 @@
-import React from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getCurrentUserGoals, formatCurrency } from "../../lib/data";
 import Nav from "../../components/nav";
+import { Button } from "../../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
+import { DatePicker } from "../../components/ui/date-picker";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import { formatCurrency, getCurrentUserGoals } from "../../lib/data";
 
 export default function Goals() {
   const goals = getCurrentUserGoals();
 
-  const getProgressPercentage = (current: number, target: number) => {
-    return Math.min((current / target) * 100, 100);
+  // Modal state
+  const [addGoalOpen, setAddGoalOpen] = useState(false);
+  const [editGoalsOpen, setEditGoalsOpen] = useState(false);
+  const [contributionOpen, setContributionOpen] = useState(false);
+
+  // Add Goal form state
+  const [goalName, setGoalName] = useState("");
+  const [targetAmount, setTargetAmount] = useState("");
+  const [currentAmount, setCurrentAmount] = useState("");
+  const [targetDate, setTargetDate] = useState<Date | undefined>(new Date());
+  const [priorityLevel, setPriorityLevel] = useState("");
+
+  // Contribution form state
+  const [selectedGoal, setSelectedGoal] = useState("");
+  const [contributionAmount, setContributionAmount] = useState("");
+  const [sourceAccount, setSourceAccount] = useState("");
+
+  // Reset form functions
+  const resetAddGoalForm = () => {
+    setGoalName("");
+    setTargetAmount("");
+    setCurrentAmount("");
+    setTargetDate(new Date());
+    setPriorityLevel("");
+  };
+
+  const resetContributionForm = () => {
+    setSelectedGoal("");
+    setContributionAmount("");
+    setSourceAccount("");
+  };
+
+  // Handle modal close with form reset
+  const handleAddGoalClose = () => {
+    setAddGoalOpen(false);
+    resetAddGoalForm();
+  };
+
+  const handleEditGoalsClose = () => {
+    setEditGoalsOpen(false);
+  };
+
+  const handleContributionClose = () => {
+    setContributionOpen(false);
+    resetContributionForm();
+  };
+
+  // Progress calculation function
+  const getProgressWidth = (current: number, target: number) => {
+    if (current === 0 || target === 0) return 0;
+    const percentage = Math.min((current / target) * 100, 100);
+    return percentage;
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
+    const day = date.getDate();
+    const month = date.toLocaleDateString("en-GB", { month: "short" });
+    const year = date.getFullYear();
 
-  const getDaysRemaining = (targetDate: string) => {
-    const target = new Date(targetDate);
-    const today = new Date();
-    const diffTime = target.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
+    // Add ordinal suffix to day
+    const getOrdinalSuffix = (day: number) => {
+      if (day > 3 && day < 21) return "th";
+      switch (day % 10) {
+        case 1:
+          return "st";
+        case 2:
+          return "nd";
+        case 3:
+          return "rd";
+        default:
+          return "th";
+      }
+    };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "bg-red-100 text-red-800";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800";
-      case "low":
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+    return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
   };
 
   return (
@@ -53,142 +122,339 @@ export default function Goals() {
           <Text className="text-gray-600 mb-6">
             {goals.length} active goals
           </Text>
-          {goals.map((goal) => {
-            const progressPercentage = getProgressPercentage(
-              goal.currentAmount,
-              goal.targetAmount
-            );
-            const daysRemaining = getDaysRemaining(goal.targetDate);
-            const isOverdue = daysRemaining < 0;
 
-            return (
-              <View
-                key={goal.id}
-                className="bg-white rounded-lg p-6 mb-4 shadow-sm border border-gray-100"
-              >
-                {/* Goal Header */}
-                <View className="flex-row justify-between items-start mb-4">
-                  <View className="flex-1">
-                    <Text className="text-lg font-semibold text-gray-900 mb-1">
-                      {goal.name}
-                    </Text>
-                    <Text className="text-sm text-gray-600 mb-2">
-                      {goal.category}
-                    </Text>
-                    <View
-                      className={`self-start px-2 py-1 rounded-full ${getPriorityColor(
-                        goal.priority
-                      )}`}
-                    >
-                      <Text className="text-xs font-medium capitalize">
-                        {goal.priority} Priority
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-center">
+                Savings Goals
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-8 p-4">
+              {goals.map((goal, index) => {
+                const progressWidth = getProgressWidth(
+                  goal.currentAmount,
+                  goal.targetAmount
+                );
+                const goalAchieved = goal.currentAmount >= goal.targetAmount;
+
+                return (
+                  <View key={goal.id}>
+                    <View className="space-y-4 py-4">
+                      <Text className="text-base font-medium">{goal.name}</Text>
+
+                      <Text className="text-base text-gray-600 py-2">
+                        {formatCurrency(goal.currentAmount)} /{" "}
+                        {formatCurrency(goal.targetAmount)}
                       </Text>
-                    </View>
-                  </View>
-                </View>
 
-                {/* Progress */}
-                <View className="mb-4">
-                  <View className="flex-row justify-between items-center mb-2">
-                    <Text className="text-sm font-medium text-gray-900">
-                      Progress
-                    </Text>
-                    <Text className="text-sm text-gray-600">
-                      {formatCurrency(goal.currentAmount)} /{" "}
-                      {formatCurrency(goal.targetAmount)}
-                    </Text>
-                  </View>
+                      <View className="w-full bg-gray-200 rounded-full h-2 overflow-hidden ">
+                        <View
+                          className={`h-2 rounded-full ${
+                            goalAchieved ? "bg-green-500" : "bg-gray-900"
+                          }`}
+                          style={{ width: `${progressWidth}%` }}
+                        />
+                      </View>
 
-                  <View className="w-full bg-gray-200 rounded-full h-3 mb-2">
-                    <View
-                      className="bg-blue-500 h-3 rounded-full"
-                      style={{ width: `${progressPercentage}%` }}
-                    />
-                  </View>
-
-                  <Text className="text-xs text-gray-500">
-                    {progressPercentage.toFixed(1)}% complete
-                  </Text>
-                </View>
-
-                {/* Target Date and Status */}
-                <View className="flex-row justify-between items-center">
-                  <View>
-                    <Text className="text-sm text-gray-600">Target Date</Text>
-                    <Text className="text-sm font-medium text-gray-900">
-                      {formatDate(goal.targetDate)}
-                    </Text>
-                  </View>
-                  <View className="items-end">
-                    <Text className="text-sm text-gray-600">
-                      Days Remaining
-                    </Text>
-                    <Text
-                      className={`text-sm font-medium ${
-                        isOverdue
-                          ? "text-red-600"
-                          : daysRemaining <= 30
-                          ? "text-orange-600"
-                          : "text-gray-900"
-                      }`}
-                    >
-                      {isOverdue
-                        ? `${Math.abs(daysRemaining)} days overdue`
-                        : `${daysRemaining} days`}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Amount Needed */}
-                {goal.currentAmount < goal.targetAmount && (
-                  <View className="mt-4 pt-4 border-t border-gray-100">
-                    <Text className="text-sm text-gray-600">
-                      Amount needed to reach goal
-                    </Text>
-                    <Text className="text-lg font-bold text-blue-600">
-                      {formatCurrency(goal.targetAmount - goal.currentAmount)}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Goal Achieved */}
-                {goal.currentAmount >= goal.targetAmount && (
-                  <View className="mt-4 pt-4 border-t border-gray-100">
-                    <View className="bg-green-50 border border-green-200 rounded-lg p-3 flex-row items-center">
-                      <Text className="text-green-800 font-medium">
-                        🎉 Goal Achieved!
+                      <Text className="text-sm text-gray-600 py-2">
+                        Target: {formatDate(goal.targetDate)}
                       </Text>
+
+                      {goalAchieved && (
+                        <Text className="text-sm text-green-600 font-medium py-2">
+                          🎉 Goal achieved!
+                        </Text>
+                      )}
                     </View>
+
+                    {index < goals.length - 1 && (
+                      <View className="mt-2 border-b border-gray-200" />
+                    )}
                   </View>
-                )}
+                );
+              })}
+
+              {/* Action Buttons */}
+              <View className="pt-4">
+                <View className="flex-row flex-wrap gap-4 justify-center">
+                  <Button
+                    variant="default"
+                    className="min-w-[130px]"
+                    onPress={() => setAddGoalOpen(true)}
+                  >
+                    Add New Goal
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="min-w-[130px]"
+                    onPress={() => setEditGoalsOpen(true)}
+                  >
+                    Edit Goals
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="min-w-[130px]"
+                    onPress={() => setContributionOpen(true)}
+                  >
+                    Make Contribution
+                  </Button>
+                </View>
               </View>
-            );
-          })}
 
-          {/* Add Goal Button */}
-          <TouchableOpacity className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-6 items-center justify-center">
-            <Text className="text-4xl text-gray-300 mb-2">+</Text>
-            <Text className="text-gray-600 font-medium">Add New Goal</Text>
-          </TouchableOpacity>
+              {/* Add Goal Modal */}
+              <Dialog
+                open={addGoalOpen}
+                onOpenChange={(open) => {
+                  if (!open) handleAddGoalClose();
+                  else setAddGoalOpen(true);
+                }}
+              >
+                <DialogContent onClose={handleAddGoalClose}>
+                  <DialogHeader>
+                    <DialogTitle>Add New Savings Goal</DialogTitle>
+                    <DialogDescription>
+                      Create a new savings goal with your target amount and
+                      timeline.
+                    </DialogDescription>
+                  </DialogHeader>
 
-          {/* Quick Actions */}
-          <View className="mt-8">
-            <Text className="text-lg font-semibold text-gray-900 mb-4">
-              Quick Actions
-            </Text>
-            <View className="flex-row justify-between">
-              <TouchableOpacity className="bg-blue-500 rounded-lg p-4 flex-1 mr-2">
-                <Text className="text-white font-semibold text-center">
-                  Update Progress
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity className="bg-green-500 rounded-lg p-4 flex-1 ml-2">
-                <Text className="text-white font-semibold text-center">
-                  View Reports
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+                  <View className="space-y-4 pb-4">
+                    <View className="space-y-2 py-2">
+                      <Label>Goal Name</Label>
+                      <Input
+                        placeholder="e.g., Emergency Fund, Vacation, New Car"
+                        value={goalName}
+                        onChangeText={setGoalName}
+                        className="w-full"
+                      />
+                    </View>
+
+                    <View className="space-y-2 py-2">
+                      <Label>Target Amount</Label>
+                      <Input
+                        placeholder="Enter target amount"
+                        value={targetAmount}
+                        onChangeText={setTargetAmount}
+                        keyboardType="decimal-pad"
+                        returnKeyType="done"
+                        blurOnSubmit={true}
+                        className="w-full"
+                      />
+                    </View>
+
+                    <View className="space-y-2 py-2">
+                      <Label>Current Amount (Optional)</Label>
+                      <Input
+                        placeholder="Enter current savings amount"
+                        value={currentAmount}
+                        onChangeText={setCurrentAmount}
+                        keyboardType="decimal-pad"
+                        returnKeyType="done"
+                        blurOnSubmit={true}
+                        className="w-full"
+                      />
+                    </View>
+
+                    <View className="space-y-2 py-2">
+                      <Label>Target Date</Label>
+                      <DatePicker
+                        date={targetDate}
+                        onDateChange={setTargetDate}
+                        placeholder="Select target date"
+                        className="w-full"
+                      />
+                    </View>
+
+                    <View className="space-y-2 py-2">
+                      <Label>Priority Level</Label>
+                      <Select
+                        value={priorityLevel}
+                        onValueChange={setPriorityLevel}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="High">High</SelectItem>
+                          <SelectItem value="Medium">Medium</SelectItem>
+                          <SelectItem value="Low">Low</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </View>
+                  </View>
+
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onPress={handleAddGoalClose}
+                      className="w-full"
+                    >
+                      Cancel
+                    </Button>
+                    <Button className="w-full mt-2">Create Goal</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Edit Goals Modal */}
+              <Dialog
+                open={editGoalsOpen}
+                onOpenChange={(open) => {
+                  if (!open) handleEditGoalsClose();
+                  else setEditGoalsOpen(true);
+                }}
+              >
+                <DialogContent onClose={handleEditGoalsClose}>
+                  <DialogHeader>
+                    <DialogTitle>Edit Goals</DialogTitle>
+                    <DialogDescription>
+                      Modify your existing goals and their details.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <View className="space-y-6">
+                    {goals.map((goal, index) => (
+                      <View
+                        key={goal.id}
+                        className={`space-y-3 p-4 border border-gray-200 rounded-lg bg-white ${
+                          index > 0 ? "mt-4" : ""
+                        }`}
+                      >
+                        <View className="space-y-2">
+                          <Label>Goal Name</Label>
+                          <Input defaultValue={goal.name} className="w-full" />
+                        </View>
+
+                        <View className="space-y-2">
+                          <Label>Target Amount</Label>
+                          <Input
+                            defaultValue={goal.targetAmount.toString()}
+                            keyboardType="decimal-pad"
+                            returnKeyType="done"
+                            blurOnSubmit={true}
+                            className="w-full"
+                          />
+                        </View>
+
+                        <View className="space-y-2">
+                          <Label>Target Date</Label>
+                          <DatePicker
+                            date={new Date(goal.targetDate)}
+                            onDateChange={(date) => {
+                              // You can add state management here when implementing save functionality
+                            }}
+                            placeholder="Select target date"
+                            className="w-full"
+                          />
+                        </View>
+
+                        <Text className="text-sm text-gray-600">
+                          Current amount: {formatCurrency(goal.currentAmount)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onPress={handleEditGoalsClose}
+                      className="w-full"
+                    >
+                      Cancel
+                    </Button>
+                    <Button className="w-full mt-2">Save Changes</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Make Contribution Modal */}
+              <Dialog
+                open={contributionOpen}
+                onOpenChange={(open) => {
+                  if (!open) handleContributionClose();
+                  else setContributionOpen(true);
+                }}
+              >
+                <DialogContent onClose={handleContributionClose}>
+                  <DialogHeader>
+                    <DialogTitle>Make Contribution</DialogTitle>
+                    <DialogDescription>
+                      Add money to one of your savings goals.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <View className="space-y-4">
+                    <View className="space-y-2">
+                      <Label>Select Goal</Label>
+                      <Select
+                        value={selectedGoal}
+                        onValueChange={setSelectedGoal}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Choose a goal" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {goals.map((goal) => (
+                            <SelectItem key={goal.id} value={goal.name}>
+                              {goal.name} ({formatCurrency(goal.currentAmount)}{" "}
+                              / {formatCurrency(goal.targetAmount)})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </View>
+
+                    <View className="space-y-2">
+                      <Label>Contribution Amount</Label>
+                      <Input
+                        placeholder="Enter amount to contribute"
+                        value={contributionAmount}
+                        onChangeText={setContributionAmount}
+                        keyboardType="decimal-pad"
+                        returnKeyType="done"
+                        blurOnSubmit={true}
+                        className="w-full"
+                      />
+                    </View>
+
+                    <View className="space-y-2">
+                      <Label>Source Account</Label>
+                      <Select
+                        value={sourceAccount}
+                        onValueChange={setSourceAccount}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select account" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Checking Account">
+                            Checking Account
+                          </SelectItem>
+                          <SelectItem value="Savings Account">
+                            Savings Account
+                          </SelectItem>
+                          <SelectItem value="Cash">Cash</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </View>
+                  </View>
+
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onPress={handleContributionClose}
+                      className="w-full"
+                    >
+                      Cancel
+                    </Button>
+                    <Button className="w-full mt-2">Add Contribution</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardContent>
+          </Card>
         </View>
       </ScrollView>
     </SafeAreaView>

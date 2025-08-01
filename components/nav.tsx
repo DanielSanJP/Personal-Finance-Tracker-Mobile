@@ -3,6 +3,7 @@ import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getCurrentUser } from "../lib/data";
+import Breadcrumbs from "./breadcrumbs";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -39,80 +40,88 @@ export default function Nav() {
   const isActiveTab = (path: string) => pathname === path;
 
   return (
-    <>
+    <View className="bg-white">
       {/* Main Navigation */}
-      <SafeAreaView edges={["top"]} className="bg-white">
-        <View className="bg-white">
-          <View className="w-full px-6 border-b border-gray-200">
-            <View className="flex-row justify-between items-center h-16">
-              {/* Logo and Title */}
-              <View className="flex-row items-center flex-1">
-                <TouchableOpacity
-                  onPress={() => router.push("/")}
-                  className="flex-row items-center"
-                  style={{ alignItems: "center" }}
+      <SafeAreaView edges={[]} className="bg-white">
+        <View className="w-full px-4 sm:px-6 border-b border-gray-200">
+          <View className="flex-row justify-between items-center h-14 sm:h-16">
+            {/* Logo and Title */}
+            <View className="flex-row items-center flex-1">
+              <TouchableOpacity
+                onPress={() => router.push("/")}
+                className="flex-row items-center"
+                style={{ alignItems: "center" }}
+              >
+                <View
+                  style={{ width: 24, height: 24, marginRight: 8 }}
+                  className="sm:w-8 sm:h-8 sm:mr-3"
                 >
-                  <View style={{ width: 32, height: 32, marginRight: 12 }}>
-                    <Logo width={32} height={32} />
-                  </View>
-                  <Text className="text-lg font-bold text-gray-900">
-                    Personal Finance Tracker
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Navigation Actions */}
-              {!showDashboardTabs && (
-                <View className="flex-row flex-wrap items-center gap-2">
-                  <Link href="/login" asChild>
-                    <Button variant="default">Login</Button>
-                  </Link>
+                  <Logo width={24} height={24} />
                 </View>
-              )}
-
-              {showDashboardTabs && (
-                <View className="flex-row items-center gap-3">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <TouchableOpacity className="flex-row items-center gap-3 hover:bg-gray-100 rounded-lg p-2">
-                        <View className="w-8 h-8 rounded-full bg-gray-300 items-center justify-center">
-                          <Text className="text-sm font-medium text-gray-600">
-                            {user.initials}
-                          </Text>
-                        </View>
-                        <Text className="text-sm text-gray-600">
-                          {user.displayName}
-                        </Text>
-                      </TouchableOpacity>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onPress={() => router.push("/dashboard")}
-                      >
-                        Dashboard
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onPress={() => router.push("/transactions")}
-                      >
-                        Transactions
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onPress={() => router.push("/budgets")}>
-                        Budgets
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onPress={() => router.push("/goals")}>
-                        Goals
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onPress={() => router.push("/login")}>
-                        Sign out
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </View>
-              )}
+                <Text
+                  className="text-sm sm:text-lg font-bold text-gray-900 flex-shrink"
+                  numberOfLines={1}
+                >
+                  Personal Finance Tracker
+                </Text>
+              </TouchableOpacity>
             </View>
+
+            {/* Navigation Actions */}
+            {!showDashboardTabs && (
+              <View className="flex-row flex-wrap items-center gap-2">
+                <Link href="/login" asChild>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="sm:size-default"
+                  >
+                    Login
+                  </Button>
+                </Link>
+              </View>
+            )}
+
+            {showDashboardTabs && (
+              <View className="flex-row items-center gap-2 sm:gap-3">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <TouchableOpacity className="flex-row items-center gap-2 hover:bg-gray-100 rounded-lg p-2">
+                      <View className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-300 items-center justify-center">
+                        <Text className="text-xs sm:text-sm font-medium text-gray-600">
+                          {user.initials}
+                        </Text>
+                      </View>
+                      <Text className="text-xs sm:text-sm text-gray-600 hidden sm:block">
+                        {user.displayName}
+                      </Text>
+                    </TouchableOpacity>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onPress={() => router.push("/dashboard")}>
+                      Dashboard
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onPress={() => router.push("/transactions")}
+                    >
+                      Transactions
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onPress={() => router.push("/budgets")}>
+                      Budgets
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onPress={() => router.push("/goals")}>
+                      Goals
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onPress={() => router.push("/login")}>
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </View>
+            )}
           </View>
         </View>
       </SafeAreaView>
@@ -120,22 +129,23 @@ export default function Nav() {
       {/* Dashboard Navigation Tabs */}
       {showDashboardTabs && (
         <View className="bg-zinc-100 border-b border-gray-200">
-          <View className="w-full px-6 py-2">
-            <View className="flex-row justify-evenly gap-3">
+          <View className="w-full px-4 sm:px-6 py-2">
+            <View className="flex-row justify-evenly gap-1 sm:gap-3">
               {navigationItems.map((item) => (
                 <TouchableOpacity
                   key={item.href}
                   onPress={() => router.push(item.href as any)}
-                  className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center ${
+                  className={`flex-1 py-2 sm:py-3 px-2 sm:px-4 rounded-lg flex items-center justify-center ${
                     isActiveTab(item.href)
                       ? "bg-white text-black border border-gray-200"
                       : "bg-transparent"
                   }`}
                 >
                   <Text
-                    className={`text-sm font-medium ${
+                    className={`text-xs sm:text-sm font-medium ${
                       isActiveTab(item.href) ? "text-black" : "text-zinc-500"
                     }`}
+                    numberOfLines={1}
                   >
                     {item.label}
                   </Text>
@@ -145,6 +155,15 @@ export default function Nav() {
           </View>
         </View>
       )}
-    </>
+
+      {/* Breadcrumbs */}
+      {showDashboardTabs && (
+        <View className="bg-gray-50 border-b border-gray-200">
+          <View className="w-full px-4 sm:px-6 py-3">
+            <Breadcrumbs />
+          </View>
+        </View>
+      )}
+    </View>
   );
 }

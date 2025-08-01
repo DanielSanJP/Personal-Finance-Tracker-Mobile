@@ -14,6 +14,7 @@ export * from "./input";
 export * from "./label";
 export { default as Logo } from "./logo";
 export * from "./menubar";
+export * from "./mobile-dropdown";
 export * from "./popover";
 export * from "./progress";
 export * from "./select";
@@ -22,3 +23,4 @@ export * from "./sonner";
 export * from "./table";
 export * from "./tabs";
 export * from "./tooltip";
+

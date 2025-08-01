@@ -1,12 +1,12 @@
-import * as React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
 import { cva, type VariantProps } from "class-variance-authority";
+import * as React from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 import { cn } from "../../lib/utils";
 
-const calendarVariants = cva("bg-background p-3 w-full", {
+const calendarVariants = cva("bg-white p-4 w-full rounded-lg", {
   variants: {
     variant: {
-      default: "bg-card",
+      default: "bg-white",
       ghost: "bg-transparent",
     },
   },
@@ -30,7 +30,14 @@ function Calendar({
   mode = "single",
   ...props
 }: CalendarProps) {
-  const [currentDate, setCurrentDate] = React.useState(new Date());
+  const [currentDate, setCurrentDate] = React.useState(selected || new Date());
+
+  // Update currentDate when selected prop changes
+  React.useEffect(() => {
+    if (selected) {
+      setCurrentDate(selected);
+    }
+  }, [selected]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -70,7 +77,7 @@ function Calendar({
 
     // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDayOfWeek; i++) {
-      days.push(<View key={`empty-${i}`} className="w-10 h-10" />);
+      days.push(<View key={`empty-${i}`} className="w-10 h-10 m-1" />);
     }
 
     // Days of the month
@@ -83,18 +90,16 @@ function Calendar({
         <TouchableOpacity
           key={day}
           className={cn(
-            "w-10 h-10 rounded-md flex items-center justify-center",
-            isSelected ? "bg-primary" : "hover:bg-accent"
+            "w-10 h-10 rounded-lg flex items-center justify-center m-1",
+            isSelected ? "bg-blue-600" : "bg-transparent active:bg-gray-100"
           )}
           onPress={() => onSelect?.(date)}
           activeOpacity={0.7}
         >
           <Text
             className={cn(
-              "text-sm",
-              isSelected
-                ? "text-primary-foreground font-medium"
-                : "text-card-foreground"
+              "text-base font-medium",
+              isSelected ? "text-white" : "text-gray-900"
             )}
           >
             {day}
@@ -109,35 +114,36 @@ function Calendar({
   return (
     <View className={cn(calendarVariants({ variant }), className)} {...props}>
       {/* Header */}
-      <View className="flex flex-row items-center justify-between mb-4">
+      <View className="flex flex-row items-center justify-between mb-6">
         <TouchableOpacity
           onPress={goToPreviousMonth}
-          className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-accent"
+          className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100"
           activeOpacity={0.7}
         >
-          <Text className="text-card-foreground">‹</Text>
+          <Text className="text-gray-900 text-lg font-bold">‹</Text>
         </TouchableOpacity>
 
-        <Text className="text-sm font-medium text-card-foreground">
+        <Text className="text-lg font-semibold text-gray-900">
           {monthNames[month]} {year}
         </Text>
 
         <TouchableOpacity
           onPress={goToNextMonth}
-          className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-accent"
+          className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100"
           activeOpacity={0.7}
         >
-          <Text className="text-card-foreground">›</Text>
+          <Text className="text-gray-900 text-lg font-bold">›</Text>
         </TouchableOpacity>
       </View>
 
       {/* Week day headers */}
-      <View className="flex flex-row mb-2">
+      <View className="flex flex-row mb-4">
         {weekDays.map((day) => (
-          <View key={day} className="w-10 h-8 flex items-center justify-center">
-            <Text className="text-xs text-muted-foreground font-normal">
-              {day}
-            </Text>
+          <View
+            key={day}
+            className="w-10 h-8 flex items-center justify-center mx-1"
+          >
+            <Text className="text-sm text-gray-600 font-semibold">{day}</Text>
           </View>
         ))}
       </View>

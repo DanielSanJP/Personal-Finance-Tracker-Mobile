@@ -1,7 +1,16 @@
+import DateTimePicker from "@react-native-community/datetimepicker";
 import * as React from "react";
-import { TouchableOpacity, Text, Modal, View } from "react-native";
+import { Platform, Text, TouchableOpacity, View } from "react-native";
 import { cn } from "../../lib/utils";
+import { Button } from "./button";
 import { Calendar } from "./calendar";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./dialog";
 
 interface DatePickerProps {
   date?: Date;
@@ -13,78 +22,117 @@ interface DatePickerProps {
 export function DatePicker({
   date,
   onDateChange,
-  placeholder = "dd/mm/yyyy",
+  placeholder = "Select target date",
   className,
 }: DatePickerProps) {
-  const [open, setOpen] = React.useState(false);
+  const [showDialog, setShowDialog] = React.useState(false);
+  const [showNativePicker, setShowNativePicker] = React.useState(false);
+  const [tempDate, setTempDate] = React.useState(date || new Date());
 
-  const handleDateSelect = (selectedDate: Date) => {
-    onDateChange?.(selectedDate);
-    setOpen(false);
+  // Update tempDate when date prop changes
+  React.useEffect(() => {
+    if (date) {
+      setTempDate(date);
+    }
+  }, [date]);
+
+  const handleNativeDateChange = (event: any, selectedDate?: Date) => {
+    setShowNativePicker(false);
+    if (selectedDate && event.type === "set") {
+      onDateChange?.(selectedDate);
+    }
+  };
+
+  const handleCalendarSelect = (selectedDate: Date) => {
+    setTempDate(selectedDate);
+  };
+
+  const handleConfirm = () => {
+    onDateChange?.(tempDate);
+    setShowDialog(false);
+  };
+
+  const openDatePicker = () => {
+    if (Platform.OS === "android") {
+      setShowNativePicker(true);
+    } else {
+      // Ensure tempDate is current when opening dialog
+      setTempDate(date || new Date());
+      setShowDialog(true);
+    }
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-GB");
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   return (
     <>
       <TouchableOpacity
         className={cn(
-          "w-full justify-between font-normal h-10 px-4 py-3 border border-input rounded-lg bg-background",
+          "w-full justify-between font-normal h-12 px-4 py-3 border border-gray-300 rounded-lg bg-white",
           !date && "text-muted-foreground",
           className
         )}
-        onPress={() => setOpen(true)}
+        onPress={openDatePicker}
         activeOpacity={0.7}
       >
         <View className="flex flex-row items-center justify-between w-full">
           <Text
             className={cn(
-              "text-sm",
-              date ? "text-foreground" : "text-muted-foreground"
+              "text-base",
+              date ? "text-gray-900" : "text-gray-500"
             )}
           >
             {date ? formatDate(date) : placeholder}
           </Text>
-          <Text className="text-muted-foreground">📅</Text>
+          <Text className="text-gray-500 text-lg">📅</Text>
         </View>
       </TouchableOpacity>
 
-      <Modal
-        visible={open}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
-      >
-        <TouchableOpacity
-          className="flex-1 bg-black/50 justify-center items-center p-4"
-          activeOpacity={1}
-          onPress={() => setOpen(false)}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View className="bg-background rounded-lg p-4 shadow-lg max-w-sm w-full">
-              <Calendar
-                selected={date}
-                onSelect={handleDateSelect}
-                mode="single"
-              />
-              <TouchableOpacity
-                className="mt-4 bg-secondary rounded-md p-2"
-                onPress={() => setOpen(false)}
-                activeOpacity={0.7}
-              >
-                <Text className="text-secondary-foreground text-center text-sm">
-                  Close
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+      {/* Android Native DatePicker */}
+      {showNativePicker && Platform.OS === "android" && (
+        <DateTimePicker
+          value={date || new Date()}
+          mode="date"
+          display="default"
+          onChange={handleNativeDateChange}
+        />
+      )}
+
+      {/* iOS/Custom Calendar Dialog */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent onClose={() => setShowDialog(false)}>
+          <DialogHeader>
+            <DialogTitle>Select Date</DialogTitle>
+          </DialogHeader>
+
+          <View className="py-4">
+            <Calendar
+              selected={tempDate}
+              onSelect={handleCalendarSelect}
+              mode="single"
+            />
+          </View>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onPress={() => setShowDialog(false)}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+            <Button onPress={handleConfirm} className="w-full mt-2">
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

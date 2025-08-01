@@ -6,64 +6,78 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Exact colors from web app globals.css (:root)
-        border: "oklch(0.922 0 0)",
-        input: "oklch(0.922 0 0)",
-        ring: "oklch(0.708 0 0)",
-        background: "oklch(1 0 0)",
-        foreground: "oklch(0.145 0 0)",
+        // Exact colors from Next.js app using CSS variables
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
         primary: {
-          DEFAULT: "oklch(0.205 0 0)",
-          foreground: "oklch(0.985 0 0)",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
         },
         secondary: {
-          DEFAULT: "oklch(0.97 0 0)",
-          foreground: "oklch(0.205 0 0)",
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
         },
         destructive: {
-          DEFAULT: "oklch(0.577 0.245 27.325)",
-          foreground: "oklch(0.985 0 0)",
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
         },
         muted: {
-          DEFAULT: "oklch(0.97 0 0)",
-          foreground: "oklch(0.556 0 0)",
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
         },
         accent: {
-          DEFAULT: "oklch(0.97 0 0)",
-          foreground: "oklch(0.205 0 0)",
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
         },
         popover: {
-          DEFAULT: "oklch(1 0 0)",
-          foreground: "oklch(0.145 0 0)",
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
         },
         card: {
-          DEFAULT: "oklch(1 0 0)",
-          foreground: "oklch(0.145 0 0)",
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
         },
-        // Chart colors from web app
+        // Chart colors from Next.js app
         chart: {
-          1: "oklch(0.646 0.222 41.116)",
-          2: "oklch(0.6 0.118 184.704)",
-          3: "oklch(0.398 0.07 227.392)",
-          4: "oklch(0.828 0.189 84.429)",
-          5: "oklch(0.769 0.188 70.08)",
+          1: "var(--chart-1)",
+          2: "var(--chart-2)",
+          3: "var(--chart-3)",
+          4: "var(--chart-4)",
+          5: "var(--chart-5)",
         },
-        // Sidebar colors from web app
+        // Sidebar colors from Next.js app
         sidebar: {
-          DEFAULT: "oklch(0.985 0 0)",
-          foreground: "oklch(0.145 0 0)",
-          primary: "oklch(0.205 0 0)",
-          "primary-foreground": "oklch(0.985 0 0)",
-          accent: "oklch(0.97 0 0)",
-          "accent-foreground": "oklch(0.205 0 0)",
-          border: "oklch(0.922 0 0)",
-          ring: "oklch(0.708 0 0)",
+          DEFAULT: "var(--sidebar)",
+          foreground: "var(--sidebar-foreground)",
+          primary: "var(--sidebar-primary)",
+          "primary-foreground": "var(--sidebar-primary-foreground)",
+          accent: "var(--sidebar-accent)",
+          "accent-foreground": "var(--sidebar-accent-foreground)",
+          border: "var(--sidebar-border)",
+          ring: "var(--sidebar-ring)",
         },
       },
       borderRadius: {
-        lg: "0.625rem",
-        md: "calc(0.625rem - 2px)",
-        sm: "calc(0.625rem - 4px)",
+        lg: "10px", // var(--radius) = 0.625rem = 10px
+        md: "8px", // calc(var(--radius) - 2px) = 8px
+        sm: "6px", // calc(var(--radius) - 4px) = 6px
+      },
+      fontSize: {
+        sm: "14px",
+        base: "16px",
+        lg: "18px",
+        xl: "20px",
+      },
+      spacing: {
+        1: "4px",
+        2: "8px",
+        3: "12px",
+        4: "16px",
+        6: "24px",
+        8: "32px",
       },
     },
   },
