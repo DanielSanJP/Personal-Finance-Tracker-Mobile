@@ -1,4 +1,4 @@
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -60,6 +60,7 @@ interface Transaction {
 }
 
 export default function Transactions() {
+  const router = useRouter();
   const transactions = getCurrentUserTransactions();
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedPeriod, setSelectedPeriod] = useState("This Month");
@@ -483,7 +484,11 @@ export default function Transactions() {
               {/* Action Buttons */}
               <View className="pt-8">
                 <View className="flex-row flex-wrap gap-4 justify-center">
-                  <Button variant="default" className="min-w-[150px]">
+                  <Button
+                    variant="default"
+                    className="min-w-[150px]"
+                    onPress={() => router.push("/addtransaction")}
+                  >
                     Add Transaction
                   </Button>
                   <Button

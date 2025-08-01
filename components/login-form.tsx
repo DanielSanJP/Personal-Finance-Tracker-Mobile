@@ -81,7 +81,12 @@ export function LoginForm({ className }: LoginFormProps) {
               />
             </View>
             <View className="flex gap-3">
-              <Button onPress={handleLogin} className="w-full" size="lg">
+              <Button
+                variant="default"
+                onPress={handleLogin}
+                className="w-full"
+                size="lg"
+              >
                 Login
               </Button>
               <View className="mt-4 text-center">

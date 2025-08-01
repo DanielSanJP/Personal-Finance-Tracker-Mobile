@@ -27,6 +27,8 @@ export default function Nav() {
       pathname === "/transactions" ||
       pathname === "/budgets" ||
       pathname === "/goals" ||
+      pathname === "/addtransaction" ||
+      pathname === "/addincome" ||
       pathname?.startsWith("/(tabs)"));
 
   const navigationItems = [

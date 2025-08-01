@@ -1,14 +1,14 @@
 {
   "summary": {
     "userId": "1",
-    "totalBalance": 142.91,
-    "monthlyChange": 142.91,
+    "totalBalance": 1541.77,
+    "monthlyChange": 142.46,
     "monthlyIncome": 1600.0,
-    "monthlyExpenses": 1457.09,
-    "budgetRemaining": 142.91,
+    "monthlyExpenses": 1457.54,
+    "budgetRemaining": 1242.46,
     "lastUpdated": "2025-08-01",
     "accountBreakdown": {
-      "checking": -257.09,
+      "checking": 1141.77,
       "savings": 400.0
     },
     "categorySpending": {

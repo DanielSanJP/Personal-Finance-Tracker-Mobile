@@ -46,7 +46,7 @@ const processChartData = () => {
 
     chartData.push({
       month: monthName,
-      spending: Math.round(monthlyExpenses),
+      spending: monthlyExpenses, // Remove Math.round to preserve exact values
       index: i,
     });
   }
@@ -133,7 +133,7 @@ const SpendingLineChart = ({
   for (let i = 0; i <= labelCount; i++) {
     const value = minSpending + (maxSpending - minSpending) * (i / labelCount);
     const y = padding + chartHeight - (i / labelCount) * chartHeight;
-    yAxisLabels.push({ value: Math.round(value), y });
+    yAxisLabels.push({ value: value.toFixed(2), y }); // Use toFixed(2) for precise decimal display
   }
 
   return (
@@ -202,6 +202,26 @@ export function SpendingChart() {
   const chartData = processChartData();
   const [selectedPoint, setSelectedPoint] = useState<any>(null);
 
+  // Get current month spending for header
+  const currentMonthSpending = chartData[chartData.length - 1]?.spending || 0;
+  const getCurrentMonthName = () => {
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    return months[new Date().getMonth()];
+  };
+
   // Handle point press
   const handlePointPress = (point: any) => {
     setSelectedPoint(point);
@@ -209,7 +229,7 @@ export function SpendingChart() {
     setTimeout(() => setSelectedPoint(null), 3000);
   };
 
-  // Calculate trend
+  // Calculate trend - use exact values without rounding
   const currentMonth = chartData[chartData.length - 1]?.spending || 0;
   const previousMonth = chartData[chartData.length - 2]?.spending || 0;
 
@@ -230,12 +250,25 @@ export function SpendingChart() {
   return (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold text-gray-900">
-          Monthly Spending
-        </CardTitle>
-        <Text className="text-sm text-gray-600">
-          January - {chartData[chartData.length - 1]?.month || "December"} 2025
-        </Text>
+        <View className="flex-row justify-between items-center">
+          <View className="flex-1">
+            <CardTitle className="text-base font-medium text-gray-900">
+              Monthly Spending
+            </CardTitle>
+            <Text className="text-xs text-gray-600">
+              January - {chartData[chartData.length - 1]?.month || "December"}{" "}
+              2025
+            </Text>
+          </View>
+          <View className="items-end flex-shrink-0">
+            <Text className="text-sm font-medium text-gray-900">
+              {formatCurrency(currentMonthSpending)}
+            </Text>
+            <Text className="text-xs text-gray-600">
+              ({getCurrentMonthName()})
+            </Text>
+          </View>
+        </View>
       </CardHeader>
       <CardContent className="px-4">
         <View className="relative">

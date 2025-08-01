@@ -1,4 +1,4 @@
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useRef } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,6 +19,7 @@ import {
 } from "../../lib/data";
 
 export default function Dashboard() {
+  const router = useRouter();
   const accounts = getCurrentUserAccounts();
   const summary = getCurrentUserSummary();
   const user = getCurrentUser();
@@ -66,18 +67,23 @@ export default function Dashboard() {
 
           <View className="flex-row justify-between mb-6">
             <View className="bg-white rounded-lg p-4 flex-1 mr-3 shadow-sm border border-gray-100">
-              <Text className="text-xs text-gray-600 font-medium mb-1">
+              <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
                 Account Balance
               </Text>
-              <Text className="text-lg font-bold text-gray-900">
+              <Text className="text-lg font-bold text-gray-900 text-center">
                 {formatCurrency(summary.totalBalance)}
               </Text>
             </View>
             <View className="bg-white rounded-lg p-4 flex-1 ml-3 shadow-sm border border-gray-100">
-              <Text className="text-xs text-gray-600 font-medium mb-1">
+              <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
                 This Month ({getCurrentMonthName()})
               </Text>
-              <Text className="text-lg font-bold text-red-600">
+              <Text
+                className={`text-lg font-bold text-center ${
+                  summary.monthlyChange >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
+                {summary.monthlyChange >= 0 ? "+" : ""}
                 {formatCurrency(summary.monthlyChange)}
               </Text>
             </View>
@@ -85,18 +91,18 @@ export default function Dashboard() {
 
           <View className="flex-row justify-between mb-8">
             <View className="bg-white rounded-lg p-4 flex-1 mr-3 shadow-sm border border-gray-100">
-              <Text className="text-xs text-gray-600 font-medium mb-1">
+              <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
                 Income ({getCurrentMonthName()})
               </Text>
-              <Text className="text-lg font-bold text-green-600">
+              <Text className="text-lg font-bold text-green-600 text-center">
                 +{formatCurrency(summary.monthlyIncome)}
               </Text>
             </View>
             <View className="bg-white rounded-lg p-4 flex-1 ml-3 shadow-sm border border-gray-100">
-              <Text className="text-xs text-gray-600 font-medium mb-1">
-                Budget Remaining
+              <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
+                Budget Remaining ({getCurrentMonthName()})
               </Text>
-              <Text className="text-lg font-bold text-gray-900">
+              <Text className="text-lg font-bold text-gray-900 text-center">
                 {formatCurrency(summary.budgetRemaining)}
               </Text>
             </View>
@@ -134,14 +140,14 @@ export default function Dashboard() {
               <View className="flex-row flex-wrap gap-4 justify-center">
                 <Button
                   variant="outline"
-                  onPress={() => console.log("Add Income pressed")}
+                  onPress={() => router.push("/addincome")}
                   className="min-w-[110px] p-6"
                 >
                   Add Income
                 </Button>
                 <Button
                   variant="outline"
-                  onPress={() => console.log("Add Expense pressed")}
+                  onPress={() => router.push("/addtransaction")}
                   className="min-w-[110px] p-6"
                 >
                   Add Expense

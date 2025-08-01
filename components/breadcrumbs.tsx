@@ -21,6 +21,8 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
     "/transactions": "Transactions",
     "/budgets": "Budgets",
     "/goals": "Goals",
+    "/addtransaction": "Add",
+    "/addincome": "Add",
   };
 
   // Build breadcrumb items
@@ -34,8 +36,34 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
     isCurrentPage: isDashboard,
   });
 
-  // Add current page if not dashboard
-  if (!isDashboard && routeMap[pathname]) {
+  // Handle special add transaction route: dashboard/transactions/add
+  if (pathname === "/addtransaction") {
+    breadcrumbItems.push({
+      label: "Transactions",
+      href: "/transactions",
+      isCurrentPage: false,
+    });
+    breadcrumbItems.push({
+      label: "Add",
+      href: "/addtransaction",
+      isCurrentPage: true,
+    });
+  }
+  // Handle special add income route: dashboard/income/add
+  else if (pathname === "/addincome") {
+    breadcrumbItems.push({
+      label: "Income",
+      href: "/transactions", // Link back to transactions since there's no separate income page
+      isCurrentPage: false,
+    });
+    breadcrumbItems.push({
+      label: "Add",
+      href: "/addincome",
+      isCurrentPage: true,
+    });
+  }
+  // Add current page if not dashboard and not special add routes
+  else if (!isDashboard && routeMap[pathname]) {
     breadcrumbItems.push({
       label: routeMap[pathname],
       href: pathname,
