@@ -74,10 +74,11 @@ function Calendar({
 
   const renderDays = () => {
     const days = [];
+    const totalCells = 42; // 6 rows × 7 days = 42 cells
 
     // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDayOfWeek; i++) {
-      days.push(<View key={`empty-${i}`} className="w-10 h-10 m-1" />);
+      days.push(<View key={`empty-start-${i}`} className="w-10 h-10 m-1" />);
     }
 
     // Days of the month
@@ -106,6 +107,12 @@ function Calendar({
           </Text>
         </TouchableOpacity>
       );
+    }
+
+    // Fill remaining cells to ensure complete rows
+    const remainingCells = totalCells - days.length;
+    for (let i = 0; i < remainingCells; i++) {
+      days.push(<View key={`empty-end-${i}`} className="w-10 h-10 m-1" />);
     }
 
     return days;
@@ -149,7 +156,14 @@ function Calendar({
       </View>
 
       {/* Calendar grid */}
-      <View className="flex flex-row flex-wrap">{renderDays()}</View>
+      <View className="flex flex-col">
+        {/* Render days in rows of 7 */}
+        {Array.from({ length: 6 }, (_, rowIndex) => (
+          <View key={rowIndex} className="flex flex-row">
+            {renderDays().slice(rowIndex * 7, (rowIndex + 1) * 7)}
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
