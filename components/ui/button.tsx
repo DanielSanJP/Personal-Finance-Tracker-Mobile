@@ -1,6 +1,12 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
-import { Text, TextStyle, TouchableOpacity, ViewStyle } from "react-native";
+import {
+  Platform,
+  Text,
+  TextStyle,
+  TouchableOpacity,
+  ViewStyle,
+} from "react-native";
 import { cn } from "../../lib/utils";
 
 const buttonVariants = cva(
@@ -76,11 +82,15 @@ function Button({
         return {
           ...baseStyle,
           backgroundColor: "#1a1a1a", // var(--primary) from CSS
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 1,
-          elevation: 1,
+          ...(Platform.OS === "web"
+            ? { boxShadow: "0 1px 1px rgba(0, 0, 0, 0.05)" }
+            : {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 1,
+                elevation: 1,
+              }),
         };
       case "outline":
         return {
@@ -88,21 +98,29 @@ function Button({
           backgroundColor: "#ffffff", // var(--background) from CSS
           borderWidth: 1,
           borderColor: "#ebebeb", // var(--input) from CSS
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 1,
-          elevation: 1,
+          ...(Platform.OS === "web"
+            ? { boxShadow: "0 1px 1px rgba(0, 0, 0, 0.05)" }
+            : {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 1,
+                elevation: 1,
+              }),
         };
       case "secondary":
         return {
           ...baseStyle,
           backgroundColor: "#f7f7f7", // var(--secondary) from CSS
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 1,
-          elevation: 1,
+          ...(Platform.OS === "web"
+            ? { boxShadow: "0 1px 1px rgba(0, 0, 0, 0.05)" }
+            : {
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 1,
+                elevation: 1,
+              }),
         };
       default:
         return baseStyle;

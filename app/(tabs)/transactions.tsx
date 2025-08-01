@@ -479,7 +479,7 @@ export default function Transactions() {
                     </Badge>
                   </View>
                 </View>
-              </View>{" "}
+              </View>
               {/* Action Buttons */}
               <View className="pt-8">
                 <View className="flex-row flex-wrap gap-4 justify-center">
@@ -779,7 +779,7 @@ export default function Transactions() {
                           </View>
                         </View>
                         <Text className="text-sm text-gray-600">
-                          Type: {transaction.type} | Status:{" "}
+                          Type: {transaction.type} | Status:
                           {transaction.status}
                         </Text>
                       </View>
