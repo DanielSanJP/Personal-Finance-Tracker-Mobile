@@ -1,7 +1,8 @@
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Alert, Text, TouchableOpacity, View } from "react-native";
 import { cn } from "../lib/utils";
+import { signInWithEmail } from "../lib/auth";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
@@ -14,18 +15,27 @@ export interface LoginFormProps {
 export function LoginForm({ className }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     // Only proceed if both email and password are filled
     if (!email.trim() || !password.trim()) {
-      console.log("Please fill in both email and password");
+      Alert.alert("Error", "Please fill in both email and password");
       return;
     }
 
-    // Add your authentication logic here
-    console.log("Login attempt with:", { email, password });
-    // For now, just navigate to dashboard
-    router.push("/dashboard");
+    setLoading(true);
+    try {
+      await signInWithEmail({ email: email.trim(), password });
+      router.push("/dashboard");
+    } catch (error) {
+      Alert.alert(
+        "Login Error",
+        error instanceof Error ? error.message : "Failed to sign in"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -34,8 +44,7 @@ export function LoginForm({ className }: LoginFormProps) {
   };
 
   const handleSignUp = () => {
-    // Add sign up navigation logic here
-    console.log("Sign up pressed");
+    router.push("/register");
   };
 
   const handleContinueAsGuest = () => {
@@ -86,8 +95,9 @@ export function LoginForm({ className }: LoginFormProps) {
                 onPress={handleLogin}
                 className="w-full"
                 size="lg"
+                disabled={loading}
               >
-                Login
+                {loading ? "Signing in..." : "Login"}
               </Button>
               <View className="mt-4 text-center">
                 <Text className="text-center text-sm text-gray-600">

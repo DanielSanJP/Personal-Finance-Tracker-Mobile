@@ -2,7 +2,8 @@ import { Link, usePathname, useRouter } from "expo-router";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getCurrentUser } from "../lib/data";
+import { useAuth } from "../lib/auth-context";
+import { GUEST_USER_ID } from "../lib/auth";
 import Breadcrumbs from "./breadcrumbs";
 import { Button } from "./ui/button";
 import {
@@ -18,7 +19,21 @@ import Logo from "./ui/logo";
 export default function Nav() {
   const router = useRouter();
   const pathname = usePathname();
-  const user = getCurrentUser();
+  const { user, signOut } = useAuth();
+
+  // Check if user is a guest user
+  const isGuest = user?.id === GUEST_USER_ID;
+
+  // Handle sign out with navigation
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      // Navigate to login page after signing out
+      router.replace("/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   // Determine if we should show dashboard tabs (when user is logged in and on dashboard pages)
   const showDashboardTabs =
@@ -95,7 +110,7 @@ export default function Nav() {
                         </Text>
                       </View>
                       <Text className="text-xs sm:text-sm text-gray-600 hidden sm:block">
-                        {user.displayName}
+                        {user.display_name}
                       </Text>
                     </TouchableOpacity>
                   </DropdownMenuTrigger>
@@ -115,7 +130,7 @@ export default function Nav() {
                     <DropdownMenuItem>
                       <Text>Help & Support</Text>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onPress={() => router.push("/")}>
+                    <DropdownMenuItem onPress={handleSignOut}>
                       <Text className="text-red-600">Sign Out</Text>
                     </DropdownMenuItem>
                   </DropdownMenuContent>

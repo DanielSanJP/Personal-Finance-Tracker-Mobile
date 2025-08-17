@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../../components/nav";
@@ -45,23 +45,14 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import { formatCurrency, getCurrentUserTransactions } from "../../lib/data";
-
-interface Transaction {
-  id: string;
-  userId: string;
-  accountId: string;
-  date: string;
-  description: string;
-  amount: number;
-  category: string;
-  type: string;
-  merchant: string;
-  status: string;
-}
+import { useAuth } from "../../lib/auth-context";
+import type { Transaction } from "../../lib/types";
 
 export default function Transactions() {
   const router = useRouter();
-  const transactions = getCurrentUserTransactions();
+  const { user } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedPeriod, setSelectedPeriod] = useState("This Month");
   const [selectedTransaction, setSelectedTransaction] =
@@ -71,6 +62,25 @@ export default function Transactions() {
   const [editSingleTransactionOpen, setEditSingleTransactionOpen] =
     useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Load transactions when component mounts or user changes
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (!user) return;
+
+      try {
+        setLoading(true);
+        const transactionsData = await getCurrentUserTransactions();
+        setTransactions(transactionsData);
+      } catch (error) {
+        console.error("Error loading transactions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTransactions();
+  }, [user]);
 
   // Scroll to top when the tab is focused
   useFocusEffect(

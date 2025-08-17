@@ -1,5 +1,5 @@
 import { useFocusEffect } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../../components/nav";
@@ -27,13 +27,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import budgetsData from "../../data/budgets.json";
+import { getCurrentUserBudgets } from "../../lib/data";
+import { useAuth } from "../../lib/auth-context";
+import type { Budget } from "../../lib/types";
 
 export default function Budgets() {
-  const { budgets } = budgetsData;
+  const { user } = useAuth();
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [loading, setLoading] = useState(true);
   const [addBudgetOpen, setAddBudgetOpen] = useState(false);
   const [editBudgetsOpen, setEditBudgetsOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Load budgets when component mounts or user changes
+  useEffect(() => {
+    const loadBudgets = async () => {
+      if (!user) return;
+
+      try {
+        setLoading(true);
+        const budgetsData = await getCurrentUserBudgets();
+        setBudgets(budgetsData);
+      } catch (error) {
+        console.error("Error loading budgets:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadBudgets();
+  }, [user]);
 
   // Scroll to top when the tab is focused
   useFocusEffect(

@@ -1,5 +1,5 @@
 import { useFocusEffect } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../../components/nav";
@@ -29,10 +29,34 @@ import {
   SelectValue,
 } from "../../components/ui/select";
 import { formatCurrency, getCurrentUserGoals } from "../../lib/data";
+import { useAuth } from "../../lib/auth-context";
+import type { Goal } from "../../lib/types";
 
 export default function Goals() {
-  const goals = getCurrentUserGoals();
+  const { user } = useAuth();
+  const [goals, setGoals] = useState<Goal[]>([]);
+  // Comment out loading states for now
+  // const [loading, setLoading] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Load goals when component mounts or user changes
+  useEffect(() => {
+    const loadGoals = async () => {
+      if (!user) return;
+
+      try {
+        // setLoading(true); // Loading states disabled for now
+        const goalsData = await getCurrentUserGoals();
+        setGoals(goalsData);
+      } catch (error) {
+        console.error("Error loading goals:", error);
+      } finally {
+        // setLoading(false); // Loading states disabled for now
+      }
+    };
+
+    loadGoals();
+  }, [user]);
 
   // Scroll to top when the tab is focused
   useFocusEffect(
@@ -95,28 +119,15 @@ export default function Goals() {
     return percentage;
   };
 
-  const formatDate = (dateString: string) => {
+  // Format date consistently with the date picker
+  const formatTargetDate = (dateString?: string): string => {
+    if (!dateString) return "No target date";
     const date = new Date(dateString);
-    const day = date.getDate();
-    const month = date.toLocaleDateString("en-GB", { month: "short" });
-    const year = date.getFullYear();
-
-    // Add ordinal suffix to day
-    const getOrdinalSuffix = (day: number) => {
-      if (day > 3 && day < 21) return "th";
-      switch (day % 10) {
-        case 1:
-          return "st";
-        case 2:
-          return "nd";
-        case 3:
-          return "rd";
-        default:
-          return "th";
-      }
-    };
-
-    return `${day}${getOrdinalSuffix(day)} ${month} ${year}`;
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   return (
@@ -167,7 +178,7 @@ export default function Goals() {
                       </View>
 
                       <Text className="text-sm text-gray-600 py-2">
-                        Target: {formatDate(goal.targetDate)}
+                        Target: {formatTargetDate(goal.targetDate)}
                       </Text>
 
                       {goalAchieved && (
@@ -349,7 +360,11 @@ export default function Goals() {
                         <View className="space-y-2">
                           <Label>Target Date</Label>
                           <DatePicker
-                            date={new Date(goal.targetDate)}
+                            date={
+                              goal.targetDate
+                                ? new Date(goal.targetDate)
+                                : new Date()
+                            }
                             onDateChange={(date) => {
                               // You can add state management here when implementing save functionality
                             }}

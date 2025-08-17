@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Text, View } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import { formatCurrency, getCurrentUserTransactions } from "../lib/data";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 // Process chart data for mobile
-const processChartData = () => {
-  const transactions = getCurrentUserTransactions();
+const processChartData = async () => {
+  const transactions = await getCurrentUserTransactions();
   const months = [
     "Jan",
     "Feb",
@@ -199,8 +199,28 @@ const SpendingLineChart = ({
 };
 
 export function SpendingChart() {
-  const chartData = processChartData();
+  const [chartData, setChartData] = useState<
+    { month: string; spending: number; index: number }[]
+  >([]);
   const [selectedPoint, setSelectedPoint] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load chart data on component mount
+  useEffect(() => {
+    const loadChartData = async () => {
+      try {
+        setLoading(true);
+        const data = await processChartData();
+        setChartData(data);
+      } catch (error) {
+        console.error("Error loading chart data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadChartData();
+  }, []);
 
   // Get current month spending for header
   const currentMonthSpending = chartData[chartData.length - 1]?.spending || 0;
@@ -229,23 +249,32 @@ export function SpendingChart() {
     setTimeout(() => setSelectedPoint(null), 3000);
   };
 
-  // Calculate trend - use exact values without rounding
-  const currentMonth = chartData[chartData.length - 1]?.spending || 0;
-  const previousMonth = chartData[chartData.length - 2]?.spending || 0;
+  // Calculate trend - use exact values without rounding (only when data is available)
+  const getTrendInfo = () => {
+    if (chartData.length === 0)
+      return { trendPercentage: "0", isIncreasing: false, monthCount: 0 };
 
-  let trendPercentage = "0";
-  let isIncreasing = false;
+    const currentMonth = chartData[chartData.length - 1]?.spending || 0;
+    const previousMonth = chartData[chartData.length - 2]?.spending || 0;
 
-  if (previousMonth !== 0) {
-    const change = ((currentMonth - previousMonth) / previousMonth) * 100;
-    trendPercentage = Math.abs(change).toFixed(1);
-    isIncreasing = change > 0;
-  } else if (currentMonth > 0) {
-    trendPercentage = "100.0";
-    isIncreasing = true;
-  }
+    let trendPercentage = "0";
+    let isIncreasing = false;
 
-  const monthCount = chartData.length;
+    if (previousMonth !== 0) {
+      const change = ((currentMonth - previousMonth) / previousMonth) * 100;
+      trendPercentage = Math.abs(change).toFixed(1);
+      isIncreasing = change > 0;
+    } else if (currentMonth > 0) {
+      trendPercentage = "100.0";
+      isIncreasing = true;
+    }
+
+    return { trendPercentage, isIncreasing, monthCount: chartData.length };
+  };
+
+  const { trendPercentage, isIncreasing, monthCount } = loading
+    ? { trendPercentage: "0", isIncreasing: false, monthCount: 0 }
+    : getTrendInfo();
 
   return (
     <Card className="mb-6">
@@ -262,7 +291,7 @@ export function SpendingChart() {
           </View>
           <View className="items-end flex-shrink-0">
             <Text className="text-sm font-medium text-gray-900">
-              {formatCurrency(currentMonthSpending)}
+              {loading ? "Loading..." : formatCurrency(currentMonthSpending)}
             </Text>
             <Text className="text-xs text-gray-600">
               ({getCurrentMonthName()})
@@ -271,46 +300,54 @@ export function SpendingChart() {
         </View>
       </CardHeader>
       <CardContent className="px-4">
-        <View className="relative">
-          <SpendingLineChart
-            data={chartData}
-            width={300}
-            height={180}
-            onPointPress={handlePointPress}
-          />
+        {loading ? (
+          <View className="h-48 items-center justify-center">
+            <Text className="text-gray-500">Loading chart...</Text>
+          </View>
+        ) : (
+          <>
+            <View className="relative">
+              <SpendingLineChart
+                data={chartData}
+                width={300}
+                height={180}
+                onPointPress={handlePointPress}
+              />
 
-          {/* Interactive Tooltip */}
-          {selectedPoint && (
-            <View className="absolute top-4 left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
-              <Text className="text-sm font-semibold text-gray-900">
-                {selectedPoint.month} 2025
-              </Text>
-              <Text className="text-sm text-gray-600">
-                Spending: {formatCurrency(selectedPoint.spending)}
+              {/* Interactive Tooltip */}
+              {selectedPoint && (
+                <View className="absolute top-4 left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
+                  <Text className="text-sm font-semibold text-gray-900">
+                    {selectedPoint.month} 2025
+                  </Text>
+                  <Text className="text-sm text-gray-600">
+                    Spending: {formatCurrency(selectedPoint.spending)}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Trend information */}
+            <View className="mt-6 space-y-2">
+              <View className="flex-row items-center gap-2">
+                <Text className="text-sm font-medium">
+                  {isIncreasing ? "Trending up" : "Trending down"} by{" "}
+                  {trendPercentage}% this month
+                </Text>
+                <Text
+                  className={`text-lg ${
+                    isIncreasing ? "text-red-500" : "text-green-500"
+                  }`}
+                >
+                  {isIncreasing ? "↗" : "↘"}
+                </Text>
+              </View>
+              <Text className="text-xs text-gray-500">
+                Showing monthly spending for the last {monthCount} months
               </Text>
             </View>
-          )}
-        </View>
-
-        {/* Trend information */}
-        <View className="mt-6 space-y-2">
-          <View className="flex-row items-center gap-2">
-            <Text className="text-sm font-medium">
-              {isIncreasing ? "Trending up" : "Trending down"} by{" "}
-              {trendPercentage}% this month
-            </Text>
-            <Text
-              className={`text-lg ${
-                isIncreasing ? "text-red-500" : "text-green-500"
-              }`}
-            >
-              {isIncreasing ? "↗" : "↘"}
-            </Text>
-          </View>
-          <Text className="text-xs text-gray-500">
-            Showing monthly spending for the last {monthCount} months
-          </Text>
-        </View>
+          </>
+        )}
       </CardContent>
     </Card>
   );
