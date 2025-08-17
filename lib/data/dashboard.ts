@@ -181,3 +181,99 @@ export const getDashboardOverview = async () => {
 export const refreshSummary = async (): Promise<Summary | null> => {
   return await generateUserSummary()
 }
+
+// Helper function to calculate monthly income from transactions (like Next.js)
+const calculateMonthlyIncomeFromTransactions = (transactions: any[]): number => {
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  
+  return transactions
+    .filter((transaction: any) => {
+      const transactionDate = new Date(transaction.date);
+      return transactionDate.getMonth() === currentMonth && 
+             transactionDate.getFullYear() === currentYear &&
+             transaction.type === 'income';
+    })
+    .reduce((total: number, transaction: any) => total + Math.abs(transaction.amount), 0);
+};
+
+// Helper function to calculate monthly expenses from transactions (like Next.js)
+const calculateMonthlyExpensesFromTransactions = (transactions: any[]): number => {
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  
+  return transactions
+    .filter((transaction: any) => {
+      const transactionDate = new Date(transaction.date);
+      return transactionDate.getMonth() === currentMonth && 
+             transactionDate.getFullYear() === currentYear &&
+             transaction.type === 'expense';
+    })
+    .reduce((total: number, transaction: any) => total + Math.abs(transaction.amount), 0);
+};
+
+// Dashboard data interface (like Next.js)
+export interface DashboardData {
+  user: any;
+  accounts: any[];
+  transactions: any[];
+  summary: {
+    totalBalance: number;
+    monthlyChange: number;
+    monthlyIncome: number;
+    monthlyExpenses: number;
+    budgetRemaining: number;
+    accountBreakdown: Record<string, unknown>;
+    categorySpending: Record<string, unknown>;
+  };
+}
+
+// Optimized function to fetch all dashboard data in one go (copied from Next.js)
+export const getDashboardData = async (): Promise<DashboardData | null> => {
+  try {
+    // First get the user
+    const user = await getCurrentUser();
+    if (!user) {
+      return null;
+    }
+
+    // Now fetch all other data in parallel using the user ID
+    const [
+      accounts,
+      transactions,
+      staticSummary
+    ] = await Promise.all([
+      getCurrentUserAccounts(),
+      getCurrentUserTransactions(),
+      getCurrentUserSummary()
+    ]);
+
+    // Calculate derived values from the fetched data (like Next.js)
+    const totalBalance = accounts.reduce((total: number, account: any) => total + account.balance, 0);
+    const monthlyIncome = calculateMonthlyIncomeFromTransactions(transactions);
+    const monthlyExpenses = calculateMonthlyExpensesFromTransactions(transactions);
+    const monthlyChange = monthlyIncome - monthlyExpenses;
+    
+    // Calculate budget remaining from active budgets
+    const budgets = await getActiveBudgets();
+    const budgetRemaining = budgets.reduce((sum: number, budget: any) => sum + budget.remainingAmount, 0);
+
+    return {
+      user,
+      accounts,
+      transactions,
+      summary: {
+        totalBalance,
+        monthlyChange,
+        monthlyIncome,
+        monthlyExpenses,
+        budgetRemaining,
+        accountBreakdown: staticSummary?.accountBreakdown || {},
+        categorySpending: staticSummary?.categorySpending || {}
+      }
+    };
+  } catch (error) {
+    console.error('Error loading dashboard data:', error);
+    return null;
+  }
+};

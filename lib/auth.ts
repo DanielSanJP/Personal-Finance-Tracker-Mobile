@@ -156,7 +156,7 @@ export const getCurrentSession = async () => {
 
 // Listen for auth state changes
 export const onAuthStateChange = (callback: (session: any) => void) => {
-  return supabase.auth.onAuthStateChange((_event, session) => {
+  return supabase.auth.onAuthStateChange((_event: any, session: any) => {
     callback(session)
   })
 }
@@ -167,4 +167,48 @@ export const GUEST_USER_ID = '55e3b0e6-b683-4cab-aa5b-6a5b192bde7d'
 // Check if current user is guest
 export const isGuestUser = (user: User | null): boolean => {
   return user?.id === GUEST_USER_ID
+}
+
+// Sign in as guest user
+export const signInAsGuest = async () => {
+  console.log('🔍 Guest login attempt for mobile app');
+  
+  try {
+    // Sign in with the actual guest account credentials
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: 'guest@demo.app', // Replace with your actual guest email
+      password: 'guest-password-123' // Replace with your actual guest password
+    })
+    
+    if (error) {
+      console.error('🔥 Guest login error:', error)
+      throw new Error('Guest mode temporarily unavailable')
+    }
+    
+    // Verify this is the correct guest user
+    if (data.user?.id !== GUEST_USER_ID) {
+      console.error('🔥 Wrong user ID for guest account')
+      throw new Error('Guest account configuration error')
+    }
+    
+    console.log('🔍 Guest login successful for mobile app');
+    return data
+    
+  } catch (error) {
+    console.error('🔥 Guest login failed:', error)
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error('Guest mode unavailable')
+  }
+}
+
+// Check if current user is the guest user
+export const isCurrentUserGuest = async (): Promise<boolean> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    return user?.id === GUEST_USER_ID
+  } catch {
+    return false
+  }
 }

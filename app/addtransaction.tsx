@@ -1,8 +1,9 @@
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import React, { useState, useEffect } from "react";
+import { ScrollView, Text, View, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../components/nav";
+import { FormSkeleton } from "../components/loading-states";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -21,10 +22,34 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { getCurrentUserAccounts } from "../lib/data";
+import { useAuth } from "../lib/auth-context";
 
 export default function AddTransactionPage() {
   const router = useRouter();
-  const accounts = getCurrentUserAccounts();
+  const { user, loading } = useAuth();
+  const [accounts, setAccounts] = useState<any[]>([]);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/login");
+    }
+  }, [user, loading, router]);
+
+  // Load accounts when user is available
+  useEffect(() => {
+    const loadAccounts = async () => {
+      if (user) {
+        try {
+          const accountsData = await getCurrentUserAccounts();
+          setAccounts(accountsData);
+        } catch (error) {
+          console.error("Error loading accounts:", error);
+        }
+      }
+    };
+    loadAccounts();
+  }, [user]);
 
   const [formData, setFormData] = useState({
     type: "",
@@ -92,6 +117,23 @@ export default function AddTransactionPage() {
       "Scan Receipt functionality not implemented yet. This feature will be available in a future update."
     );
   };
+
+  // Show loading while checking auth state
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50">
+        <Nav />
+        <View className="max-w-7xl mx-auto px-6 py-8">
+          <FormSkeleton />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Don't render if user is not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">

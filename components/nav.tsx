@@ -3,7 +3,6 @@ import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../lib/auth-context";
-import { GUEST_USER_ID } from "../lib/auth";
 import Breadcrumbs from "./breadcrumbs";
 import { Button } from "./ui/button";
 import {
@@ -21,9 +20,6 @@ export default function Nav() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
 
-  // Check if user is a guest user
-  const isGuest = user?.id === GUEST_USER_ID;
-
   // Handle sign out with navigation
   const handleSignOut = async () => {
     try {
@@ -40,10 +36,12 @@ export default function Nav() {
     user &&
     (pathname === "/dashboard" ||
       pathname === "/transactions" ||
+      pathname === "/accounts" ||
       pathname === "/budgets" ||
       pathname === "/goals" ||
       pathname === "/addtransaction" ||
       pathname === "/addincome" ||
+      pathname === "/addaccount" ||
       pathname?.startsWith("/(tabs)"));
 
   const navigationItems = [
@@ -119,6 +117,12 @@ export default function Nav() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
                       <Text>Profile</Text>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onPress={() => router.push("/accounts")}>
+                      <Text>Bank Accounts</Text>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Text>View Reports</Text>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
                       <Text>Settings</Text>

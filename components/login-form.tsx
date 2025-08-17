@@ -2,7 +2,7 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Text, TouchableOpacity, View } from "react-native";
 import { cn } from "../lib/utils";
-import { signInWithEmail } from "../lib/auth";
+import { signInWithEmail, signInAsGuest } from "../lib/auth";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
@@ -44,11 +44,22 @@ export function LoginForm({ className }: LoginFormProps) {
   };
 
   const handleSignUp = () => {
-    router.push("/register");
+    router.push("./register");
   };
 
-  const handleContinueAsGuest = () => {
-    router.push("/dashboard");
+  const handleContinueAsGuest = async () => {
+    setLoading(true);
+    try {
+      await signInAsGuest();
+      router.push("/dashboard");
+    } catch (error) {
+      Alert.alert(
+        "Guest Login Error",
+        error instanceof Error ? error.message : "Failed to sign in as guest"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -109,8 +120,9 @@ export function LoginForm({ className }: LoginFormProps) {
                 onPress={handleContinueAsGuest}
                 className="w-full"
                 size="lg"
+                disabled={loading}
               >
-                Continue as Guest
+                {loading ? "Signing in as Guest..." : "Continue as Guest"}
               </Button>
             </View>
           </View>

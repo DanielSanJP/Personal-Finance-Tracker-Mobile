@@ -1,11 +1,126 @@
 import { supabase } from '../supabase'
 import { getCurrentUser } from '../auth'
-import type { Budget } from '../types'
+import { getCurrentUserTransactions } from './transactions'
+import type { Budget, Transaction } from '../types'
 
 // Helper function to format date for database
 const formatDateForDatabase = (date: string | Date): string => {
   const d = new Date(date)
   return d.toISOString().split('T')[0]
+}
+
+// Calculate spent amount for a budget based on transactions
+export const calculateBudgetSpentAmount = async (budget: {
+  category: string;
+  startDate: string;
+  endDate: string;
+}): Promise<number> => {
+  try {
+    const transactions = await getCurrentUserTransactions();
+    
+    // Filter transactions by category and date range
+    const relevantTransactions = transactions.filter(transaction => {
+      const transactionDate = new Date(transaction.date);
+      const startDate = new Date(budget.startDate);
+      const endDate = new Date(budget.endDate);
+      
+      return (
+        transaction.category === budget.category &&
+        transaction.type === 'expense' &&
+        transactionDate >= startDate &&
+        transactionDate <= endDate
+      );
+    });
+    
+    // Sum up the amounts (take absolute value for expenses)
+    return relevantTransactions.reduce((total, transaction) => {
+      return total + Math.abs(transaction.amount);
+    }, 0);
+  } catch (error) {
+    console.error('Error calculating budget spent amount:', error);
+    return 0;
+  }
+};
+
+// Optimized version that accepts transactions parameter
+export const calculateBudgetSpentAmountFromTransactions = (
+  budget: {
+    category: string;
+    startDate: string;
+    endDate: string;
+  },
+  transactions: Transaction[]
+): number => {
+  try {
+    // Filter transactions by category and date range
+    const relevantTransactions = transactions.filter(transaction => {
+      const transactionDate = new Date(transaction.date);
+      const startDate = new Date(budget.startDate);
+      const endDate = new Date(budget.endDate);
+      
+      return (
+        transaction.category === budget.category &&
+        transaction.type === 'expense' &&
+        transactionDate >= startDate &&
+        transactionDate <= endDate
+      );
+    });
+    
+    // Sum up the amounts (take absolute value for expenses)
+    return relevantTransactions.reduce((total, transaction) => {
+      return total + Math.abs(transaction.amount);
+    }, 0);
+  } catch (error) {
+    console.error('Error calculating budget spent amount:', error);
+    return 0;
+  }
+};
+
+// Enhanced function to get budgets with real-time spent amounts
+export const getCurrentUserBudgetsWithRealTimeSpending = async (): Promise<Budget[]> => {
+  const user = await getCurrentUser()
+  if (!user) return []
+  
+  try {
+    const { data, error } = await supabase
+      .from('budgets')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching budgets:', error)
+      return []
+    }
+
+    // Calculate real-time spent amounts for each budget
+    const budgetsWithRealTimeSpending = await Promise.all(
+      (data || []).map(async (budget) => {
+        const realTimeSpentAmount = await calculateBudgetSpentAmount({
+          category: budget.category,
+          startDate: budget.start_date,
+          endDate: budget.end_date,
+        });
+
+        return {
+          id: budget.id,
+          userId: budget.user_id,
+          category: budget.category,
+          budgetAmount: Number(budget.budget_amount),
+          spentAmount: realTimeSpentAmount, // Use real-time calculated amount
+          remainingAmount: Number(budget.budget_amount) - realTimeSpentAmount,
+          period: budget.period,
+          startDate: budget.start_date,
+          endDate: budget.end_date
+        };
+      })
+    );
+
+    return budgetsWithRealTimeSpending;
+  } catch (error) {
+    console.error('Error in getCurrentUserBudgetsWithRealTimeSpending:', error)
+    return []
+  }
 }
 
 // Budget functions
@@ -202,7 +317,7 @@ export const deleteBudget = async (budgetId: string): Promise<boolean> => {
   }
 }
 
-// Get active budgets (current period)
+// Get active budgets (current period) with real-time spending calculations
 export const getActiveBudgets = async (): Promise<Budget[]> => {
   const user = await getCurrentUser()
   if (!user) return []
@@ -223,17 +338,30 @@ export const getActiveBudgets = async (): Promise<Budget[]> => {
       return []
     }
 
-    return (data || []).map(budget => ({
-      id: budget.id,
-      userId: budget.user_id,
-      category: budget.category,
-      budgetAmount: Number(budget.budget_amount),
-      spentAmount: Number(budget.spent_amount),
-      remainingAmount: Number(budget.remaining_amount),
-      period: budget.period,
-      startDate: budget.start_date,
-      endDate: budget.end_date
-    }))
+    // Calculate real-time spent amounts for each active budget
+    const activeBudgetsWithRealTimeSpending = await Promise.all(
+      (data || []).map(async (budget) => {
+        const realTimeSpentAmount = await calculateBudgetSpentAmount({
+          category: budget.category,
+          startDate: budget.start_date,
+          endDate: budget.end_date,
+        });
+
+        return {
+          id: budget.id,
+          userId: budget.user_id,
+          category: budget.category,
+          budgetAmount: Number(budget.budget_amount),
+          spentAmount: realTimeSpentAmount, // Use real-time calculated amount
+          remainingAmount: Number(budget.budget_amount) - realTimeSpentAmount,
+          period: budget.period,
+          startDate: budget.start_date,
+          endDate: budget.end_date
+        };
+      })
+    );
+
+    return activeBudgetsWithRealTimeSpending;
   } catch (error) {
     console.error('Error in getActiveBudgets:', error)
     return []

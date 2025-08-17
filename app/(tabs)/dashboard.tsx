@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../../components/nav";
 import { SpendingChart } from "../../components/spending-chart";
+import { DashboardSkeleton } from "../../components/loading-states";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -16,6 +17,7 @@ import {
   getCurrentUserAccounts,
   getCurrentUserSummary,
 } from "../../lib/data";
+import { getDashboardData } from "../../lib/data/dashboard";
 import { useAuth } from "../../lib/auth-context";
 import type { Account, Summary } from "../../lib/types";
 
@@ -36,13 +38,33 @@ export default function Dashboard() {
 
       try {
         setLoading(true);
-        const [accountsData, summaryData] = await Promise.all([
-          getCurrentUserAccounts(),
-          getCurrentUserSummary(),
-        ]);
 
-        setAccounts(accountsData);
-        setSummary(summaryData);
+        // Use the new getDashboardData function like Next.js
+        const dashboardData = await getDashboardData();
+
+        if (dashboardData) {
+          setAccounts(dashboardData.accounts);
+          // Convert the dashboard summary to the expected Summary type
+          setSummary({
+            userId: dashboardData.user.id,
+            totalBalance: dashboardData.summary.totalBalance,
+            monthlyChange: dashboardData.summary.monthlyChange,
+            monthlyIncome: dashboardData.summary.monthlyIncome,
+            monthlyExpenses: dashboardData.summary.monthlyExpenses,
+            budgetRemaining: dashboardData.summary.budgetRemaining,
+            accountBreakdown: dashboardData.summary.accountBreakdown,
+            categorySpending: dashboardData.summary.categorySpending,
+            lastUpdated: new Date().toISOString(),
+          });
+        } else {
+          // Fallback to original method
+          const [accountsData, summaryData] = await Promise.all([
+            getCurrentUserAccounts(),
+            getCurrentUserSummary(),
+          ]);
+          setAccounts(accountsData);
+          setSummary(summaryData);
+        }
       } catch (error) {
         console.error("Error loading dashboard data:", error);
       } finally {
@@ -94,9 +116,7 @@ export default function Dashboard() {
           </Text>
 
           {loading ? (
-            <View className="flex-1 items-center justify-center py-8">
-              <Text className="text-gray-500">Loading dashboard...</Text>
-            </View>
+            <DashboardSkeleton />
           ) : (
             <>
               <View className="flex-row justify-between mb-6">
@@ -142,11 +162,14 @@ export default function Dashboard() {
                   </Text>
                 </View>
               </View>
+
               {/* Spending Chart */}
-              {/* <SpendingChart /> */}
+              <View className="mb-6">
+                <SpendingChart />
+              </View>
 
               {/* Your Accounts */}
-              <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+              <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 mb-6">
                 <Text className="text-lg font-semibold text-gray-900 mb-4">
                   Your Accounts
                 </Text>
@@ -174,25 +197,32 @@ export default function Dashboard() {
                 <CardContent>
                   <View className="flex-row flex-wrap gap-4 justify-center">
                     <Button
-                      variant="outline"
+                      variant="default"
                       onPress={() => router.push("/addincome")}
-                      className="min-w-[110px] p-6"
+                      className="min-w-[120px] p-6"
                     >
                       Add Income
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="default"
                       onPress={() => router.push("/addtransaction")}
-                      className="min-w-[110px] p-6"
+                      className="min-w-[120px] p-6"
                     >
                       Add Expense
                     </Button>
                     <Button
                       variant="outline"
                       onPress={() => console.log("Scan Receipt pressed")}
-                      className="min-w-[110px] p-6"
+                      className="min-w-[120px] p-6"
                     >
                       Scan Receipt
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onPress={() => console.log("View Reports pressed")}
+                      className="min-w-[120px] p-6"
+                    >
+                      View Reports
                     </Button>
                   </View>
                 </CardContent>

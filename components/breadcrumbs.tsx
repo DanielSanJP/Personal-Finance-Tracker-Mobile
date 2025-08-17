@@ -19,6 +19,7 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
   const routeMap: Record<string, string> = {
     "/dashboard": "Dashboard",
     "/transactions": "Transactions",
+    "/accounts": "Accounts",
     "/budgets": "Budgets",
     "/goals": "Goals",
     "/addtransaction": "Add",
@@ -59,6 +60,19 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
     breadcrumbItems.push({
       label: "Add",
       href: "/addincome",
+      isCurrentPage: true,
+    });
+  }
+  // Handle special add account route: dashboard/accounts/add
+  else if (pathname === "/addaccount") {
+    breadcrumbItems.push({
+      label: "Accounts",
+      href: "/accounts",
+      isCurrentPage: false,
+    });
+    breadcrumbItems.push({
+      label: "Add Account",
+      href: "/addaccount",
       isCurrentPage: true,
     });
   }

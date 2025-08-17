@@ -94,16 +94,25 @@ export const getAccountById = async (accountId: string): Promise<Account | null>
   }
 }
 
-export const createAccount = async (accountData: Omit<Account, 'id'>): Promise<Account | null> => {
+export const createAccount = async (accountData: Omit<Account, 'id' | 'userId'>): Promise<Account | null> => {
+  const user = await getCurrentUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
   try {
+    // Generate a unique ID for the account
+    const accountId = `acc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
     const { data, error } = await supabase
       .from('accounts')
       .insert({
-        user_id: accountData.userId,
+        id: accountId,
+        user_id: user.id,
         name: accountData.name,
         balance: accountData.balance,
         type: accountData.type,
-        account_number: accountData.accountNumber,
+        account_number: accountData.accountNumber || null,
         is_active: accountData.isActive
       })
       .select()

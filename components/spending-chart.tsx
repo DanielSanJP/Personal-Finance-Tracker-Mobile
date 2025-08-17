@@ -1,354 +1,352 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { Text, View } from "react-native";
-import Svg, { Circle, Line, Path } from "react-native-svg";
+import Svg, { Rect, Line, Text as SvgText } from "react-native-svg";
 import { formatCurrency, getCurrentUserTransactions } from "../lib/data";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "./ui/card";
 
-// Process chart data for mobile
-const processChartData = async () => {
-  const transactions = await getCurrentUserTransactions();
+// Generate dynamic date range description
+const getDateRangeDescription = () => {
+  const now = new Date();
+  const currentMonth = now.toLocaleDateString("en-US", { month: "long" });
+  const year = now.getFullYear();
+
+  return `January - ${currentMonth} ${year}`;
+};
+
+const getCurrentMonthName = () => {
   const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
+    "January",
+    "February",
+    "March",
+    "April",
     "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  return months[new Date().getMonth()];
+};
+
+interface ChartDataPoint {
+  month: string;
+  spending: number;
+}
+
+interface SpendingChartProps {
+  transactions?: any[];
+}
+
+// Group expenses by month from January to current month - matches Next.js version
+const processChartData = async (
+  propTransactions?: any[]
+): Promise<ChartDataPoint[]> => {
+  console.log("🔍 Processing chart data...");
+
+  const transactions = propTransactions || (await getCurrentUserTransactions());
+  console.log("🔍 Transactions loaded:", transactions.length);
+
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
-  // Get months from start of year to now
+  // Get current year and month
   const now = new Date();
   const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
-  const chartData = [];
+  const currentMonth = now.getMonth(); // 0-based (0 = January, 7 = August)
+  const chartData: ChartDataPoint[] = [];
 
-  for (let i = 0; i <= currentMonth; i++) {
-    const date = new Date(currentYear, i, 1);
-    const monthName = months[date.getMonth()];
+  // Loop from January (0) to current month (inclusive)
+  for (let monthIndex = 0; monthIndex <= currentMonth; monthIndex++) {
+    const monthName = months[monthIndex];
 
     // Calculate total expenses for this month
     const monthlyExpenses = transactions
-      .filter((t) => {
+      .filter((t: any) => {
         const transactionDate = new Date(t.date);
         return (
           transactionDate.getFullYear() === currentYear &&
-          transactionDate.getMonth() === i &&
+          transactionDate.getMonth() === monthIndex &&
           t.type === "expense"
         );
       })
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      .reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
 
     chartData.push({
       month: monthName,
-      spending: monthlyExpenses, // Remove Math.round to preserve exact values
-      index: i,
+      spending: monthlyExpenses,
     });
   }
 
+  console.log("🔍 Chart data processed:", chartData);
   return chartData;
 };
 
-// Create smooth curve path using cubic bezier curves
-const createSmoothPath = (points: any[]) => {
-  if (points.length < 2) return "";
-
-  let path = `M ${points[0].x} ${points[0].y}`;
-
-  for (let i = 1; i < points.length; i++) {
-    const current = points[i];
-    const previous = points[i - 1];
-
-    if (i === 1) {
-      // First curve
-      const next = points[i + 1] || current;
-      const cp1x = previous.x + (current.x - previous.x) * 0.5;
-      const cp1y = previous.y;
-      const cp2x = current.x - (next.x - previous.x) * 0.1;
-      const cp2y = current.y;
-      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${current.x} ${current.y}`;
-    } else if (i === points.length - 1) {
-      // Last curve
-      const cp1x = previous.x + (current.x - previous.x) * 0.5;
-      const cp1y = previous.y;
-      const cp2x = current.x - (current.x - previous.x) * 0.5;
-      const cp2y = current.y;
-      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${current.x} ${current.y}`;
-    } else {
-      // Middle curves
-      const next = points[i + 1];
-      const prev = points[i - 1];
-      const cp1x = previous.x + (current.x - prev.x) * 0.15;
-      const cp1y = previous.y;
-      const cp2x = current.x - (next.x - previous.x) * 0.15;
-      const cp2y = current.y;
-      path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${current.x} ${current.y}`;
-    }
-  }
-
-  return path;
-};
-
-const SpendingLineChart = ({
+// SVG Bar Chart Component - Mobile version of Next.js bar chart
+const BarChart = ({
   data,
   width = 300,
-  height = 150,
-  onPointPress,
+  height = 200,
+  onBarPress,
 }: {
-  data: any[];
+  data: ChartDataPoint[];
   width?: number;
   height?: number;
-  onPointPress?: (point: any) => void;
+  onBarPress?: (item: ChartDataPoint, index: number) => void;
 }) => {
   if (data.length === 0) return null;
 
-  const maxSpending = Math.max(...data.map((d) => d.spending)) || 100;
-  const minSpending = Math.min(...data.map((d) => d.spending)) || 0;
   const padding = 40;
   const chartWidth = width - padding * 2;
   const chartHeight = height - padding * 2;
+  const barWidth = (chartWidth / data.length) * 0.8;
+  const barSpacing = (chartWidth / data.length) * 0.2;
 
-  // Calculate points for the line
-  const points = data.map((item, index) => {
-    const x = padding + (index / (data.length - 1)) * chartWidth;
-    const y =
-      padding +
-      chartHeight -
-      ((item.spending - minSpending) / (maxSpending - minSpending || 1)) *
-        chartHeight;
-    return { x, y, ...item };
-  });
-
-  // Create smooth path string for the line
-  const smoothPathData = createSmoothPath(points);
-
-  // Generate Y-axis labels
-  const yAxisLabels = [];
-  const labelCount = 4;
-  for (let i = 0; i <= labelCount; i++) {
-    const value = minSpending + (maxSpending - minSpending) * (i / labelCount);
-    const y = padding + chartHeight - (i / labelCount) * chartHeight;
-    yAxisLabels.push({ value: value.toFixed(2), y }); // Use toFixed(2) for precise decimal display
-  }
+  const maxSpending = Math.max(...data.map((d) => d.spending)) || 100;
 
   return (
-    <View>
+    <View style={{ alignItems: "center" }}>
       <Svg width={width} height={height}>
         {/* Grid lines */}
-        {yAxisLabels.map((label, index) => (
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => (
           <Line
             key={index}
             x1={padding}
-            y1={label.y}
+            y1={padding + chartHeight * (1 - ratio)}
             x2={width - padding}
-            y2={label.y}
+            y2={padding + chartHeight * (1 - ratio)}
             stroke="#f3f4f6"
             strokeWidth="1"
           />
         ))}
 
-        {/* Smooth curved line */}
-        <Path
-          d={smoothPathData}
-          fill="none"
-          stroke="#3b82f6"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        {/* Bars with touch interaction */}
+        {data.map((item, index) => {
+          const x =
+            padding + index * (chartWidth / data.length) + barSpacing / 2;
+          const barHeight = (item.spending / maxSpending) * chartHeight;
+          const y = padding + chartHeight - barHeight;
 
-        {/* Interactive data points */}
-        {points.map((point, index) => (
-          <Circle
-            key={index}
-            cx={point.x}
-            cy={point.y}
-            r="4"
-            fill="#3b82f6"
-            stroke="#ffffff"
-            strokeWidth="2"
-            onPress={() => onPointPress?.(point)}
-          />
-        ))}
+          return (
+            <Rect
+              key={index}
+              x={x}
+              y={y}
+              width={barWidth}
+              height={barHeight}
+              fill="#3b82f6"
+              rx={4}
+              onPress={() => onBarPress?.(item, index)}
+            />
+          );
+        })}
+
+        {/* X-axis labels */}
+        {data.map((item, index) => {
+          const x =
+            padding +
+            index * (chartWidth / data.length) +
+            chartWidth / data.length / 2;
+          const y = height - 10;
+
+          return (
+            <SvgText
+              key={index}
+              x={x}
+              y={y}
+              fontSize="10"
+              fill="#666"
+              textAnchor="middle"
+            >
+              {item.month.slice(0, 3)}
+            </SvgText>
+          );
+        })}
       </Svg>
-
-      {/* X-axis labels */}
-      <View className="flex-row justify-between px-10 mt-2">
-        {data.map((item, index) => (
-          <Text key={index} className="text-xs text-gray-600">
-            {item.month}
-          </Text>
-        ))}
-      </View>
-
-      {/* Y-axis labels */}
-      <View className="absolute left-0 top-0 h-full justify-between py-10">
-        {yAxisLabels.reverse().map((label, index) => (
-          <Text key={index} className="text-xs text-gray-600">
-            ${label.value}
-          </Text>
-        ))}
-      </View>
     </View>
   );
 };
 
-export function SpendingChart() {
-  const [chartData, setChartData] = useState<
-    { month: string; spending: number; index: number }[]
-  >([]);
-  const [selectedPoint, setSelectedPoint] = useState<any>(null);
+export function SpendingChart({
+  transactions: propTransactions,
+}: SpendingChartProps = {}) {
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedBar, setSelectedBar] = useState<{
+    item: ChartDataPoint;
+    index: number;
+  } | null>(null);
 
-  // Load chart data on component mount
+  // Handle bar press for tooltip
+  const handleBarPress = (item: ChartDataPoint, index: number) => {
+    setSelectedBar({ item, index });
+    // Auto-hide tooltip after 3 seconds
+    setTimeout(() => setSelectedBar(null), 3000);
+  };
+
   useEffect(() => {
-    const loadChartData = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        const data = await processChartData();
-        setChartData(data);
-      } catch (error) {
-        console.error("Error loading chart data:", error);
+        setError(null);
+
+        // Use provided transactions or fetch them
+        const data = await processChartData(propTransactions);
+
+        if (Array.isArray(data)) {
+          setChartData(data);
+        } else {
+          setChartData([]);
+        }
+      } catch (err) {
+        console.error("Error loading chart data:", err);
+        setError("Failed to load chart data");
+        setChartData([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadChartData();
-  }, []);
+    loadData();
+  }, [propTransactions]);
 
-  // Get current month spending for header
-  const currentMonthSpending = chartData[chartData.length - 1]?.spending || 0;
-  const getCurrentMonthName = () => {
-    const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    return months[new Date().getMonth()];
-  };
+  if (loading) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Monthly Spending</CardTitle>
+          <CardDescription>Loading chart data...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <View className="flex items-center justify-center h-64">
+            <Text>Loading...</Text>
+          </View>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  // Handle point press
-  const handlePointPress = (point: any) => {
-    setSelectedPoint(point);
-    // Auto-hide tooltip after 3 seconds
-    setTimeout(() => setSelectedPoint(null), 3000);
-  };
+  if (error) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Monthly Spending</CardTitle>
+          <CardDescription>Error loading data</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <View className="flex items-center justify-center h-64">
+            <Text className="text-red-500">{error}</Text>
+          </View>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  // Calculate trend - use exact values without rounding (only when data is available)
-  const getTrendInfo = () => {
-    if (chartData.length === 0)
-      return { trendPercentage: "0", isIncreasing: false, monthCount: 0 };
+  // Calculate trend
+  const currentMonth = chartData[chartData.length - 1]?.spending || 0;
+  const currentMonthName = getCurrentMonthName();
+  const previousMonth = chartData[chartData.length - 2]?.spending || 0;
 
-    const currentMonth = chartData[chartData.length - 1]?.spending || 0;
-    const previousMonth = chartData[chartData.length - 2]?.spending || 0;
+  let trendPercentage = "0";
+  let isIncreasing = false;
 
-    let trendPercentage = "0";
-    let isIncreasing = false;
-
-    if (previousMonth !== 0) {
-      const change = ((currentMonth - previousMonth) / previousMonth) * 100;
-      trendPercentage = Math.abs(change).toFixed(1);
-      isIncreasing = change > 0;
-    } else if (currentMonth > 0) {
-      trendPercentage = "100.0";
-      isIncreasing = true;
-    }
-
-    return { trendPercentage, isIncreasing, monthCount: chartData.length };
-  };
-
-  const { trendPercentage, isIncreasing, monthCount } = loading
-    ? { trendPercentage: "0", isIncreasing: false, monthCount: 0 }
-    : getTrendInfo();
+  if (previousMonth === 0 && currentMonth > 0) {
+    // If previous month was $0 and current month has spending, it's a 100% increase
+    trendPercentage = "100";
+    isIncreasing = true;
+  } else if (currentMonth === 0 && previousMonth > 0) {
+    // If current month is $0 and previous month had spending, it's a 100% decrease
+    trendPercentage = "100";
+    isIncreasing = false;
+  } else if (previousMonth > 0) {
+    // Normal calculation when previous month has value
+    const percentageChange =
+      ((currentMonth - previousMonth) / previousMonth) * 100;
+    trendPercentage = Math.abs(percentageChange).toFixed(1);
+    isIncreasing = percentageChange > 0;
+  } else if (currentMonth === 0 && previousMonth === 0) {
+    // Both months are $0, no change
+    trendPercentage = "0";
+    isIncreasing = false;
+  }
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
+    <Card className="w-full">
+      <CardHeader className="pb-2">
         <View className="flex-row justify-between items-center">
-          <View className="flex-1">
-            <CardTitle className="text-base font-medium text-gray-900">
-              Monthly Spending
-            </CardTitle>
-            <Text className="text-xs text-gray-600">
-              January - {chartData[chartData.length - 1]?.month || "December"}{" "}
-              2025
-            </Text>
-          </View>
-          <View className="items-end flex-shrink-0">
-            <Text className="text-sm font-medium text-gray-900">
-              {loading ? "Loading..." : formatCurrency(currentMonthSpending)}
-            </Text>
-            <Text className="text-xs text-gray-600">
-              ({getCurrentMonthName()})
-            </Text>
-          </View>
+          <CardTitle className="text-base">Monthly Spending</CardTitle>
+          <Text className="text-xs">
+            {formatCurrency(currentMonth)} ({currentMonthName})
+          </Text>
         </View>
+        <CardDescription className="text-xs">
+          {getDateRangeDescription()}
+        </CardDescription>
       </CardHeader>
-      <CardContent className="px-4">
-        {loading ? (
-          <View className="h-48 items-center justify-center">
-            <Text className="text-gray-500">Loading chart...</Text>
-          </View>
-        ) : (
-          <>
-            <View className="relative">
-              <SpendingLineChart
-                data={chartData}
-                width={300}
-                height={180}
-                onPointPress={handlePointPress}
-              />
+      <CardContent className="pt-0">
+        <View className="relative">
+          <BarChart
+            data={chartData}
+            width={300}
+            height={200}
+            onBarPress={handleBarPress}
+          />
 
-              {/* Interactive Tooltip */}
-              {selectedPoint && (
-                <View className="absolute top-4 left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
-                  <Text className="text-sm font-semibold text-gray-900">
-                    {selectedPoint.month} 2025
-                  </Text>
-                  <Text className="text-sm text-gray-600">
-                    Spending: {formatCurrency(selectedPoint.spending)}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Trend information */}
-            <View className="mt-6 space-y-2">
-              <View className="flex-row items-center gap-2">
-                <Text className="text-sm font-medium">
-                  {isIncreasing ? "Trending up" : "Trending down"} by{" "}
-                  {trendPercentage}% this month
-                </Text>
-                <Text
-                  className={`text-lg ${
-                    isIncreasing ? "text-red-500" : "text-green-500"
-                  }`}
-                >
-                  {isIncreasing ? "↗" : "↘"}
-                </Text>
-              </View>
-              <Text className="text-xs text-gray-500">
-                Showing monthly spending for the last {monthCount} months
+          {/* Tooltip */}
+          {selectedBar && (
+            <View className="absolute top-4 left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
+              <Text className="text-sm font-semibold text-gray-900">
+                {selectedBar.item.month} 2025
+              </Text>
+              <Text className="text-sm text-gray-600">
+                Spending: {formatCurrency(selectedBar.item.spending)}
               </Text>
             </View>
-          </>
-        )}
+          )}
+        </View>
       </CardContent>
+      <CardFooter className="flex-col items-start gap-1 pt-2">
+        <View className="flex-row gap-2 items-center">
+          <Text className="text-xs font-medium">
+            {isIncreasing ? "Trending up" : "Trending down"} by{" "}
+            {trendPercentage}% this month
+          </Text>
+          <Text
+            className={`text-xs ${
+              isIncreasing ? "text-red-500" : "text-green-500"
+            }`}
+          >
+            {isIncreasing ? "↗" : "↘"}
+          </Text>
+        </View>
+        <Text className="text-xs text-gray-500">
+          Showing monthly spending from January to current month
+        </Text>
+      </CardFooter>
     </Card>
   );
 }
