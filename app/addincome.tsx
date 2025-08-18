@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
-import { ScrollView, Text, View, Alert } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../components/nav";
 import { FormSkeleton } from "../components/loading-states";
@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import { useToast } from "../components/ui/sonner";
 import { getCurrentUserAccounts, createIncomeTransaction } from "../lib/data";
 import { useAuth } from "../lib/auth-context";
 import { checkGuestAndWarn } from "../lib/guest-protection";
@@ -30,6 +31,7 @@ import { checkGuestAndWarn } from "../lib/guest-protection";
 export default function AddIncomePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const toast = useToast();
   const [accounts, setAccounts] = useState<any[]>([]);
 
   // Redirect to login if not authenticated
@@ -82,15 +84,18 @@ export default function AddIncomePage() {
 
     // Validate required fields
     if (!amount || !description || !incomeSource || !account || !date) {
-      Alert.alert("Error", "Please fill in all required fields");
+      toast.toast({
+        message: "Error: Please fill in all required fields",
+        type: "error",
+      });
       return;
     }
 
     if (isNaN(Number(amount)) || Number(amount) <= 0) {
-      Alert.alert(
-        "Error",
-        "Please enter a valid positive number for the amount"
-      );
+      toast.toast({
+        message: "Error: Please enter a valid positive number for the amount",
+        type: "error",
+      });
       return;
     }
 
@@ -107,30 +112,31 @@ export default function AddIncomePage() {
       });
 
       if (result.success) {
-        Alert.alert(
-          "Success",
-          "Income saved successfully! Your income has been recorded.",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                // Reset form
-                setAmount("");
-                setDescription("");
-                setIncomeSource("");
-                setAccount("");
-                setDate(new Date());
-                router.push("/transactions");
-              },
-            },
-          ]
-        );
+        toast.toast({
+          message:
+            "Success: Income saved successfully! Your income has been recorded.",
+          type: "success",
+        });
+
+        // Reset form
+        setAmount("");
+        setDescription("");
+        setIncomeSource("");
+        setAccount("");
+        setDate(new Date());
+        router.push("/transactions");
       } else {
-        Alert.alert("Error", result.error || "Failed to save income");
+        toast.toast({
+          message: `Error: ${result.error || "Failed to save income"}`,
+          type: "error",
+        });
       }
     } catch (error) {
       console.error("Error saving income:", error);
-      Alert.alert("Error", "An unexpected error occurred. Please try again.");
+      toast.toast({
+        message: "Error: An unexpected error occurred. Please try again.",
+        type: "error",
+      });
     }
   };
 

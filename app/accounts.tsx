@@ -1,16 +1,12 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useRef, useState, useEffect } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../components/nav";
 import { Button } from "../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { AccountsListSkeleton } from "../components/loading-states";
+import { EditAccountModal } from "../components/edit-account-modal";
 import { getCurrentUserAccounts, formatCurrency } from "../lib/data";
 import { useAuth } from "../lib/auth-context";
 import type { Account } from "../lib/types";
@@ -20,6 +16,8 @@ export default function Accounts() {
   const { user, loading } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Redirect to login if not authenticated
@@ -73,6 +71,29 @@ export default function Accounts() {
 
   const handleAddAccount = () => {
     router.push("/addaccount");
+  };
+
+  const handleEditAccount = (account: Account) => {
+    setEditingAccount(account);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingAccount(null);
+  };
+
+  const handleAccountUpdated = async () => {
+    // Refresh the accounts list
+    try {
+      setAccountsLoading(true);
+      const accountsData = await getCurrentUserAccounts();
+      setAccounts(accountsData);
+    } catch (error) {
+      console.error("Error refreshing accounts:", error);
+    } finally {
+      setAccountsLoading(false);
+    }
   };
 
   // Show loading while checking auth state
@@ -129,16 +150,22 @@ export default function Accounts() {
             /* Accounts Grid - using flexWrap for responsive grid */
             <View className="flex-row flex-wrap gap-6">
               {accounts.map((account) => (
-                <View
+                <Pressable
                   key={account.id}
                   className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+                  onPress={() => handleEditAccount(account)}
+                  style={({ pressed }) => [
+                    {
+                      opacity: pressed ? 0.7 : 1,
+                    },
+                  ]}
                 >
-                  <Card className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="pb-3">
+                  <View className="bg-white flex flex-col rounded-xl border border-gray-200 shadow-sm">
+                    <View className="px-6 pt-6 pb-4">
                       <View className="flex-row justify-between items-start">
-                        <CardTitle className="text-lg font-semibold flex-1">
+                        <Text className="text-lg font-semibold text-gray-900 flex-1">
                           {account.name}
-                        </CardTitle>
+                        </Text>
                         <View
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full ${
                             getAccountTypeColor(account.type).bg
@@ -154,9 +181,9 @@ export default function Accounts() {
                           </Text>
                         </View>
                       </View>
-                    </CardHeader>
-                    <CardContent>
-                      <View className="space-y-2">
+                    </View>
+                    <View className="px-6 pb-6">
+                      <View className="space-y-2 gap-2">
                         <Text className="text-2xl font-bold text-gray-900">
                           {formatCurrency(account.balance)}
                         </Text>
@@ -181,16 +208,27 @@ export default function Accounts() {
                               {account.isActive ? "Active" : "Inactive"}
                             </Text>
                           </View>
+                          <Text className="text-xs text-gray-400">
+                            Tap to edit
+                          </Text>
                         </View>
                       </View>
-                    </CardContent>
-                  </Card>
-                </View>
+                    </View>
+                  </View>
+                </Pressable>
               ))}
             </View>
           )}
         </View>
       </ScrollView>
+
+      {/* Edit Account Modal */}
+      <EditAccountModal
+        account={editingAccount}
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onAccountUpdated={handleAccountUpdated}
+      />
     </SafeAreaView>
   );
 }

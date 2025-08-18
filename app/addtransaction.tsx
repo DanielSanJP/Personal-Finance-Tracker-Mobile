@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
-import { ScrollView, Text, View, Alert } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../components/nav";
 import { FormSkeleton } from "../components/loading-states";
@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import { useToast } from "../components/ui/sonner";
 import { getCurrentUserAccounts, createExpenseTransaction } from "../lib/data";
 import { useAuth } from "../lib/auth-context";
 import { checkGuestAndWarn } from "../lib/guest-protection";
@@ -29,6 +30,7 @@ import { checkGuestAndWarn } from "../lib/guest-protection";
 export default function AddTransactionPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const toast = useToast();
   const [accounts, setAccounts] = useState<any[]>([]);
 
   // Redirect to login if not authenticated
@@ -102,15 +104,18 @@ export default function AddTransactionPage() {
       !formData.account ||
       !formData.date
     ) {
-      Alert.alert("Error", "Please fill in all required fields");
+      toast.toast({
+        message: "Error: Please fill in all required fields",
+        type: "error",
+      });
       return;
     }
 
     if (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
-      Alert.alert(
-        "Error",
-        "Please enter a valid positive number for the amount"
-      );
+      toast.toast({
+        message: "Error: Please enter a valid positive number for the amount",
+        type: "error",
+      });
       return;
     }
 
@@ -128,49 +133,52 @@ export default function AddTransactionPage() {
       });
 
       if (result.success) {
-        Alert.alert(
-          "Success",
-          "Expense saved successfully! Your expense has been recorded.",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                // Reset form
-                setFormData({
-                  amount: "",
-                  description: "",
-                  category: "",
-                  merchant: "",
-                  account: "",
-                  status: "completed", // Use lowercase value that matches database
-                  date: new Date(),
-                });
-                router.push("/transactions");
-              },
-            },
-          ]
-        );
+        toast.toast({
+          message:
+            "Success: Expense saved successfully! Your expense has been recorded.",
+          type: "success",
+        });
+
+        // Reset form
+        setFormData({
+          amount: "",
+          description: "",
+          category: "",
+          merchant: "",
+          account: "",
+          status: "completed", // Use lowercase value that matches database
+          date: new Date(),
+        });
+        router.push("/transactions");
       } else {
-        Alert.alert("Error", result.error || "Failed to save expense");
+        toast.toast({
+          message: `Error: ${result.error || "Failed to save expense"}`,
+          type: "error",
+        });
       }
     } catch (error) {
       console.error("Error saving expense:", error);
-      Alert.alert("Error", "An unexpected error occurred. Please try again.");
+      toast.toast({
+        message: "Error: An unexpected error occurred. Please try again.",
+        type: "error",
+      });
     }
   };
 
   const handleVoiceInput = () => {
-    Alert.alert(
-      "Voice Input",
-      "Voice Input functionality not implemented yet. This feature will be available in a future update."
-    );
+    toast.toast({
+      message:
+        "Voice Input functionality not implemented yet. This feature will be available in a future update.",
+      type: "info",
+    });
   };
 
   const handleScanReceipt = () => {
-    Alert.alert(
-      "Scan Receipt",
-      "Scan Receipt functionality not implemented yet. This feature will be available in a future update."
-    );
+    toast.toast({
+      message:
+        "Scan Receipt functionality not implemented yet. This feature will be available in a future update.",
+      type: "info",
+    });
   };
 
   // Show loading while checking auth state

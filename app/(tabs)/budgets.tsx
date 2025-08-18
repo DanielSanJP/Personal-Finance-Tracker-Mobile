@@ -32,6 +32,8 @@ import {
 import {
   getCurrentUserBudgetsWithRealTimeSpending,
   createBudgetSimple,
+  updateBudget,
+  deleteBudget,
 } from "../../lib/data";
 import { useAuth } from "../../lib/auth-context";
 import type { Budget } from "../../lib/types";
@@ -44,6 +46,9 @@ export default function Budgets() {
   const [loading, setLoading] = useState(true);
   const [addBudgetOpen, setAddBudgetOpen] = useState(false);
   const [editBudgetsOpen, setEditBudgetsOpen] = useState(false);
+  const [editedBudgets, setEditedBudgets] = useState<{ [key: string]: string }>(
+    {}
+  );
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Load budgets when component mounts or user changes
@@ -184,6 +189,98 @@ export default function Budgets() {
       console.error("Error creating budget:", error);
       toast({
         message: "Failed to create budget. Please try again.",
+        type: "error",
+      });
+    }
+  };
+
+  // Individual budget save function
+  const handleSaveBudget = async (budgetId: string) => {
+    try {
+      const editedAmount = editedBudgets[budgetId];
+      if (!editedAmount) {
+        toast({
+          message: "Please enter a budget amount",
+          type: "error",
+        });
+        return;
+      }
+
+      const amount = parseFloat(editedAmount);
+      if (isNaN(amount) || amount <= 0) {
+        toast({
+          message: "Please enter a valid budget amount",
+          type: "error",
+        });
+        return;
+      }
+
+      const result = await updateBudget(budgetId, {
+        budgetAmount: amount,
+      });
+
+      if (result) {
+        toast({
+          message: "Budget updated successfully",
+          type: "success",
+        });
+
+        // Refresh budgets data
+        const budgetsData = await getCurrentUserBudgetsWithRealTimeSpending();
+        setBudgets(budgetsData);
+
+        // Clear the edited value
+        setEditedBudgets((prev) => {
+          const newState = { ...prev };
+          delete newState[budgetId];
+          return newState;
+        });
+      } else {
+        toast({
+          message: "Failed to update budget",
+          type: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating budget:", error);
+      toast({
+        message: "Failed to update budget. Please try again.",
+        type: "error",
+      });
+    }
+  };
+
+  // Individual budget delete function
+  const handleDeleteBudget = async (budgetId: string, category: string) => {
+    try {
+      const result = await deleteBudget(budgetId);
+
+      if (result) {
+        toast({
+          message: `Budget for ${category} deleted successfully`,
+          type: "success",
+        });
+
+        // Refresh budgets data
+        const budgetsData = await getCurrentUserBudgetsWithRealTimeSpending();
+        setBudgets(budgetsData);
+
+        // Clear any edited value for this budget
+        setEditedBudgets((prev) => {
+          const newState = { ...prev };
+          delete newState[budgetId];
+          return newState;
+        });
+      } else {
+        toast({
+          message: "Failed to delete budget",
+          type: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting budget:", error);
+      toast({
+        message: "Failed to delete budget. Please try again.",
         type: "error",
       });
     }
@@ -560,7 +657,16 @@ export default function Budgets() {
                             <View className="space-y-2 py-2">
                               <Label>Budget Amount</Label>
                               <Input
-                                defaultValue={budget.budgetAmount.toString()}
+                                value={
+                                  editedBudgets[budget.id] ||
+                                  budget.budgetAmount.toString()
+                                }
+                                onChangeText={(text) =>
+                                  setEditedBudgets((prev) => ({
+                                    ...prev,
+                                    [budget.id]: text,
+                                  }))
+                                }
                                 keyboardType="decimal-pad"
                                 returnKeyType="done"
                                 blurOnSubmit={true}
@@ -571,6 +677,27 @@ export default function Budgets() {
                             <Text className="text-sm text-gray-600 py-2">
                               Current spending: ${budget.spentAmount.toFixed(2)}
                             </Text>
+
+                            {/* Individual Save and Delete buttons */}
+                            <View className="flex-row gap-4 pt-2">
+                              <Button
+                                onPress={() => handleSaveBudget(budget.id)}
+                                className="min-w-[130px]"
+                                size="sm"
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                onPress={() =>
+                                  handleDeleteBudget(budget.id, budget.category)
+                                }
+                                className="min-w-[130px]"
+                                size="sm"
+                              >
+                                Delete
+                              </Button>
+                            </View>
                           </View>
                         ))}
                       </View>
@@ -581,9 +708,8 @@ export default function Budgets() {
                           onPress={() => setEditBudgetsOpen(false)}
                           className="w-full"
                         >
-                          Cancel
+                          Close
                         </Button>
-                        <Button className="w-full mt-2">Save Changes</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>

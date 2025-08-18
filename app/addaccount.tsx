@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
-import { ScrollView, Text, View, Alert } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../components/nav";
 import { FormSkeleton } from "../components/loading-states";
@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import { useToast } from "../components/ui/sonner";
 import { createAccount } from "../lib/data";
 import { checkGuestAndWarn } from "../lib/guest-protection";
 import { useAuth } from "../lib/auth-context";
@@ -27,6 +28,7 @@ import { useAuth } from "../lib/auth-context";
 export default function AddAccount() {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     name: "",
     type: "",
@@ -54,20 +56,20 @@ export default function AddAccount() {
 
     // Validate form data
     if (!formData.name || !formData.type || !formData.balance) {
-      Alert.alert(
-        "Missing Information",
-        "Please fill in all required fields. Name, type, and balance are required.",
-        [{ text: "OK" }]
-      );
+      toast.toast({
+        message:
+          "Missing Information: Please fill in all required fields. Name, type, and balance are required.",
+        type: "error",
+      });
       return;
     }
 
     if (isNaN(Number(formData.balance))) {
-      Alert.alert(
-        "Invalid Balance",
-        "Please enter a valid number for the balance.",
-        [{ text: "OK" }]
-      );
+      toast.toast({
+        message:
+          "Invalid Balance: Please enter a valid number for the balance.",
+        type: "error",
+      });
       return;
     }
 
@@ -81,32 +83,27 @@ export default function AddAccount() {
       });
 
       if (result) {
-        Alert.alert(
-          "Success",
-          `${formData.name} has been added to your accounts.`,
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                // Reset form
-                setFormData({
-                  name: "",
-                  type: "",
-                  balance: "",
-                  accountNumber: "",
-                });
+        toast.toast({
+          message: `Success: ${formData.name} has been added to your accounts.`,
+          type: "success",
+        });
 
-                // Navigate back to accounts page
-                router.push("/accounts");
-              },
-            },
-          ]
-        );
+        // Reset form
+        setFormData({
+          name: "",
+          type: "",
+          balance: "",
+          accountNumber: "",
+        });
+
+        // Navigate back to accounts page
+        router.push("/accounts");
       }
     } catch {
-      Alert.alert("Error", "Error creating account. Please try again later.", [
-        { text: "OK" },
-      ]);
+      toast.toast({
+        message: "Error: Error creating account. Please try again later.",
+        type: "error",
+      });
     }
   };
 

@@ -56,6 +56,8 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedPeriod, setSelectedPeriod] = useState("This Month");
+  const [selectedMerchant, setSelectedMerchant] = useState("All Merchants");
+  const [selectedType, setSelectedType] = useState("All Types");
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -63,6 +65,20 @@ export default function Transactions() {
   const [editSingleTransactionOpen, setEditSingleTransactionOpen] =
     useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Helper function to format transaction type for display
+  const formatTransactionType = (type: string) => {
+    switch (type) {
+      case "income":
+        return "Income";
+      case "expense":
+        return "Expense";
+      case "transfer":
+        return "Transfer";
+      default:
+        return type.charAt(0).toUpperCase() + type.slice(1);
+    }
+  };
 
   // Load transactions when component mounts or user changes
   useEffect(() => {
@@ -117,6 +133,20 @@ export default function Transactions() {
     "All Time",
   ];
 
+  // Get unique merchants for filter
+  const merchants = [
+    "All Merchants",
+    ...Array.from(new Set(transactions.map((t) => t.merchant).filter(Boolean))),
+  ];
+
+  // Get unique transaction types for filter
+  const types = [
+    "All Types",
+    ...Array.from(
+      new Set(transactions.map((t) => formatTransactionType(t.type)))
+    ),
+  ];
+
   // Helper function to check if date is within period
   const isDateInPeriod = (dateString: string, period: string): boolean => {
     const date = new Date(dateString);
@@ -164,6 +194,22 @@ export default function Transactions() {
     if (
       selectedCategory !== "All Categories" &&
       transaction.category !== selectedCategory
+    ) {
+      return false;
+    }
+
+    // Merchant filter
+    if (
+      selectedMerchant !== "All Merchants" &&
+      transaction.merchant !== selectedMerchant
+    ) {
+      return false;
+    }
+
+    // Type filter
+    if (
+      selectedType !== "All Types" &&
+      formatTransactionType(transaction.type) !== selectedType
     ) {
       return false;
     }
@@ -229,61 +275,139 @@ export default function Transactions() {
 
               <CardContent className="space-y-6 p-6">
                 {/* Filter Controls */}
-                <View className="flex-row space-x-4 py-6 gap-4">
-                  <View className="flex-1">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-between"
-                        >
-                          <Text>{selectedCategory}</Text>
-                          <Text className="ml-2">▼</Text>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-56" align="start">
-                        <DropdownMenuLabel>
-                          <Text>Filter by Category</Text>
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {categories.map((category) => (
-                          <DropdownMenuItem
-                            key={category}
-                            onPress={() => setSelectedCategory(category)}
+                <View className="space-y-4">
+                  {/* First row of filters */}
+                  <View className="flex-row space-x-4 gap-4">
+                    <View className="flex-1">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between"
                           >
-                            <Text>{category}</Text>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                            <Text>{selectedCategory}</Text>
+                            <Text className="ml-2">▼</Text>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56" align="start">
+                          <DropdownMenuLabel>
+                            <Text>Filter by Category</Text>
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {categories.map((category) => (
+                            <DropdownMenuItem
+                              key={category}
+                              onPress={() => setSelectedCategory(category)}
+                            >
+                              <Text>{category}</Text>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </View>
+
+                    <View className="flex-1">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between"
+                          >
+                            <Text>{selectedPeriod}</Text>
+                            <Text className="ml-2">▼</Text>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-48" align="end">
+                          <DropdownMenuLabel>
+                            <Text>Filter by Time Period</Text>
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {periods.map((period) => (
+                            <DropdownMenuItem
+                              key={period}
+                              onPress={() => setSelectedPeriod(period)}
+                            >
+                              <Text>{period}</Text>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </View>
                   </View>
 
-                  <View className="flex-1">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-between"
-                        >
-                          <Text>{selectedPeriod}</Text>
-                          <Text className="ml-2">▼</Text>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-48" align="end">
-                        <DropdownMenuLabel>
-                          <Text>Filter by Time Period</Text>
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {periods.map((period) => (
-                          <DropdownMenuItem
-                            key={period}
-                            onPress={() => setSelectedPeriod(period)}
+                  {/* Second row of filters */}
+                  <View className="flex-row space-x-4 gap-4 py-2">
+                    <View className="flex-1">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between"
                           >
-                            <Text>{period}</Text>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                            <Text>{selectedMerchant}</Text>
+                            <Text className="ml-2">▼</Text>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56" align="start">
+                          <DropdownMenuLabel>
+                            <Text>Filter by Merchant</Text>
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {merchants.map((merchant) => (
+                            <DropdownMenuItem
+                              key={merchant}
+                              onPress={() => setSelectedMerchant(merchant)}
+                            >
+                              <Text>{merchant}</Text>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </View>
+
+                    <View className="flex-1">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-between"
+                          >
+                            <Text>{selectedType}</Text>
+                            <Text className="ml-2">▼</Text>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-48" align="end">
+                          <DropdownMenuLabel>
+                            <Text>Filter by Type</Text>
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {types.map((type) => (
+                            <DropdownMenuItem
+                              key={type}
+                              onPress={() => setSelectedType(type)}
+                            >
+                              <Text>{type}</Text>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </View>
+                  </View>
+
+                  {/* Clear Filters Button */}
+                  <View className="flex justify-center pt-2 pb-4">
+                    <Button
+                      variant="outline"
+                      className="w-auto"
+                      onPress={() => {
+                        setSelectedCategory("All Categories");
+                        setSelectedPeriod("This Month");
+                        setSelectedMerchant("All Merchants");
+                        setSelectedType("All Types");
+                      }}
+                    >
+                      <Text>Clear All Filters</Text>
+                    </Button>
                   </View>
                 </View>
                 {/* Transaction List */}

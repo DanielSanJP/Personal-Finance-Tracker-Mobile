@@ -35,6 +35,8 @@ import {
   getCurrentUserAccounts,
   makeGoalContribution,
   createGoal,
+  updateGoal,
+  deleteGoal,
 } from "../../lib/data";
 import { useAuth } from "../../lib/auth-context";
 import { useToast } from "../../components/ui/sonner";
@@ -116,6 +118,9 @@ export default function Goals() {
   const [contributionDate, setContributionDate] = useState<Date | undefined>(
     new Date()
   );
+  const [editedGoals, setEditedGoals] = useState<{
+    [key: string]: { name?: string; targetAmount?: string; targetDate?: Date };
+  }>({});
 
   // Helper functions to extract IDs from display values
   const getGoalIdFromDisplayValue = (displayValue: string) => {
@@ -366,6 +371,109 @@ export default function Goals() {
   const handleContributionClose = () => {
     setContributionOpen(false);
     resetContributionForm();
+  };
+
+  // Individual goal save function
+  const handleSaveGoal = async (goalId: string) => {
+    try {
+      const editedGoal = editedGoals[goalId];
+      if (!editedGoal) {
+        toast({
+          message: "No changes to save",
+          type: "info",
+        });
+        return;
+      }
+
+      const updates: Partial<Goal> = {};
+
+      if (editedGoal.name !== undefined) {
+        updates.name = editedGoal.name;
+      }
+
+      if (editedGoal.targetAmount !== undefined) {
+        const amount = parseFloat(editedGoal.targetAmount);
+        if (isNaN(amount) || amount <= 0) {
+          toast({
+            message: "Please enter a valid target amount",
+            type: "error",
+          });
+          return;
+        }
+        updates.targetAmount = amount;
+      }
+
+      if (editedGoal.targetDate !== undefined) {
+        updates.targetDate = editedGoal.targetDate.toISOString().split("T")[0];
+      }
+
+      const result = await updateGoal(goalId, updates);
+
+      if (result) {
+        toast({
+          message: "Goal updated successfully",
+          type: "success",
+        });
+
+        // Refresh goals data
+        const goalsData = await getCurrentUserGoals();
+        setGoals(goalsData);
+
+        // Clear the edited value
+        setEditedGoals((prev) => {
+          const newState = { ...prev };
+          delete newState[goalId];
+          return newState;
+        });
+      } else {
+        toast({
+          message: "Failed to update goal",
+          type: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating goal:", error);
+      toast({
+        message: "Failed to update goal. Please try again.",
+        type: "error",
+      });
+    }
+  };
+
+  // Individual goal delete function
+  const handleDeleteGoal = async (goalId: string, goalName: string) => {
+    try {
+      const result = await deleteGoal(goalId);
+
+      if (result) {
+        toast({
+          message: `Goal "${goalName}" deleted successfully`,
+          type: "success",
+        });
+
+        // Refresh goals data
+        const goalsData = await getCurrentUserGoals();
+        setGoals(goalsData);
+
+        // Clear any edited value for this goal
+        setEditedGoals((prev) => {
+          const newState = { ...prev };
+          delete newState[goalId];
+          return newState;
+        });
+      } else {
+        toast({
+          message: "Failed to delete goal",
+          type: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting goal:", error);
+      toast({
+        message: "Failed to delete goal. Please try again.",
+        type: "error",
+      });
+    }
   };
 
   // Progress calculation function
@@ -623,13 +731,31 @@ export default function Goals() {
               >
                 <View className="space-y-2">
                   <Label>Goal Name</Label>
-                  <Input defaultValue={goal.name} className="w-full" />
+                  <Input
+                    value={editedGoals[goal.id]?.name ?? goal.name}
+                    onChangeText={(text) =>
+                      setEditedGoals((prev) => ({
+                        ...prev,
+                        [goal.id]: { ...prev[goal.id], name: text },
+                      }))
+                    }
+                    className="w-full"
+                  />
                 </View>
 
                 <View className="space-y-2">
                   <Label>Target Amount</Label>
                   <Input
-                    defaultValue={goal.targetAmount.toString()}
+                    value={
+                      editedGoals[goal.id]?.targetAmount ??
+                      goal.targetAmount.toString()
+                    }
+                    onChangeText={(text) =>
+                      setEditedGoals((prev) => ({
+                        ...prev,
+                        [goal.id]: { ...prev[goal.id], targetAmount: text },
+                      }))
+                    }
                     keyboardType="decimal-pad"
                     returnKeyType="done"
                     blurOnSubmit={true}
@@ -641,10 +767,14 @@ export default function Goals() {
                   <Label>Target Date</Label>
                   <DatePicker
                     date={
-                      goal.targetDate ? new Date(goal.targetDate) : new Date()
+                      editedGoals[goal.id]?.targetDate ??
+                      (goal.targetDate ? new Date(goal.targetDate) : new Date())
                     }
                     onDateChange={(date) => {
-                      // You can add state management here when implementing save functionality
+                      setEditedGoals((prev) => ({
+                        ...prev,
+                        [goal.id]: { ...prev[goal.id], targetDate: date },
+                      }));
                     }}
                     placeholder="Select target date"
                     className="w-full"
@@ -654,6 +784,25 @@ export default function Goals() {
                 <Text className="text-sm text-gray-600">
                   Current amount: {formatCurrency(goal.currentAmount)}
                 </Text>
+
+                {/* Individual Save and Delete buttons */}
+                <View className="flex-row gap-4 pt-2">
+                  <Button
+                    onPress={() => handleSaveGoal(goal.id)}
+                    className="min-w-[130px]"
+                    size="sm"
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onPress={() => handleDeleteGoal(goal.id, goal.name)}
+                    className="min-w-[130px]"
+                    size="sm"
+                  >
+                    Delete
+                  </Button>
+                </View>
               </View>
             ))}
           </View>
@@ -664,9 +813,8 @@ export default function Goals() {
               onPress={handleEditGoalsClose}
               className="w-full"
             >
-              Cancel
+              Close
             </Button>
-            <Button className="w-full mt-2">Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
