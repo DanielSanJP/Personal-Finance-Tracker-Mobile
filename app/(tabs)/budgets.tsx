@@ -132,36 +132,54 @@ export default function Budgets() {
       return;
     }
 
-    // Check for duplicate category
-    const existingBudget = budgets.find(
-      (budget) => budget.category === selectedCategory
-    );
-    if (existingBudget) {
-      toast({
-        message: `A budget for ${selectedCategory} already exists. Only one budget per category is allowed.`,
-        type: "error",
-      });
-      return;
-    }
-
     try {
-      await createBudgetSimple({
+      const result = await createBudgetSimple({
         category: selectedCategory,
         budgetAmount: amount,
         period: budgetPeriod as "monthly" | "weekly" | "yearly",
       });
 
-      toast({
-        message: "Budget created successfully!",
-        type: "success",
-      });
+      if (result.success) {
+        toast({
+          message: "Budget created successfully!",
+          type: "success",
+        });
 
-      // Refresh budgets data
-      const budgetsData = await getCurrentUserBudgetsWithRealTimeSpending();
-      setBudgets(budgetsData);
+        // Refresh budgets data
+        const budgetsData = await getCurrentUserBudgetsWithRealTimeSpending();
+        setBudgets(budgetsData);
 
-      // Close modal and reset form
-      handleAddBudgetClose();
+        // Close modal and reset form
+        handleAddBudgetClose();
+      } else {
+        // Handle specific budget exists error
+        if (result.errorType === "BUDGET_EXISTS") {
+          toast({
+            message:
+              result.error ||
+              `A budget for ${selectedCategory} already exists. Only one budget per category is allowed.`,
+            type: "error",
+          });
+
+          // Optionally, highlight the existing budget in the list
+          const existingBudget = budgets.find(
+            (b) => b.category === selectedCategory
+          );
+          if (existingBudget) {
+            // You could add visual feedback here, like scrolling to the existing budget
+            console.log(
+              `Found existing budget for ${selectedCategory}:`,
+              existingBudget
+            );
+          }
+        } else {
+          toast({
+            message:
+              result.error || "Failed to create budget. Please try again.",
+            type: "error",
+          });
+        }
+      }
     } catch (error) {
       console.error("Error creating budget:", error);
       toast({
