@@ -82,16 +82,17 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
+  // Match Next.js shadcn sonner styling
   const getTypeStyles = () => {
     switch (toast.type) {
       case "success":
-        return "bg-green-50 border-green-200";
+        return "bg-white border-slate-200";
       case "error":
-        return "bg-red-50 border-red-200";
+        return "bg-white border-slate-200";
       case "warning":
-        return "bg-yellow-50 border-yellow-200";
+        return "bg-white border-slate-200";
       default:
-        return "bg-background border-border";
+        return "bg-white border-slate-200";
     }
   };
 
@@ -108,6 +109,19 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     }
   };
 
+  const getTextColor = () => {
+    switch (toast.type) {
+      case "success":
+        return "text-green-600";
+      case "error":
+        return "text-red-600";
+      case "warning":
+        return "text-yellow-600";
+      default:
+        return "text-blue-600";
+    }
+  };
+
   return (
     <Animated.View
       style={{
@@ -121,19 +135,24 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
           "rounded-lg border p-4 shadow-lg flex flex-row items-center justify-between",
           getTypeStyles()
         )}
+        style={{
+          backgroundColor: "white",
+          borderColor: "#e2e8f0",
+          borderWidth: 1,
+        }}
       >
         <View className="flex flex-row items-center gap-3 flex-1">
-          <Text className="text-base">{getTypeIcon()}</Text>
-          <Text className="text-foreground text-sm flex-1">
-            {toast.message}
+          <Text className={cn("text-base", getTextColor())}>
+            {getTypeIcon()}
           </Text>
+          <Text className="text-black text-sm flex-1">{toast.message}</Text>
         </View>
         <TouchableOpacity
           onPress={onClose}
           className="ml-2 w-6 h-6 items-center justify-center"
           activeOpacity={0.7}
         >
-          <Text className="text-muted-foreground text-sm">×</Text>
+          <Text className="text-gray-500 text-sm">×</Text>
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -159,7 +178,9 @@ export function useToast() {
   };
 }
 
-// For compatibility with the original Toaster component
-export function Toaster() {
+// Match Next.js Toaster component API
+const Toaster = () => {
   return null; // The ToastContainer is rendered by ToastProvider
-}
+};
+
+export { Toaster };

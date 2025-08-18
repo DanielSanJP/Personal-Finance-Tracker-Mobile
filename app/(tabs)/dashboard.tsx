@@ -75,6 +75,52 @@ export default function Dashboard() {
     loadData();
   }, [user]);
 
+  // Refresh data when tab is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user) {
+        const loadData = async () => {
+          try {
+            setLoading(true);
+
+            // Use the new getDashboardData function like Next.js
+            const dashboardData = await getDashboardData();
+
+            if (dashboardData) {
+              setAccounts(dashboardData.accounts);
+              // Convert the dashboard summary to the expected Summary type
+              setSummary({
+                userId: dashboardData.user.id,
+                totalBalance: dashboardData.summary.totalBalance,
+                monthlyChange: dashboardData.summary.monthlyChange,
+                monthlyIncome: dashboardData.summary.monthlyIncome,
+                monthlyExpenses: dashboardData.summary.monthlyExpenses,
+                budgetRemaining: dashboardData.summary.budgetRemaining,
+                accountBreakdown: dashboardData.summary.accountBreakdown,
+                categorySpending: dashboardData.summary.categorySpending,
+                lastUpdated: new Date().toISOString(),
+              });
+            } else {
+              // Fallback to original method
+              const [accountsData, summaryData] = await Promise.all([
+                getCurrentUserAccounts(),
+                getCurrentUserSummary(),
+              ]);
+              setAccounts(accountsData);
+              setSummary(summaryData);
+            }
+          } catch (error) {
+            console.error("Error loading dashboard data:", error);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        loadData();
+      }
+    }, [user])
+  );
+
   // Get current month name
   const getCurrentMonthName = () => {
     const months = [

@@ -1,6 +1,8 @@
 import { supabase } from '../supabase'
 import { getCurrentUser } from '../auth'
 import type { Goal } from '../types'
+import { updateAccount } from './accounts'
+import { createTransferTransaction } from './transactions'
 
 // Helper function to format date for database
 const formatDateForDatabase = (date: string | Date): string => {
@@ -103,26 +105,39 @@ export const getGoalById = async (goalId: string): Promise<Goal | null> => {
   }
 }
 
-export const createGoal = async (goalData: Omit<Goal, 'id'>): Promise<Goal | null> => {
+export const createGoal = async (goalData: Omit<Goal, 'id'>): Promise<Goal> => {
   try {
+    console.log('createGoal called with data:', goalData);
+    
+    // Generate a unique ID for the goal
+    const goalId = `goal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    console.log('Generated goal ID:', goalId);
+
+    const insertData = {
+      id: goalId,
+      user_id: goalData.userId,
+      name: goalData.name,
+      target_amount: goalData.targetAmount,
+      current_amount: goalData.currentAmount,
+      target_date: goalData.targetDate ? formatDateForDatabase(goalData.targetDate) : null,
+      category: goalData.category || null,
+      priority: goalData.priority || null,
+      status: goalData.status
+    };
+    
+    console.log('Inserting data to Supabase:', insertData);
+
     const { data, error } = await supabase
       .from('goals')
-      .insert({
-        user_id: goalData.userId,
-        name: goalData.name,
-        target_amount: goalData.targetAmount,
-        current_amount: goalData.currentAmount,
-        target_date: goalData.targetDate ? formatDateForDatabase(goalData.targetDate) : null,
-        category: goalData.category || null,
-        priority: goalData.priority || null,
-        status: goalData.status
-      })
+      .insert(insertData)
       .select()
       .single()
 
+    console.log('Supabase response - data:', data, 'error:', error);
+
     if (error) {
       console.error('Error creating goal:', error)
-      return null
+      throw new Error(`Failed to create goal: ${error.message}`)
     }
 
     return {
@@ -138,7 +153,7 @@ export const createGoal = async (goalData: Omit<Goal, 'id'>): Promise<Goal | nul
     }
   } catch (error) {
     console.error('Error in createGoal:', error)
-    return null
+    throw error
   }
 }
 
@@ -253,5 +268,93 @@ export const updateGoalProgress = async (goalId: string, amount: number): Promis
   } catch (error) {
     console.error('Error in updateGoalProgress:', error)
     return null
+  }
+}
+
+// Make a contribution to a goal
+export const makeGoalContribution = async (contributionData: {
+  goalId: string;
+  accountId: string;
+  amount: number;
+  date: Date;
+  notes?: string;
+}) => {
+  const user = await getCurrentUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  try {
+    // Start a transaction-like operation by performing multiple operations
+    
+    // 1. Get current goal data
+    const { data: goalData, error: goalError } = await supabase
+      .from('goals')
+      .select('*')
+      .eq('id', contributionData.goalId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (goalError) {
+      throw new Error('Goal not found')
+    }
+
+    // 2. Get current account data
+    const { data: accountData, error: accountError } = await supabase
+      .from('accounts')
+      .select('*')
+      .eq('id', contributionData.accountId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (accountError) {
+      throw new Error('Account not found')
+    }
+
+    // 3. Check if account has sufficient balance
+    if (Number(accountData.balance) < contributionData.amount) {
+      throw new Error('Insufficient account balance')
+    }
+
+    // 4. Update goal current amount
+    const newCurrentAmount = Number(goalData.current_amount) + contributionData.amount
+    
+    const { error: updateGoalError } = await supabase
+      .from('goals')
+      .update({ current_amount: newCurrentAmount })
+      .eq('id', contributionData.goalId)
+      .eq('user_id', user.id)
+
+    if (updateGoalError) {
+      throw new Error('Failed to update goal')
+    }
+
+    // 5. Update account balance
+    const newAccountBalance = Number(accountData.balance) - contributionData.amount
+    
+    await updateAccount(contributionData.accountId, {
+      balance: newAccountBalance
+    })
+
+    // 6. Create a transaction record
+    await createTransferTransaction({
+      amount: contributionData.amount,
+      description: `Goal contribution: ${goalData.name}`,
+      category: 'Savings',
+      accountId: contributionData.accountId,
+      date: contributionData.date,
+      merchant: contributionData.notes || 'Goal Contribution'
+    })
+
+    return {
+      success: true,
+      message: 'Contribution made successfully',
+      newGoalAmount: newCurrentAmount,
+      newAccountBalance: newAccountBalance
+    }
+
+  } catch (error) {
+    console.error('Error in makeGoalContribution:', error)
+    throw error
   }
 }

@@ -139,9 +139,13 @@ export const getTransactionById = async (transactionId: string): Promise<Transac
 
 export const createTransaction = async (transactionData: Omit<Transaction, 'id'>): Promise<Transaction | null> => {
   try {
+    // Generate a unique ID for the transaction
+    const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     const { data, error } = await supabase
       .from('transactions')
       .insert({
+        id: transactionId,
         user_id: transactionData.userId,
         account_id: transactionData.accountId,
         date: formatDateForDatabase(transactionData.date),
@@ -273,5 +277,173 @@ export const getRecentTransactions = async (limit: number = 10): Promise<Transac
   } catch (error) {
     console.error('Error in getRecentTransactions:', error)
     return []
+  }
+}
+
+// Convenience functions for creating specific transaction types
+export const createExpenseTransaction = async (expenseData: {
+  amount: number;
+  description: string;
+  category?: string;
+  merchant?: string;
+  accountId: string;
+  status: string;
+  date: Date | string;
+}): Promise<{ success: boolean; transaction?: Transaction; error?: string }> => {
+  const user = await getCurrentUser()
+  if (!user) {
+    return { success: false, error: 'User not authenticated' }
+  }
+
+  try {
+    // Use the database function to handle both transaction creation and balance update atomically
+    const { data: transaction, error: transactionError } = await supabase.rpc('create_expense_transaction', {
+      p_user_id: user.id,
+      p_account_id: expenseData.accountId,
+      p_amount: Math.abs(expenseData.amount), // Ensure positive amount for calculation
+      p_description: expenseData.description,
+      p_category: expenseData.category || null,
+      p_merchant: expenseData.merchant || null,
+      p_date: typeof expenseData.date === 'string' ? expenseData.date : expenseData.date.toISOString().split('T')[0],
+      p_status: expenseData.status || 'completed'
+    });
+
+    if (transactionError) {
+      console.error('Error creating expense transaction:', transactionError);
+      return { success: false, error: 'Failed to create expense transaction' }
+    }
+
+    return { 
+      success: true, 
+      transaction: {
+        id: transaction.id,
+        userId: transaction.userId,
+        accountId: transaction.accountId,
+        date: transaction.date,
+        description: transaction.description,
+        amount: Number(transaction.amount),
+        category: transaction.category || '',
+        type: transaction.type,
+        merchant: transaction.merchant || '',
+        status: transaction.status
+      }
+    }
+  } catch (error) {
+    console.error('Error in createExpenseTransaction:', error)
+    return { success: false, error: 'An error occurred while creating the expense' }
+  }
+}
+
+export const createIncomeTransaction = async (incomeData: {
+  amount: number;
+  description: string;
+  category?: string;
+  accountId: string;
+  status: string;
+  date: Date | string;
+}): Promise<{ success: boolean; transaction?: Transaction; error?: string }> => {
+  const user = await getCurrentUser()
+  if (!user) {
+    return { success: false, error: 'User not authenticated' }
+  }
+
+  try {
+    // Use the database function to handle both transaction creation and balance update atomically
+    const { data: transaction, error: transactionError } = await supabase.rpc('create_income_transaction', {
+      p_user_id: user.id,
+      p_account_id: incomeData.accountId,
+      p_amount: Math.abs(incomeData.amount), // Ensure positive amount for income
+      p_description: incomeData.description,
+      p_category: incomeData.category || 'Income',
+      p_merchant: incomeData.category || 'Income',
+      p_date: typeof incomeData.date === 'string' ? incomeData.date : incomeData.date.toISOString().split('T')[0]
+    });
+
+    if (transactionError) {
+      console.error('Error creating income transaction:', transactionError);
+      return { success: false, error: 'Failed to create income transaction' }
+    }
+
+    return { 
+      success: true, 
+      transaction: {
+        id: transaction.id,
+        userId: transaction.userId,
+        accountId: transaction.accountId,
+        date: transaction.date,
+        description: transaction.description,
+        amount: Number(transaction.amount),
+        category: transaction.category || '',
+        type: transaction.type,
+        merchant: transaction.merchant || '',
+        status: transaction.status || 'completed'
+      }
+    }
+  } catch (error) {
+    console.error('Error in createIncomeTransaction:', error)
+    return { success: false, error: 'An error occurred while creating the income' }
+  }
+}
+
+// Transfer-specific transaction creation function  
+export const createTransferTransaction = async (transferData: {
+  amount: number;
+  description: string;
+  category?: string;
+  merchant?: string;
+  accountId: string;
+  status?: string;
+  date: Date;
+}) => {
+  const user = await getCurrentUser()
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
+
+  try {
+    // Generate a unique ID for the transaction
+    const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert({
+        id: transactionId,
+        user_id: user.id,
+        account_id: transferData.accountId,
+        date: formatDateForDatabase(transferData.date), // Format as YYYY-MM-DD in local timezone
+        description: transferData.description,
+        amount: -Math.abs(transferData.amount), // Negative amount to reduce account balance
+        category: transferData.category || null,
+        type: 'transfer',
+        merchant: transferData.merchant || null,
+        status: transferData.status || 'completed'
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating transfer transaction:', error)
+      throw new Error('Failed to create transfer transaction')
+    }
+
+    return {
+      success: true,
+      message: 'Transfer transaction created successfully',
+      transaction: {
+        id: data.id,
+        userId: data.user_id,
+        accountId: data.account_id,
+        date: data.date,
+        description: data.description,
+        amount: Number(data.amount),
+        category: data.category || '',
+        type: data.type,
+        merchant: data.merchant || '',
+        status: data.status
+      }
+    }
+  } catch (error) {
+    console.error('Error in createTransferTransaction:', error)
+    throw error
   }
 }

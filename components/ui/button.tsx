@@ -77,50 +77,43 @@ function Button({
       gap: 8,
     };
 
+    // Create completely separate style objects for web and native
+    const getShadowStyles = () => {
+      if (Platform.OS === "web") {
+        return { boxShadow: "0 1px 1px rgba(0, 0, 0, 0.05)" } as ViewStyle;
+      } else {
+        return {
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 1,
+          elevation: 1,
+        } as ViewStyle;
+      }
+    };
+
+    const shadowStyles = getShadowStyles();
+
     switch (variant) {
       case "default":
         return {
           ...baseStyle,
+          ...shadowStyles,
           backgroundColor: "#1a1a1a", // var(--primary) from CSS
-          ...(Platform.OS === "web"
-            ? { boxShadow: "0 1px 1px rgba(0, 0, 0, 0.05)" }
-            : {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 1,
-                elevation: 1,
-              }),
         };
       case "outline":
         return {
           ...baseStyle,
+          ...shadowStyles,
           backgroundColor: "#ffffff", // var(--background) from CSS
           borderWidth: 1,
           borderColor: "#ebebeb", // var(--input) from CSS
-          ...(Platform.OS === "web"
-            ? { boxShadow: "0 1px 1px rgba(0, 0, 0, 0.05)" }
-            : {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 1,
-                elevation: 1,
-              }),
         };
       case "secondary":
         return {
           ...baseStyle,
+          ...shadowStyles,
           backgroundColor: "#f7f7f7", // var(--secondary) from CSS
-          ...(Platform.OS === "web"
-            ? { boxShadow: "0 1px 1px rgba(0, 0, 0, 0.05)" }
-            : {
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.05,
-                shadowRadius: 1,
-                elevation: 1,
-              }),
         };
       default:
         return baseStyle;

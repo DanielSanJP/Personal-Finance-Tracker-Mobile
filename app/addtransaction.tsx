@@ -14,6 +14,7 @@ import {
 import { DatePicker } from "../components/ui/date-picker";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { CategorySelect } from "../components/category-select";
 import {
   Select,
   SelectContent,
@@ -21,8 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { getCurrentUserAccounts } from "../lib/data";
+import { getCurrentUserAccounts, createExpenseTransaction } from "../lib/data";
 import { useAuth } from "../lib/auth-context";
+import { checkGuestAndWarn } from "../lib/guest-protection";
 
 export default function AddTransactionPage() {
   const router = useRouter();
@@ -52,38 +54,51 @@ export default function AddTransactionPage() {
   }, [user]);
 
   const [formData, setFormData] = useState({
-    type: "",
     amount: "",
     description: "",
     category: "",
+    merchant: "",
     account: "",
+    status: "completed", // Use lowercase value that matches database
     date: new Date() as Date | undefined,
   });
 
-  const transactionTypes = ["income", "expense", "transfer"];
-  const categories = [
-    "Food & Dining",
-    "Transportation",
-    "Entertainment",
-    "Housing",
-    "Income",
-    "Transfer",
-    "Shopping",
-    "Healthcare",
-    "Utilities",
+  // Status options with display labels and database values
+  const statusOptions = [
+    { label: "Pending", value: "pending" },
+    { label: "Completed", value: "completed" },
+    { label: "Cancelled", value: "cancelled" },
+    { label: "Failed", value: "failed" },
   ];
+
+  // Helper function to get display label for status
+  const getStatusLabel = (value: string) => {
+    return (
+      statusOptions.find((option) => option.value === value)?.label || value
+    );
+  };
 
   const handleCancel = () => {
     router.push("/transactions");
   };
 
-  const handleSave = () => {
+  // Helper function to extract account ID from display value
+  const getAccountIdFromDisplayValue = (displayValue: string) => {
+    const account = accounts.find(
+      (acc) => `${acc.name} (${acc.type})` === displayValue
+    );
+    return account?.id || "";
+  };
+
+  const handleSave = async () => {
+    // Check if user is guest first
+    const isGuest = await checkGuestAndWarn("create transactions");
+    if (isGuest) return;
+
     // Validate required fields
     if (
-      !formData.type ||
       !formData.amount ||
       !formData.description ||
-      !formData.category ||
       !formData.account ||
       !formData.date
     ) {
@@ -91,17 +106,57 @@ export default function AddTransactionPage() {
       return;
     }
 
-    // Non-functional for now - just show an alert
-    Alert.alert(
-      "Success",
-      "Transaction saved successfully! Your transaction has been recorded.",
-      [
-        {
-          text: "OK",
-          onPress: () => router.push("/transactions"),
-        },
-      ]
-    );
+    if (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
+      Alert.alert(
+        "Error",
+        "Please enter a valid positive number for the amount"
+      );
+      return;
+    }
+
+    try {
+      const accountId = getAccountIdFromDisplayValue(formData.account);
+
+      const result = await createExpenseTransaction({
+        amount: Number(formData.amount),
+        description: formData.description,
+        category: formData.category || undefined,
+        merchant: formData.merchant || undefined,
+        accountId: accountId,
+        status: formData.status, // Already using correct lowercase database values
+        date: formData.date,
+      });
+
+      if (result.success) {
+        Alert.alert(
+          "Success",
+          "Expense saved successfully! Your expense has been recorded.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                // Reset form
+                setFormData({
+                  amount: "",
+                  description: "",
+                  category: "",
+                  merchant: "",
+                  account: "",
+                  status: "completed", // Use lowercase value that matches database
+                  date: new Date(),
+                });
+                router.push("/transactions");
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Error", result.error || "Failed to save expense");
+      }
+    } catch (error) {
+      console.error("Error saving expense:", error);
+      Alert.alert("Error", "An unexpected error occurred. Please try again.");
+    }
   };
 
   const handleVoiceInput = () => {
@@ -144,36 +199,16 @@ export default function AddTransactionPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl font-bold text-center py-2">
-                Add New Transaction
+                Add New Expense
               </CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-6">
-              {/* Type */}
-              <View className="space-y-2 py-2">
-                <Label className="text-base font-medium">Type</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, type: value })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select type..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {transactionTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </View>
-
               {/* Amount */}
               <View className="space-y-2 py-2">
-                <Label className="text-base font-medium">Amount</Label>
+                <Label className="text-base font-medium">
+                  Amount <Text className="text-red-500">*</Text>
+                </Label>
                 <Input
                   keyboardType="numeric"
                   returnKeyType="done"
@@ -188,7 +223,9 @@ export default function AddTransactionPage() {
 
               {/* Description */}
               <View className="space-y-2 py-2">
-                <Label className="text-base font-medium">Description</Label>
+                <Label className="text-base font-medium">
+                  Description <Text className="text-red-500">*</Text>
+                </Label>
                 <Input
                   placeholder="What was this for?"
                   value={formData.description}
@@ -200,21 +237,52 @@ export default function AddTransactionPage() {
               </View>
 
               {/* Category */}
+              <CategorySelect
+                value={formData.category}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, category: value })
+                }
+                type="expense"
+                required={true}
+              />
+
+              {/* Merchant */}
               <View className="space-y-2 py-2">
-                <Label className="text-base font-medium">Category</Label>
+                <Label className="text-base font-medium">
+                  Merchant (Optional)
+                </Label>
+                <Input
+                  placeholder="Where was this transaction made?"
+                  value={formData.merchant}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, merchant: text })
+                  }
+                  className="px-4 py-3 border-gray-300 rounded-lg bg-white text-gray-600"
+                />
+              </View>
+
+              {/* Status */}
+              <View className="space-y-2 py-2">
+                <Label className="text-base font-medium">Status</Label>
                 <Select
-                  value={formData.category}
+                  value={formData.status}
                   onValueChange={(value) =>
-                    setFormData({ ...formData, category: value })
+                    setFormData({ ...formData, status: value })
                   }
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select category..." />
+                    <SelectValue
+                      displayValue={
+                        formData.status
+                          ? getStatusLabel(formData.status)
+                          : undefined
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                    {statusOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -223,7 +291,9 @@ export default function AddTransactionPage() {
 
               {/* Account */}
               <View className="space-y-2 py-2">
-                <Label className="text-base font-medium">Account</Label>
+                <Label className="text-base font-medium">
+                  Account <Text className="text-red-500">*</Text>
+                </Label>
                 <Select
                   value={formData.account}
                   onValueChange={(value) =>
@@ -235,8 +305,11 @@ export default function AddTransactionPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.name}>
-                        {account.name}
+                      <SelectItem
+                        key={account.id}
+                        value={`${account.name} (${account.type})`}
+                      >
+                        {account.name} ({account.type})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -245,7 +318,9 @@ export default function AddTransactionPage() {
 
               {/* Date */}
               <View className="space-y-2 py-2">
-                <Label className="text-base font-medium">Date</Label>
+                <Label className="text-base font-medium">
+                  Date <Text className="text-red-500">*</Text>
+                </Label>
                 <DatePicker
                   date={formData.date}
                   onDateChange={(date) => setFormData({ ...formData, date })}

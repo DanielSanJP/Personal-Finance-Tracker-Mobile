@@ -17,6 +17,7 @@ interface DatePickerProps {
   onDateChange?: (date: Date | undefined) => void;
   placeholder?: string;
   className?: string;
+  minimumDate?: Date;
 }
 
 export function DatePicker({
@@ -24,6 +25,7 @@ export function DatePicker({
   onDateChange,
   placeholder = "Select target date",
   className,
+  minimumDate,
 }: DatePickerProps) {
   const [showDialog, setShowDialog] = React.useState(false);
   const [showNativePicker, setShowNativePicker] = React.useState(false);
@@ -101,6 +103,7 @@ export function DatePicker({
           mode="date"
           display="default"
           onChange={handleNativeDateChange}
+          minimumDate={minimumDate}
         />
       )}
 
@@ -116,6 +119,7 @@ export function DatePicker({
               selected={tempDate}
               onSelect={handleCalendarSelect}
               mode="single"
+              minimumDate={minimumDate}
             />
           </View>
 

@@ -29,41 +29,72 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { formatCurrency, getCurrentUserGoals } from "../../lib/data";
+import {
+  formatCurrency,
+  getCurrentUserGoals,
+  getCurrentUserAccounts,
+  makeGoalContribution,
+  createGoal,
+} from "../../lib/data";
 import { useAuth } from "../../lib/auth-context";
-import type { Goal } from "../../lib/types";
+import { useToast } from "../../components/ui/sonner";
+import type { Goal, Account } from "../../lib/types";
 
 export default function Goals() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   // Loading state for goals
   const [loading, setLoading] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Load goals when component mounts or user changes
   useEffect(() => {
-    const loadGoals = async () => {
+    const loadData = async () => {
       if (!user) return;
 
       try {
         setLoading(true);
-        const goalsData = await getCurrentUserGoals();
+        const [goalsData, accountsData] = await Promise.all([
+          getCurrentUserGoals(),
+          getCurrentUserAccounts(),
+        ]);
         setGoals(goalsData);
+        setAccounts(accountsData);
       } catch (error) {
-        console.error("Error loading goals:", error);
+        console.error("Error loading data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadGoals();
+    loadData();
   }, [user]);
 
-  // Scroll to top when the tab is focused
+  // Scroll to top and refresh data when the tab is focused
   useFocusEffect(
     React.useCallback(() => {
       scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
-    }, [])
+
+      // Refresh data when tab is focused
+      if (user) {
+        const loadData = async () => {
+          try {
+            const [goalsData, accountsData] = await Promise.all([
+              getCurrentUserGoals(),
+              getCurrentUserAccounts(),
+            ]);
+            setGoals(goalsData);
+            setAccounts(accountsData);
+          } catch (error) {
+            console.error("Error loading data:", error);
+          }
+        };
+
+        loadData();
+      }
+    }, [user])
   );
 
   // Modal state
@@ -82,6 +113,41 @@ export default function Goals() {
   const [selectedGoal, setSelectedGoal] = useState("");
   const [contributionAmount, setContributionAmount] = useState("");
   const [sourceAccount, setSourceAccount] = useState("");
+  const [contributionDate, setContributionDate] = useState<Date | undefined>(
+    new Date()
+  );
+
+  // Helper functions to extract IDs from display values
+  const getGoalIdFromDisplayValue = (displayValue: string) => {
+    const goal = goals.find(
+      (g) =>
+        `${g.name} (${formatCurrency(g.currentAmount)} / ${formatCurrency(
+          g.targetAmount
+        )})` === displayValue
+    );
+    return goal?.id || "";
+  };
+
+  const getAccountIdFromDisplayValue = (displayValue: string) => {
+    const account = accounts.find(
+      (acc) => `${acc.name} (${formatCurrency(acc.balance)})` === displayValue
+    );
+    return account?.id || "";
+  };
+
+  // Priority options with display labels and database values
+  const priorityOptions = [
+    { label: "High", value: "high" },
+    { label: "Medium", value: "medium" },
+    { label: "Low", value: "low" },
+  ];
+
+  // Helper function to get display label for priority
+  const getPriorityLabel = (value: string) => {
+    return (
+      priorityOptions.find((option) => option.value === value)?.label || value
+    );
+  };
 
   // Reset form functions
   const resetAddGoalForm = () => {
@@ -96,6 +162,195 @@ export default function Goals() {
     setSelectedGoal("");
     setContributionAmount("");
     setSourceAccount("");
+    setContributionDate(new Date());
+  };
+
+  // Handle creating a new goal
+  const handleCreateGoal = async () => {
+    console.log("handleCreateGoal called");
+    console.log("Form data:", {
+      goalName,
+      targetAmount,
+      currentAmount,
+      targetDate,
+      priorityLevel,
+    });
+
+    try {
+      if (!goalName.trim() || !targetAmount) {
+        console.log("Validation failed: missing name or target amount");
+        toast({
+          message: "Please fill in the goal name and target amount",
+          type: "error",
+        });
+        return;
+      }
+
+      console.log("Name and target amount validation passed");
+
+      const targetAmountNum = parseFloat(targetAmount);
+      if (isNaN(targetAmountNum) || targetAmountNum <= 0) {
+        console.log("Validation failed: invalid target amount");
+        toast({
+          message: "Please enter a valid target amount",
+          type: "error",
+        });
+        return;
+      }
+
+      console.log("Target amount validation passed");
+
+      let currentAmountNum = 0;
+      if (currentAmount) {
+        currentAmountNum = parseFloat(currentAmount);
+        if (isNaN(currentAmountNum) || currentAmountNum < 0) {
+          console.log("Validation failed: invalid current amount");
+          toast({
+            message: "Please enter a valid current amount",
+            type: "error",
+          });
+          return;
+        }
+      }
+
+      console.log("Current amount validation passed");
+
+      // Validate target date is in the future
+      if (targetDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selectedDate = new Date(targetDate);
+        selectedDate.setHours(0, 0, 0, 0);
+
+        console.log("Date validation:", {
+          today,
+          selectedDate,
+          isInFuture: selectedDate > today,
+        });
+
+        if (selectedDate <= today) {
+          console.log("Validation failed: target date not in future");
+          toast({
+            message: "Target date must be in the future",
+            type: "error",
+          });
+          return;
+        }
+      }
+
+      console.log("Date validation passed");
+
+      if (!user) {
+        console.log("Validation failed: no user");
+        toast({
+          message: "You must be logged in to create a goal",
+          type: "error",
+        });
+        return;
+      }
+
+      console.log("User validation passed, user:", user.id);
+
+      console.log("Creating goal with data:", {
+        userId: user.id,
+        name: goalName.trim(),
+        targetAmount: targetAmountNum,
+        currentAmount: currentAmountNum,
+        targetDate: targetDate
+          ? targetDate.toISOString().split("T")[0]
+          : undefined,
+        priority: priorityLevel || "medium",
+        status: "active",
+      });
+
+      const result = await createGoal({
+        userId: user.id,
+        name: goalName.trim(),
+        targetAmount: targetAmountNum,
+        currentAmount: currentAmountNum,
+        targetDate: targetDate
+          ? targetDate.toISOString().split("T")[0]
+          : undefined,
+        priority: priorityLevel || "medium",
+        status: "active",
+      });
+
+      console.log("Goal creation result:", result);
+
+      // Reset form
+      resetAddGoalForm();
+      setAddGoalOpen(false);
+
+      // Reload goals
+      const goalsData = await getCurrentUserGoals();
+      setGoals(goalsData);
+
+      toast({
+        message: "Goal created successfully!",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("Error creating goal:", err);
+      toast({
+        message: "Failed to create goal",
+        type: "error",
+      });
+    }
+  };
+
+  // Handle contribution submission
+  const handleContributionSubmit = async () => {
+    if (!selectedGoal || !contributionAmount || !sourceAccount) {
+      toast({
+        message: "Please fill in all required fields",
+        type: "error",
+      });
+      return;
+    }
+
+    const amount = parseFloat(contributionAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        message: "Please enter a valid amount",
+        type: "error",
+      });
+      return;
+    }
+
+    try {
+      const goalId = getGoalIdFromDisplayValue(selectedGoal);
+      const accountId = getAccountIdFromDisplayValue(sourceAccount);
+
+      await makeGoalContribution({
+        goalId: goalId,
+        accountId: accountId,
+        amount: amount,
+        date: contributionDate || new Date(),
+      });
+
+      // Reset form and reload data
+      resetContributionForm();
+      setContributionOpen(false);
+
+      // Reload data
+      const [goalsData, accountsData] = await Promise.all([
+        getCurrentUserGoals(),
+        getCurrentUserAccounts(),
+      ]);
+      setGoals(goalsData);
+      setAccounts(accountsData);
+
+      toast({
+        message: "Contribution made successfully!",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("Error making contribution:", err);
+      toast({
+        message: "Failed to make contribution. Please try again.",
+        type: "error",
+      });
+    }
   };
 
   // Handle modal close with form reset
@@ -299,6 +554,7 @@ export default function Goals() {
                 onDateChange={setTargetDate}
                 placeholder="Select target date"
                 className="w-full"
+                minimumDate={new Date(Date.now() + 24 * 60 * 60 * 1000)} // Tomorrow
               />
             </View>
 
@@ -306,12 +562,21 @@ export default function Goals() {
               <Label>Priority Level</Label>
               <Select value={priorityLevel} onValueChange={setPriorityLevel}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select priority" />
+                  <SelectValue
+                    placeholder="Select priority"
+                    displayValue={
+                      priorityLevel
+                        ? getPriorityLabel(priorityLevel)
+                        : undefined
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="Low">Low</SelectItem>
+                  {priorityOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </View>
@@ -325,7 +590,9 @@ export default function Goals() {
             >
               Cancel
             </Button>
-            <Button className="w-full mt-2">Create Goal</Button>
+            <Button className="w-full mt-2" onPress={handleCreateGoal}>
+              Create Goal
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -429,7 +696,12 @@ export default function Goals() {
                 </SelectTrigger>
                 <SelectContent>
                   {goals.map((goal) => (
-                    <SelectItem key={goal.id} value={goal.name}>
+                    <SelectItem
+                      key={goal.id}
+                      value={`${goal.name} (${formatCurrency(
+                        goal.currentAmount
+                      )} / ${formatCurrency(goal.targetAmount)})`}
+                    >
                       {goal.name} ({formatCurrency(goal.currentAmount)} /{" "}
                       {formatCurrency(goal.targetAmount)})
                     </SelectItem>
@@ -458,15 +730,28 @@ export default function Goals() {
                   <SelectValue placeholder="Select account" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Checking Account">
-                    Checking Account
-                  </SelectItem>
-                  <SelectItem value="Savings Account">
-                    Savings Account
-                  </SelectItem>
-                  <SelectItem value="Cash">Cash</SelectItem>
+                  {accounts.map((account) => (
+                    <SelectItem
+                      key={account.id}
+                      value={`${account.name} (${formatCurrency(
+                        account.balance
+                      )})`}
+                    >
+                      {account.name} ({formatCurrency(account.balance)})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+            </View>
+
+            <View className="space-y-2">
+              <Label>Contribution Date</Label>
+              <DatePicker
+                date={contributionDate}
+                onDateChange={setContributionDate}
+                placeholder="Select contribution date"
+                className="w-full"
+              />
             </View>
           </View>
 
@@ -478,7 +763,9 @@ export default function Goals() {
             >
               Cancel
             </Button>
-            <Button className="w-full mt-2">Add Contribution</Button>
+            <Button className="w-full mt-2" onPress={handleContributionSubmit}>
+              Add Contribution
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

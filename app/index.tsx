@@ -39,10 +39,6 @@ export default function Home() {
             <Text className="text-2xl font-bold text-center text-gray-900 mb-4">
               Welcome to your personal finance tracker
             </Text>
-            <Text className="text-base text-center text-gray-600 max-w-md">
-              Take control of your finances with our comprehensive tracking and
-              budgeting tools
-            </Text>
           </View>
         </View>
       </View>

@@ -20,6 +20,7 @@ interface CalendarProps extends VariantProps<typeof calendarVariants> {
   selected?: Date;
   onSelect?: (date: Date) => void;
   mode?: "single" | "multiple" | "range";
+  minimumDate?: Date;
 }
 
 function Calendar({
@@ -28,6 +29,7 @@ function Calendar({
   selected,
   onSelect,
   mode = "single",
+  minimumDate,
   ...props
 }: CalendarProps) {
   const [currentDate, setCurrentDate] = React.useState(selected || new Date());
@@ -86,21 +88,31 @@ function Calendar({
       const date = new Date(year, month, day);
       const isSelected =
         selected && selected.toDateString() === date.toDateString();
+      const isDisabled = minimumDate && date < minimumDate;
 
       days.push(
         <TouchableOpacity
           key={day}
           className={cn(
             "w-10 h-10 rounded-lg flex items-center justify-center m-1",
-            isSelected ? "bg-blue-600" : "bg-transparent active:bg-gray-100"
+            isSelected
+              ? "bg-blue-600"
+              : isDisabled
+              ? "bg-transparent"
+              : "bg-transparent active:bg-gray-100"
           )}
-          onPress={() => onSelect?.(date)}
-          activeOpacity={0.7}
+          onPress={() => !isDisabled && onSelect?.(date)}
+          activeOpacity={isDisabled ? 1 : 0.7}
+          disabled={isDisabled}
         >
           <Text
             className={cn(
               "text-base font-medium",
-              isSelected ? "text-white" : "text-gray-900"
+              isSelected
+                ? "text-white"
+                : isDisabled
+                ? "text-gray-300"
+                : "text-gray-900"
             )}
           >
             {day}

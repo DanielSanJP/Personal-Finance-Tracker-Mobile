@@ -83,11 +83,25 @@ export default function Transactions() {
     loadTransactions();
   }, [user]);
 
-  // Scroll to top when the tab is focused
+  // Scroll to top and refresh data when the tab is focused
   useFocusEffect(
     React.useCallback(() => {
       scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
-    }, [])
+
+      // Refresh transactions data when tab is focused
+      if (user) {
+        const loadTransactions = async () => {
+          try {
+            const transactionsData = await getCurrentUserTransactions();
+            setTransactions(transactionsData);
+          } catch (error) {
+            console.error("Error loading transactions:", error);
+          }
+        };
+
+        loadTransactions();
+      }
+    }, [user])
   );
 
   // Get unique categories for filter

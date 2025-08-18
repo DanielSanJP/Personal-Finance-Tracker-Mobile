@@ -66,20 +66,28 @@ function SelectTrigger({
 interface SelectValueProps {
   placeholder?: string;
   className?: string;
+  displayValue?: string;
 }
 
-function SelectValue({ placeholder, className }: SelectValueProps) {
+function SelectValue({
+  placeholder,
+  className,
+  displayValue,
+}: SelectValueProps) {
   const { value } = useSelect();
+
+  // Use displayValue if provided, otherwise use the actual value
+  const displayText = displayValue || value;
 
   return (
     <Text
       className={cn(
         "text-base",
-        value ? "text-gray-900" : "text-gray-500",
+        displayText ? "text-gray-900" : "text-gray-500",
         className
       )}
     >
-      {value || placeholder}
+      {displayText || placeholder}
     </Text>
   );
 }

@@ -21,6 +21,7 @@ import {
 } from "../../components/ui/dialog";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { CategorySelect } from "../../components/category-select";
 import {
   Select,
   SelectContent,
@@ -28,12 +29,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { getCurrentUserBudgetsWithRealTimeSpending } from "../../lib/data";
+import {
+  getCurrentUserBudgetsWithRealTimeSpending,
+  createBudgetSimple,
+} from "../../lib/data";
 import { useAuth } from "../../lib/auth-context";
 import type { Budget } from "../../lib/types";
+import { useToast } from "../../components/ui/sonner";
 
 export default function Budgets() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [addBudgetOpen, setAddBudgetOpen] = useState(false);
@@ -59,11 +65,26 @@ export default function Budgets() {
     loadBudgets();
   }, [user]);
 
-  // Scroll to top when the tab is focused
+  // Scroll to top and refresh data when the tab is focused
   useFocusEffect(
     React.useCallback(() => {
       scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
-    }, [])
+
+      // Refresh budgets data when tab is focused
+      if (user) {
+        const loadBudgets = async () => {
+          try {
+            const budgetsData =
+              await getCurrentUserBudgetsWithRealTimeSpending();
+            setBudgets(budgetsData);
+          } catch (error) {
+            console.error("Error loading budgets:", error);
+          }
+        };
+
+        loadBudgets();
+      }
+    }, [user])
   );
 
   // Add Budget form state
@@ -84,18 +105,87 @@ export default function Budgets() {
     resetAddBudgetForm();
   };
 
-  const categories = [
-    "Food & Dining",
-    "Transportation",
-    "Shopping",
-    "Entertainment",
-    "Bills & Utilities",
-    "Health & Fitness",
-    "Travel",
-    "Education",
-    "Personal Care",
-    "Other",
+  // Handle create budget
+  const handleCreateBudget = async () => {
+    if (!user) {
+      toast({
+        message: "You must be logged in to create a budget",
+        type: "error",
+      });
+      return;
+    }
+
+    if (!selectedCategory || !budgetAmount || !budgetPeriod) {
+      toast({
+        message: "Please fill in all fields",
+        type: "error",
+      });
+      return;
+    }
+
+    const amount = parseFloat(budgetAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        message: "Please enter a valid budget amount",
+        type: "error",
+      });
+      return;
+    }
+
+    // Check for duplicate category
+    const existingBudget = budgets.find(
+      (budget) => budget.category === selectedCategory
+    );
+    if (existingBudget) {
+      toast({
+        message: `A budget for ${selectedCategory} already exists. Only one budget per category is allowed.`,
+        type: "error",
+      });
+      return;
+    }
+
+    try {
+      await createBudgetSimple({
+        category: selectedCategory,
+        budgetAmount: amount,
+        period: budgetPeriod as "monthly" | "weekly" | "yearly",
+      });
+
+      toast({
+        message: "Budget created successfully!",
+        type: "success",
+      });
+
+      // Refresh budgets data
+      const budgetsData = await getCurrentUserBudgetsWithRealTimeSpending();
+      setBudgets(budgetsData);
+
+      // Close modal and reset form
+      handleAddBudgetClose();
+    } catch (error) {
+      console.error("Error creating budget:", error);
+      toast({
+        message: "Failed to create budget. Please try again.",
+        type: "error",
+      });
+    }
+  };
+
+  // Using standardized categories from constants
+
+  // Period options with display labels and database values
+  const periodOptions = [
+    { label: "Monthly", value: "monthly" },
+    { label: "Weekly", value: "weekly" },
+    { label: "Yearly", value: "yearly" },
   ];
+
+  // Helper function to get display label for period
+  const getPeriodLabel = (value: string) => {
+    return (
+      periodOptions.find((option) => option.value === value)?.label || value
+    );
+  };
 
   const getBudgetStatus = (spent: number, budget: number) => {
     const percentage = (spent / budget) * 100;
@@ -353,24 +443,13 @@ export default function Budgets() {
                       </DialogHeader>
 
                       <View className="space-y-4 pb-4">
-                        <View className="space-y-2 py-2">
-                          <Label>Category</Label>
-                          <Select
-                            value={selectedCategory}
-                            onValueChange={setSelectedCategory}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {categories.map((category) => (
-                                <SelectItem key={category} value={category}>
-                                  {category}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </View>
+                        <CategorySelect
+                          value={selectedCategory}
+                          onValueChange={setSelectedCategory}
+                          type="expense"
+                          required
+                          className="w-full"
+                        />
 
                         <View className="space-y-2 py-2">
                           <Label>Budget Amount</Label>
@@ -392,12 +471,24 @@ export default function Budgets() {
                             onValueChange={setBudgetPeriod}
                           >
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select period" />
+                              <SelectValue
+                                placeholder="Select period"
+                                displayValue={
+                                  budgetPeriod
+                                    ? getPeriodLabel(budgetPeriod)
+                                    : undefined
+                                }
+                              />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Monthly">Monthly</SelectItem>
-                              <SelectItem value="Weekly">Weekly</SelectItem>
-                              <SelectItem value="Yearly">Yearly</SelectItem>
+                              {periodOptions.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </View>
@@ -411,7 +502,12 @@ export default function Budgets() {
                         >
                           Cancel
                         </Button>
-                        <Button className="w-full mt-2">Create Budget</Button>
+                        <Button
+                          className="w-full mt-2"
+                          onPress={handleCreateBudget}
+                        >
+                          Create Budget
+                        </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>

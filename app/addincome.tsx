@@ -12,6 +12,8 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { DatePicker } from "../components/ui/date-picker";
+import { CategorySelect } from "../components/category-select";
+import { getIncomeCategoryNames } from "../constants/categories";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import {
@@ -21,8 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { getCurrentUserAccounts } from "../lib/data";
+import { getCurrentUserAccounts, createIncomeTransaction } from "../lib/data";
 import { useAuth } from "../lib/auth-context";
+import { checkGuestAndWarn } from "../lib/guest-protection";
 
 export default function AddIncomePage() {
   const router = useRouter();
@@ -57,47 +60,78 @@ export default function AddIncomePage() {
   const [account, setAccount] = useState("");
   const [date, setDate] = useState<Date | undefined>(new Date());
 
-  const incomeSourceOptions = [
-    "Salary",
-    "Freelance",
-    "Bonus",
-    "Investment",
-    "Side Business",
-    "Gift",
-    "Refund",
-  ];
+  // Using standardized income categories from constants
 
   const handleQuickAdd = (source: string) => {
     setIncomeSource(source);
     setDescription(source);
   };
 
-  const handleSubmit = () => {
+  // Helper function to extract account ID from display value
+  const getAccountIdFromDisplayValue = (displayValue: string) => {
+    const account = accounts.find(
+      (acc) => `${acc.name} (${acc.type})` === displayValue
+    );
+    return account?.id || "";
+  };
+
+  const handleSubmit = async () => {
+    // Check if user is guest first
+    const isGuest = await checkGuestAndWarn("create income");
+    if (isGuest) return;
+
     // Validate required fields
     if (!amount || !description || !incomeSource || !account || !date) {
       Alert.alert("Error", "Please fill in all required fields");
       return;
     }
 
-    // Handle form submission here - non-functional for now
-    console.log({
-      amount,
-      description,
-      incomeSource,
-      account,
-      date,
-    });
+    if (isNaN(Number(amount)) || Number(amount) <= 0) {
+      Alert.alert(
+        "Error",
+        "Please enter a valid positive number for the amount"
+      );
+      return;
+    }
 
-    Alert.alert(
-      "Success",
-      "Income saved successfully! Your income has been recorded.",
-      [
-        {
-          text: "OK",
-          onPress: () => router.push("/transactions"),
-        },
-      ]
-    );
+    try {
+      const accountId = getAccountIdFromDisplayValue(account);
+
+      const result = await createIncomeTransaction({
+        amount: Number(amount),
+        description: description,
+        category: incomeSource,
+        accountId: accountId,
+        status: "completed",
+        date: date,
+      });
+
+      if (result.success) {
+        Alert.alert(
+          "Success",
+          "Income saved successfully! Your income has been recorded.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                // Reset form
+                setAmount("");
+                setDescription("");
+                setIncomeSource("");
+                setAccount("");
+                setDate(new Date());
+                router.push("/transactions");
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Error", result.error || "Failed to save income");
+      }
+    } catch (error) {
+      console.error("Error saving income:", error);
+      Alert.alert("Error", "An unexpected error occurred. Please try again.");
+    }
   };
 
   const handleCancel = () => {
@@ -161,21 +195,14 @@ export default function AddIncomePage() {
                 </View>
 
                 {/* Income Source */}
-                <View className="space-y-2 py-2">
-                  <Label>Income Source</Label>
-                  <Select value={incomeSource} onValueChange={setIncomeSource}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select income source..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {incomeSourceOptions.map((source) => (
-                        <SelectItem key={source} value={source}>
-                          {source}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </View>
+                <CategorySelect
+                  value={incomeSource}
+                  onValueChange={setIncomeSource}
+                  type="income"
+                  label="Income Source"
+                  required
+                  className="w-full"
+                />
 
                 {/* Deposit to Account */}
                 <View className="space-y-2 py-2">
@@ -186,8 +213,11 @@ export default function AddIncomePage() {
                     </SelectTrigger>
                     <SelectContent>
                       {accounts.map((acc) => (
-                        <SelectItem key={acc.id} value={acc.name}>
-                          {acc.name}
+                        <SelectItem
+                          key={acc.id}
+                          value={`${acc.name} (${acc.type})`}
+                        >
+                          {acc.name} ({acc.type})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -208,7 +238,7 @@ export default function AddIncomePage() {
                 <View className="space-y-3 py-2">
                   <Label>Quick Add:</Label>
                   <View className="flex-row flex-wrap gap-1">
-                    {incomeSourceOptions.map((source) => (
+                    {getIncomeCategoryNames().map((source) => (
                       <Button
                         key={source}
                         variant="outline"

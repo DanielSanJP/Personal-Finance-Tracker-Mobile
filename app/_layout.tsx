@@ -6,6 +6,7 @@ import {
   ReanimatedLogLevel,
 } from "react-native-reanimated";
 import { AuthProvider } from "../lib/auth-context";
+import { ToastProvider } from "../components/ui/sonner";
 import "../global.css";
 
 // Disable Reanimated strict mode warnings
@@ -17,17 +18,19 @@ configureReanimatedLogger({
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <StatusBar style="auto" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="register" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+      <ToastProvider>
+        <StatusBar style="auto" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="register" />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+      </ToastProvider>
     </AuthProvider>
   );
 }

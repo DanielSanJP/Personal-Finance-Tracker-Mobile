@@ -220,9 +220,13 @@ export const getBudgetById = async (budgetId: string): Promise<Budget | null> =>
 
 export const createBudget = async (budgetData: Omit<Budget, 'id'>): Promise<Budget | null> => {
   try {
+    // Generate a unique ID for the budget
+    const budgetId = `budget_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     const { data, error } = await supabase
       .from('budgets')
       .insert({
+        id: budgetId,
         user_id: budgetData.userId,
         category: budgetData.category,
         budget_amount: budgetData.budgetAmount,
@@ -367,3 +371,54 @@ export const getActiveBudgets = async (): Promise<Budget[]> => {
     return []
   }
 }
+
+// Helper function to create budget with simplified parameters like the desktop version
+export const createBudgetSimple = async (budgetData: {
+  category: string;
+  budgetAmount: number;
+  period: 'monthly' | 'weekly' | 'yearly';
+}): Promise<Budget | null> => {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Calculate start and end dates based on period
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date;
+
+    if (budgetData.period === 'monthly') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else if (budgetData.period === 'weekly') {
+      const dayOfWeek = now.getDay();
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - dayOfWeek);
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+    } else { // yearly
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear(), 11, 31);
+    }
+
+    const spentAmount = 0;
+    const remainingAmount = budgetData.budgetAmount - spentAmount;
+
+    // Use the full createBudget function
+    return await createBudget({
+      userId: user.id,
+      category: budgetData.category,
+      budgetAmount: budgetData.budgetAmount,
+      spentAmount,
+      remainingAmount,
+      period: budgetData.period,
+      startDate: formatDateForDatabase(startDate),
+      endDate: formatDateForDatabase(endDate)
+    });
+  } catch (error) {
+    console.error('Error in createBudgetSimple:', error);
+    return null;
+  }
+};
