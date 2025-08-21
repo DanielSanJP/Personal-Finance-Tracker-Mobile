@@ -20,6 +20,7 @@ export * from "./progress";
 export * from "./select";
 export * from "./separator";
 export * from "./sonner";
+export * from "./switch";
 export * from "./table";
 export * from "./tabs";
 export * from "./tooltip";

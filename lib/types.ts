@@ -25,13 +25,15 @@ export interface Transaction {
 
 export interface User {
   id: string;
-  // Standardized format (snake_case) that all components should expect
+  // Fields from public.users table
   first_name: string;
   last_name: string;
-  email: string;
-  display_name: string;
   initials: string;
   avatar?: string | null;
+  
+  // Fields from auth.users table (accessed via auth context)
+  email: string;
+  display_name?: string;
   
   // Legacy support (will be removed eventually)
   firstName?: string;

@@ -39,7 +39,7 @@ CREATE TABLE public.budgets (
 CREATE TABLE public.goals (
     id text NOT NULL,
     user_id uuid NOT NULL,
-    name text NOT NULL,
+    name character varying NOT NULL,
     target_amount numeric NOT NULL,
     current_amount numeric DEFAULT 0,
     target_date date,
@@ -78,7 +78,7 @@ CREATE TABLE public.transactions (
     user_id uuid NOT NULL,
     account_id text NOT NULL,
     date date NOT NULL,
-    description text NOT NULL,
+    description character varying NOT NULL,
     amount numeric NOT NULL,
     category text,
     type text NOT NULL CHECK (
@@ -86,7 +86,7 @@ CREATE TABLE public.transactions (
             ARRAY ['income'::text, 'expense'::text, 'transfer'::text]
         )
     ),
-    merchant text,
+    merchant character varying,
     status text DEFAULT 'completed'::text CHECK (
         status = ANY (
             ARRAY ['pending'::text, 'completed'::text, 'cancelled'::text, 'failed'::text]
@@ -102,8 +102,6 @@ CREATE TABLE public.users (
     id uuid NOT NULL,
     first_name text NOT NULL,
     last_name text NOT NULL,
-    email text NOT NULL UNIQUE,
-    display_name text,
     initials text,
     avatar text,
     created_at timestamp with time zone DEFAULT now(),

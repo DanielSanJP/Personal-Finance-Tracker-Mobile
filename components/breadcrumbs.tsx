@@ -24,6 +24,10 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
     "/goals": "Goals",
     "/addtransaction": "Add",
     "/addincome": "Add",
+    "/profile": "Profile",
+    "/settings": "Settings",
+    "/preferences": "Preferences",
+    "/help": "Help & Support",
   };
 
   // Build breadcrumb items

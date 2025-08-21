@@ -42,6 +42,10 @@ export default function Nav() {
       pathname === "/addtransaction" ||
       pathname === "/addincome" ||
       pathname === "/addaccount" ||
+      pathname === "/settings" ||
+      pathname === "/help" ||
+      pathname === "/preferences" ||
+      pathname === "/profile" ||
       pathname?.startsWith("/(tabs)"));
 
   const navigationItems = [
@@ -115,7 +119,7 @@ export default function Nav() {
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onPress={() => router.push("/profile")}>
                       <Text>Profile</Text>
                     </DropdownMenuItem>
                     <DropdownMenuItem onPress={() => router.push("/accounts")}>
@@ -124,14 +128,16 @@ export default function Nav() {
                     <DropdownMenuItem>
                       <Text>View Reports</Text>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onPress={() => router.push("/settings")}>
                       <Text>Settings</Text>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem
+                      onPress={() => router.push("/preferences")}
+                    >
                       <Text>Preferences</Text>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onPress={() => router.push("/help")}>
                       <Text>Help & Support</Text>
                     </DropdownMenuItem>
                     <DropdownMenuItem onPress={handleSignOut}>

@@ -2,39 +2,31 @@ import { supabase } from './supabase'
 import type { User, LoginCredentials, RegisterCredentials } from './types'
 
 // Normalize user data to ensure consistent format
+// Note: email and display_name should always come from auth, not database
 const normalizeUserData = (userData: {
   id: string;
   firstName?: string;
   lastName?: string;
   first_name?: string;
   last_name?: string;
-  email?: string;
-  displayName?: string;
-  display_name?: string;
   initials?: string;
   avatar?: string | null;
   [key: string]: unknown;
-}): User => {
+}): Omit<User, 'email' | 'display_name'> => {
   const firstName = userData.firstName || userData.first_name || '';
   const lastName = userData.lastName || userData.last_name || '';
-  const displayName = userData.displayName || userData.display_name || 
-                     `${firstName} ${lastName}`.trim() || userData.email || 'User';
   const initials = userData.initials || 
-                   `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase() || 
-                   userData.email?.[0]?.toUpperCase() || 'U';
+                   `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase() || 'U';
 
   return {
     id: userData.id,
     first_name: firstName,
     last_name: lastName,
-    email: userData.email || '',
-    display_name: displayName,
     initials: initials,
     avatar: userData.avatar || null,
     // Legacy support
     firstName,
     lastName,
-    displayName,
   };
 };
 
@@ -123,14 +115,19 @@ export const getCurrentUser = async (): Promise<User | null> => {
         // If no profile exists, return the auth user data
         userData = {
           id: user.id,
-          email: user.email || '',
+          email: user.email || '', // Always use email from auth table
           first_name: user.user_metadata?.first_name || '',
           last_name: user.user_metadata?.last_name || '',
           display_name: user.user_metadata?.display_name || `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.email || '',
           initials: `${user.user_metadata?.first_name?.[0] || ''}${user.user_metadata?.last_name?.[0] || ''}`.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'
         }
       } else {
-        userData = normalizeUserData(profile)
+        // Merge auth data with profile data, always using auth for email and display_name
+        userData = {
+          ...normalizeUserData(profile),
+          email: user.email || '', // Override with auth email
+          display_name: user.user_metadata?.display_name || `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || user.email || '', // Override with auth display_name
+        }
       }
       
       return userData
