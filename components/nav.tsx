@@ -46,6 +46,7 @@ export default function Nav() {
       pathname === "/help" ||
       pathname === "/preferences" ||
       pathname === "/profile" ||
+      pathname === "/reports" ||
       pathname?.startsWith("/(tabs)"));
 
   const navigationItems = [
@@ -125,7 +126,7 @@ export default function Nav() {
                     <DropdownMenuItem onPress={() => router.push("/accounts")}>
                       <Text>Bank Accounts</Text>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onPress={() => router.push("/reports")}>
                       <Text>View Reports</Text>
                     </DropdownMenuItem>
                     <DropdownMenuItem onPress={() => router.push("/settings")}>

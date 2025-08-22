@@ -447,3 +447,49 @@ export const createTransferTransaction = async (transferData: {
     throw error
   }
 }
+
+// Get spending by category for current month
+export const getCurrentMonthSpendingByCategory = async (): Promise<{category: string, spentAmount: number}[]> => {
+  const transactions = await getCurrentUserTransactions();
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  
+  const categorySpending: {[category: string]: number} = {};
+  
+  transactions.forEach(transaction => {
+    const transactionDate = new Date(transaction.date);
+    if (transactionDate.getMonth() === currentMonth && 
+        transactionDate.getFullYear() === currentYear && 
+        transaction.type === 'expense' && 
+        transaction.category) {
+      categorySpending[transaction.category] = (categorySpending[transaction.category] || 0) + Math.abs(transaction.amount);
+    }
+  });
+  
+  return Object.entries(categorySpending).map(([category, spentAmount]) => ({
+    category,
+    spentAmount
+  }));
+};
+
+// Get spending by category for a specific month
+export const getSpendingByCategoryForMonth = async (year: number, month: number): Promise<{category: string, spentAmount: number}[]> => {
+  const transactions = await getCurrentUserTransactions();
+  
+  const categorySpending: {[category: string]: number} = {};
+  
+  transactions.forEach(transaction => {
+    const transactionDate = new Date(transaction.date);
+    if (transactionDate.getMonth() === month - 1 && // month parameter is 1-based
+        transactionDate.getFullYear() === year && 
+        transaction.type === 'expense' && 
+        transaction.category) {
+      categorySpending[transaction.category] = (categorySpending[transaction.category] || 0) + Math.abs(transaction.amount);
+    }
+  });
+  
+  return Object.entries(categorySpending).map(([category, spentAmount]) => ({
+    category,
+    spentAmount
+  }));
+};

@@ -529,3 +529,77 @@ export const createBudgetSimple = async (budgetData: {
     };
   }
 };
+
+// Get yearly budget analysis for bar chart (12 months for specified year)
+export const getYearlyBudgetAnalysis = async (year?: number) => {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  try {
+    // Get current budget categories and amounts
+    const currentBudgets = await getBudgetsByUserId(user.id);
+    
+    if (currentBudgets.length === 0) return [];
+    
+    // Calculate total monthly budget limit
+    const totalMonthlyBudget = currentBudgets.reduce((total, budget) => total + budget.budgetAmount, 0);
+    
+    // Get all transactions for the user
+    const allTransactions = await getCurrentUserTransactions();
+    
+    // Use current year if no year specified
+    const targetYear = year || new Date().getFullYear();
+    const currentDate = new Date();
+    const isCurrentYear = targetYear === currentDate.getFullYear();
+    
+    // For current year, only show months up to current month
+    // For past years, show all 12 months
+    const endMonth = isCurrentYear ? currentDate.getMonth() : 11;
+    
+    const monthlyData = [];
+    
+    // Generate data for each month
+    for (let month = 0; month <= endMonth; month++) {
+      const date = new Date(targetYear, month, 1);
+      
+      // Filter transactions for this specific month
+      const monthlyTransactions = allTransactions.filter(transaction => {
+        const transactionDate = new Date(transaction.date);
+        return (
+          transactionDate.getFullYear() === targetYear &&
+          transactionDate.getMonth() === month &&
+          transaction.type === 'expense'
+        );
+      });
+
+      // Calculate total spending for the month
+      const totalSpending = monthlyTransactions.reduce((total, transaction) => {
+        return total + Math.abs(transaction.amount);
+      }, 0);
+
+      // Determine status
+      let status: "under" | "over" | "close";
+      const utilizationRate = totalSpending / totalMonthlyBudget;
+      
+      if (utilizationRate > 1) {
+        status = "over";
+      } else if (utilizationRate >= 0.9) {
+        status = "close";
+      } else {
+        status = "under";
+      }
+
+      monthlyData.push({
+        month: date.toLocaleDateString("en-US", { month: "long" }),
+        spending: totalSpending,
+        budgetLimit: totalMonthlyBudget,
+        status
+      });
+    }
+
+    return monthlyData;
+  } catch (error) {
+    console.error('Error getting yearly budget analysis:', error);
+    return [];
+  }
+};

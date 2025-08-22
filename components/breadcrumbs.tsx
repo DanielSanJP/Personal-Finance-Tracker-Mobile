@@ -25,6 +25,7 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
     "/addtransaction": "Add",
     "/addincome": "Add",
     "/profile": "Profile",
+    "/reports": "Reports",
     "/settings": "Settings",
     "/preferences": "Preferences",
     "/help": "Help & Support",
