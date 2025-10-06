@@ -360,6 +360,34 @@ export default function Budgets() {
                 </Card>
               )}
 
+              {/* Quick Actions */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <View className="flex-row flex-wrap gap-4 justify-center">
+                    <Button
+                      variant="default"
+                      className="min-w-[130px] p-6"
+                      onPress={() => setAddBudgetOpen(true)}
+                    >
+                      Add Budget
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="min-w-[130px] p-6"
+                      onPress={() => setEditBudgetsOpen(true)}
+                    >
+                      Edit Budgets
+                    </Button>
+                    <Button variant="outline" className="min-w-[130px] p-6">
+                      Export Data
+                    </Button>
+                  </View>
+                </CardContent>
+              </Card>
+
               {/* Budget Items */}
               <Card>
                 <CardHeader>
@@ -515,28 +543,6 @@ export default function Budgets() {
                           )}%`,
                         }}
                       />
-                    </View>
-                  </View>
-                  {/* Action Buttons */}
-                  <View className="pt-8">
-                    <View className="flex-row flex-wrap gap-4 justify-center">
-                      <Button
-                        variant="default"
-                        className="min-w-[130px]"
-                        onPress={() => setAddBudgetOpen(true)}
-                      >
-                        Add Budget
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="min-w-[130px]"
-                        onPress={() => setEditBudgetsOpen(true)}
-                      >
-                        Edit Budgets
-                      </Button>
-                      <Button variant="outline" className="min-w-[130px]">
-                        Export Data
-                      </Button>
                     </View>
                   </View>
 

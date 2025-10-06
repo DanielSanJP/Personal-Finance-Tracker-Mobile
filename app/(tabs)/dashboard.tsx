@@ -165,6 +165,45 @@ export default function Dashboard() {
             <DashboardSkeleton />
           ) : (
             <>
+              {/* Quick Actions */}
+              <Card className="mb-8">
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <View className="flex-row flex-wrap gap-4 justify-center">
+                    <Button
+                      variant="default"
+                      onPress={() => router.push("/addincome")}
+                      className="min-w-[120px] p-6"
+                    >
+                      Add Income
+                    </Button>
+                    <Button
+                      variant="default"
+                      onPress={() => router.push("/addtransaction")}
+                      className="min-w-[120px] p-6"
+                    >
+                      Add Expense
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onPress={() => console.log("Scan Receipt pressed")}
+                      className="min-w-[120px] p-6"
+                    >
+                      Scan Receipt
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onPress={() => console.log("View Reports pressed")}
+                      className="min-w-[120px] p-6"
+                    >
+                      View Reports
+                    </Button>
+                  </View>
+                </CardContent>
+              </Card>
+
               <View className="flex-row justify-between mb-6">
                 <View className="bg-white rounded-lg p-4 flex-1 mr-3 shadow-sm border border-gray-100">
                   <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
@@ -235,44 +274,6 @@ export default function Dashboard() {
                   </View>
                 ))}
               </View>
-              {/* Quick Actions */}
-              <Card className="mt-8">
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <View className="flex-row flex-wrap gap-4 justify-center">
-                    <Button
-                      variant="default"
-                      onPress={() => router.push("/addincome")}
-                      className="min-w-[120px] p-6"
-                    >
-                      Add Income
-                    </Button>
-                    <Button
-                      variant="default"
-                      onPress={() => router.push("/addtransaction")}
-                      className="min-w-[120px] p-6"
-                    >
-                      Add Expense
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onPress={() => console.log("Scan Receipt pressed")}
-                      className="min-w-[120px] p-6"
-                    >
-                      Scan Receipt
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onPress={() => console.log("View Reports pressed")}
-                      className="min-w-[120px] p-6"
-                    >
-                      View Reports
-                    </Button>
-                  </View>
-                </CardContent>
-              </Card>
             </>
           )}
         </View>

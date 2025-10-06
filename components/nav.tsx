@@ -65,25 +65,16 @@ export default function Nav() {
       <SafeAreaView edges={[]} className="bg-white">
         <View className="w-full px-4 sm:px-6 border-b border-gray-200">
           <View className="flex-row justify-between items-center h-14 sm:h-16">
-            {/* Logo and Title */}
+            {/* Logo */}
             <View className="flex-row items-center flex-1">
               <TouchableOpacity
                 onPress={() => router.push("/")}
                 className="flex-row items-center"
                 style={{ alignItems: "center" }}
               >
-                <View
-                  style={{ width: 24, height: 24, marginRight: 8 }}
-                  className="sm:w-8 sm:h-8 sm:mr-3"
-                >
-                  <Logo width={24} height={24} />
+                <View style={{ width: 40, height: 40 }}>
+                  <Logo width={40} height={40} />
                 </View>
-                <Text
-                  className="text-sm sm:text-lg font-bold text-gray-900 flex-shrink"
-                  numberOfLines={1}
-                >
-                  Personal Finance Tracker
-                </Text>
               </TouchableOpacity>
             </View>
 
@@ -107,12 +98,12 @@ export default function Nav() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <TouchableOpacity className="flex-row items-center gap-2 hover:bg-gray-100 rounded-lg p-2">
-                      <View className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-300 items-center justify-center">
-                        <Text className="text-xs sm:text-sm font-medium text-gray-600">
+                      <View className="w-8 h-8 rounded-full bg-gray-300 items-center justify-center">
+                        <Text className="text-sm font-medium text-gray-600">
                           {user.initials}
                         </Text>
                       </View>
-                      <Text className="text-xs sm:text-sm text-gray-600 hidden sm:block">
+                      <Text className="text-xs sm:text-sm text-gray-600">
                         {user.display_name}
                       </Text>
                     </TouchableOpacity>

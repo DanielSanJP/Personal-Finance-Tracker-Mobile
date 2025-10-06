@@ -1,5 +1,5 @@
-import React, { useRef, useState } from "react";
-import { Dimensions, Modal, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { Modal, Text, TouchableOpacity, View } from "react-native";
 import { cn } from "../../lib/utils";
 
 interface DropdownMenuProps {
@@ -35,33 +35,25 @@ interface DropdownMenuSeparatorProps {
 
 export function DropdownMenu({ children }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [triggerLayout, setTriggerLayout] = useState({
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-  });
-  const triggerRef = useRef<View>(null);
 
-  const measureTrigger = () => {
-    if (triggerRef.current) {
-      triggerRef.current.measureInWindow((x, y, width, height) => {
-        setTriggerLayout({ x, y, width, height });
-        setIsOpen(true);
-      });
-    }
+  const toggleDropdown = () => {
+    setIsOpen(!isOpen);
+  };
+
+  const openDropdown = () => {
+    setIsOpen(true);
   };
 
   return (
-    <View ref={triggerRef}>
+    <View>
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child)) {
           return React.cloneElement(child as React.ReactElement<any>, {
             ...(child.props || {}),
             isOpen,
             setIsOpen,
-            triggerLayout,
-            measureTrigger,
+            toggleDropdown,
+            openDropdown,
           });
         }
         return child;
@@ -75,17 +67,27 @@ export function DropdownMenuTrigger({
   asChild,
   ...props
 }: DropdownMenuTriggerProps & any) {
-  const { measureTrigger } = props;
+  const { openDropdown } = props;
 
   if (asChild && React.isValidElement(children)) {
+    const childProps: any = children.props || {};
+    const originalOnPress = childProps.onPress;
+
     return React.cloneElement(children as React.ReactElement<any>, {
-      ...(children.props || {}),
-      onPress: () => measureTrigger(),
+      ...childProps,
+      onPress: () => {
+        // Call original onPress first if it exists
+        if (originalOnPress) {
+          originalOnPress();
+        }
+        // Then open the dropdown
+        openDropdown();
+      },
     });
   }
 
   return (
-    <TouchableOpacity onPress={() => measureTrigger()}>
+    <TouchableOpacity onPress={() => openDropdown()}>
       {children}
     </TouchableOpacity>
   );
@@ -97,33 +99,9 @@ export function DropdownMenuContent({
   className,
   ...props
 }: DropdownMenuContentProps & any) {
-  const { isOpen, setIsOpen, triggerLayout } = props;
+  const { isOpen, setIsOpen } = props;
 
   if (!isOpen) return null;
-
-  // Calculate dropdown position based on trigger position
-  const dropdownTop = triggerLayout.y + triggerLayout.height + 4; // 4px gap below trigger
-  let dropdownLeft = triggerLayout.x;
-
-  // Get screen dimensions for boundary checking
-  const screenWidth = Dimensions.get("window").width;
-  const dropdownWidth = 200; // Default dropdown width
-
-  // Adjust horizontal alignment
-  if (align === "end") {
-    dropdownLeft = triggerLayout.x + triggerLayout.width - dropdownWidth;
-  } else if (align === "center") {
-    dropdownLeft =
-      triggerLayout.x + triggerLayout.width / 2 - dropdownWidth / 2;
-  }
-
-  // Ensure dropdown doesn't go off screen - check both edges
-  const margin = 16; // Minimum margin from screen edges
-  if (dropdownLeft < margin) {
-    dropdownLeft = margin;
-  } else if (dropdownLeft + dropdownWidth > screenWidth - margin) {
-    dropdownLeft = screenWidth - dropdownWidth - margin;
-  }
 
   return (
     <Modal
@@ -139,8 +117,8 @@ export function DropdownMenuContent({
         <View
           style={{
             position: "absolute",
-            top: dropdownTop,
-            left: dropdownLeft,
+            top: 90,
+            right: 16,
             zIndex: 1000,
           }}
         >

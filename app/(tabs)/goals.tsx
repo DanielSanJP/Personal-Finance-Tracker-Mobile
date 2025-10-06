@@ -516,88 +516,96 @@ export default function Goals() {
           )}
 
           {!loading && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-center">
-                  Savings Goals
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-8 p-4">
-                {goals.map((goal, index) => {
-                  const progressWidth = getProgressWidth(
-                    goal.currentAmount,
-                    goal.targetAmount
-                  );
-                  const goalAchieved = goal.currentAmount >= goal.targetAmount;
-
-                  return (
-                    <View key={goal.id}>
-                      <View className="space-y-4 py-4">
-                        <Text className="text-base font-medium">
-                          {goal.name}
-                        </Text>
-
-                        <Text className="text-base text-gray-600 py-2">
-                          {formatCurrency(goal.currentAmount)} /{" "}
-                          {formatCurrency(goal.targetAmount)}
-                        </Text>
-
-                        <View className="w-full bg-gray-200 rounded-full h-2 overflow-hidden ">
-                          <View
-                            className={`h-2 rounded-full ${
-                              goalAchieved ? "bg-green-500" : "bg-gray-900"
-                            }`}
-                            style={{ width: `${progressWidth}%` }}
-                          />
-                        </View>
-
-                        <Text className="text-sm text-gray-600 py-2">
-                          Target: {formatTargetDate(goal.targetDate)}
-                        </Text>
-
-                        {goalAchieved && (
-                          <Text className="text-sm text-green-600 font-medium py-2">
-                            🎉 Goal achieved!
-                          </Text>
-                        )}
-                      </View>
-
-                      {index < goals.length - 1 && (
-                        <View className="mt-2 border-b border-gray-200" />
-                      )}
-                    </View>
-                  );
-                })}
-
-                {/* Action Buttons */}
-                <View className="pt-4">
+            <>
+              {/* Quick Actions */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <View className="flex-row flex-wrap gap-4 justify-center">
                     <Button
                       variant="default"
-                      className="min-w-[130px]"
+                      className="min-w-[130px] p-6"
                       onPress={() => setAddGoalOpen(true)}
                     >
                       Add New Goal
                     </Button>
                     <Button
                       variant="outline"
-                      className="min-w-[130px]"
+                      className="min-w-[130px] p-6"
                       onPress={() => setEditGoalsOpen(true)}
                     >
                       Edit Goals
                     </Button>
                     <Button
                       variant="outline"
-                      className="min-w-[130px]"
+                      className="min-w-[130px] p-6"
                       onPress={() => setContributionOpen(true)}
                     >
                       Make Contribution
                     </Button>
                   </View>
-                </View>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-center">
+                    Savings Goals
+                  </CardTitle>
+                </CardHeader>
+
+                <CardContent className="space-y-8 p-4">
+                  {goals.map((goal, index) => {
+                    const progressWidth = getProgressWidth(
+                      goal.currentAmount,
+                      goal.targetAmount
+                    );
+                    const goalAchieved =
+                      goal.currentAmount >= goal.targetAmount;
+
+                    return (
+                      <View key={goal.id}>
+                        <View className="space-y-4 py-4">
+                          <Text className="text-base font-medium">
+                            {goal.name}
+                          </Text>
+
+                          <Text className="text-base text-gray-600 py-2">
+                            {formatCurrency(goal.currentAmount)} /{" "}
+                            {formatCurrency(goal.targetAmount)}
+                          </Text>
+
+                          <View className="w-full bg-gray-200 rounded-full h-2 overflow-hidden ">
+                            <View
+                              className={`h-2 rounded-full ${
+                                goalAchieved ? "bg-green-500" : "bg-gray-900"
+                              }`}
+                              style={{ width: `${progressWidth}%` }}
+                            />
+                          </View>
+
+                          <Text className="text-sm text-gray-600 py-2">
+                            Target: {formatTargetDate(goal.targetDate)}
+                          </Text>
+
+                          {goalAchieved && (
+                            <Text className="text-sm text-green-600 font-medium py-2">
+                              🎉 Goal achieved!
+                            </Text>
+                          )}
+                        </View>
+
+                        {index < goals.length - 1 && (
+                          <View className="mt-2 border-b border-gray-200" />
+                        )}
+                      </View>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </>
           )}
         </View>
       </ScrollView>
