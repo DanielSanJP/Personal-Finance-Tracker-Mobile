@@ -3,6 +3,13 @@ module.exports = {
   // NOTE: Update this to include the paths to all files that contain Nativewind classes.
   content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
+
+  // Disable reanimated for Expo Go compatibility
+  experimental: {
+    cssInterop: {
+      disableAnimations: true,
+    },
+  },
   theme: {
     extend: {
       colors: {
@@ -81,5 +88,4 @@ module.exports = {
       },
     },
   },
-  plugins: [],
 };

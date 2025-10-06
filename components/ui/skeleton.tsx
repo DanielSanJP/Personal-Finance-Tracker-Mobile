@@ -11,10 +11,7 @@ function Skeleton({
   ...props
 }: SkeletonProps & React.ComponentProps<typeof View>) {
   return (
-    <View
-      className={cn("bg-gray-200 animate-pulse rounded-md", className)}
-      {...props}
-    />
+    <View className={cn("bg-gray-200 rounded-md", className)} {...props} />
   );
 }
 

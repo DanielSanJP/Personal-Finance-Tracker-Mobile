@@ -27,7 +27,7 @@ export function Progress({
       {...props}
     >
       <View
-        className={cn("h-full bg-gray-900 transition-all", indicatorClassName)}
+        className={cn("h-full bg-gray-900", indicatorClassName)}
         style={{ width: `${percentage}%` }}
       />
     </View>

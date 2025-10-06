@@ -87,7 +87,7 @@ function TabsTrigger({
   return (
     <TouchableOpacity
       className={cn(
-        "inline-flex h-7 flex-1 items-center justify-center rounded-md px-2 py-1 text-sm font-medium transition-colors",
+        "inline-flex h-7 flex-1 items-center justify-center rounded-md px-2 py-1 text-sm font-medium",
         isActive
           ? "bg-background text-foreground shadow-sm"
           : "text-muted-foreground hover:text-foreground",
