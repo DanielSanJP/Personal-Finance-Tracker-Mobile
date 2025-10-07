@@ -1,9 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Extend FormData type to incl    const imageBytes = Buffer.from(arrayBuffer);
-    const base64Image = imageBytes.toString('base64');
-
-    // Get available categories for prompt method for Expo
+// Extend FormData type to include get method for Expo
 interface ExpoFormData extends FormData {
   get(name: string): FormDataEntryValue | null;
 }
