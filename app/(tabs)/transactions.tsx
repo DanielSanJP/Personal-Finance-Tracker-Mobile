@@ -1,9 +1,19 @@
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import React, { useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Nav from "../../components/nav";
 import { TransactionsListSkeleton } from "../../components/loading-states";
+import Nav from "../../components/nav";
+import {
+  AddTransactionModal,
+  EditSingleTransactionModal,
+  EditTransactionsModal,
+  formatDate,
+  formatTransactionType,
+  getAmountColor,
+  isDateInPeriod,
+  TransactionDetailModal,
+} from "../../components/transactions";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import {
@@ -13,14 +23,6 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -28,15 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../components/ui/select";
+import { NativePicker } from "../../components/ui/native-picker";
 import {
   Table,
   TableBody,
@@ -45,20 +39,19 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
-import { formatCurrency } from "../../lib/utils";
 import { useAuth } from "../../hooks/queries/useAuth";
 import {
-  useTransactions,
   useTransactionFilterOptions,
+  useTransactions,
 } from "../../hooks/queries/useTransactions";
-import type { Transaction } from "../../lib/types";
 import {
   exportTransactionsToCSV,
   exportTransactionsToPDF,
 } from "../../lib/export";
+import type { Transaction } from "../../lib/types";
+import { formatCurrency } from "../../lib/utils";
 
 export default function Transactions() {
-  const router = useRouter();
   useAuth(); // Keep auth context active
 
   // Use React Query hooks for transactions and filter options
@@ -75,21 +68,8 @@ export default function Transactions() {
   const [editTransactionsOpen, setEditTransactionsOpen] = useState(false);
   const [editSingleTransactionOpen, setEditSingleTransactionOpen] =
     useState(false);
+  const [addTransactionModalOpen, setAddTransactionModalOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-
-  // Helper function to format transaction type for display
-  const formatTransactionType = (type: string) => {
-    switch (type) {
-      case "income":
-        return "Income";
-      case "expense":
-        return "Expense";
-      case "transfer":
-        return "Transfer";
-      default:
-        return type.charAt(0).toUpperCase() + type.slice(1);
-    }
-  };
 
   // Scroll to top and refresh data when the tab is focused
   useFocusEffect(
@@ -126,47 +106,6 @@ export default function Transactions() {
     ),
   ];
 
-  // Helper function to check if date is within period
-  const isDateInPeriod = (dateString: string, period: string): boolean => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-
-    switch (period) {
-      case "This Month":
-        return (
-          date.getFullYear() === currentYear && date.getMonth() === currentMonth
-        );
-      case "Last Month":
-        const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-        const lastMonthYear =
-          currentMonth === 0 ? currentYear - 1 : currentYear;
-        return (
-          date.getFullYear() === lastMonthYear && date.getMonth() === lastMonth
-        );
-      case "Last 3 Months":
-        const currentDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        const threeMonthsAgo = new Date(
-          currentDate.getFullYear(),
-          currentDate.getMonth() - 3,
-          1
-        );
-        const transactionDate = new Date(
-          date.getFullYear(),
-          date.getMonth(),
-          1
-        );
-        return transactionDate >= threeMonthsAgo;
-      case "This Year":
-        return date.getFullYear() === currentYear;
-      case "All Time":
-        return true;
-      default:
-        return true;
-    }
-  };
-
   // Filter transactions based on selected filters
   const filteredTransactions = transactions.filter((transaction) => {
     // Category filter
@@ -202,29 +141,6 @@ export default function Transactions() {
     setDetailModalOpen(true);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const formatFullDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const getAmountColor = (type: string) => {
-    if (type === "income") return "text-green-600";
-    return "text-red-600";
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <Nav />
@@ -255,15 +171,15 @@ export default function Transactions() {
                   <View className="flex-row flex-wrap gap-2 justify-center">
                     <Button
                       variant="default"
-                      onPress={() => router.push("/addtransaction")}
-                      className="min-w-[140px] p-6"
+                      onPress={() => setAddTransactionModalOpen(true)}
+                      className="min-w-[120px] p-6"
                     >
-                      Add Transaction
+                      Add
                     </Button>
                     <Button
                       variant="outline"
                       onPress={() => setEditTransactionsOpen(true)}
-                      className="min-w-[140px] p-6"
+                      className="min-w-[120px] p-6"
                     >
                       Edit
                     </Button>
@@ -272,7 +188,7 @@ export default function Transactions() {
                       onPress={() =>
                         exportTransactionsToCSV(filteredTransactions)
                       }
-                      className="min-w-[140px] p-6"
+                      className="min-w-[120px] p-6"
                     >
                       Export to CSV
                     </Button>
@@ -281,7 +197,7 @@ export default function Transactions() {
                       onPress={() =>
                         exportTransactionsToPDF(filteredTransactions)
                       }
-                      className="min-w-[140px] p-6"
+                      className="min-w-[120px] p-6"
                     >
                       Export to PDF
                     </Button>
@@ -298,123 +214,55 @@ export default function Transactions() {
 
                 <CardContent className="space-y-6 p-6">
                   {/* Filter Controls */}
-                  <View className="space-y-4">
+                  <View className="space-y-4 px-2">
                     {/* First row of filters */}
                     <View className="flex-row space-x-4 gap-4">
-                      <View className="flex-1">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="w-full justify-between"
-                            >
-                              <Text>{selectedCategory}</Text>
-                              <Text className="ml-2">▼</Text>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-56" align="start">
-                            <DropdownMenuLabel>
-                              <Text>Filter by Category</Text>
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {categories.map((category) => (
-                              <DropdownMenuItem
-                                key={category}
-                                onPress={() => setSelectedCategory(category)}
-                              >
-                                <Text>{category}</Text>
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </View>
+                      <NativePicker
+                        label="Category"
+                        value={selectedCategory}
+                        onValueChange={setSelectedCategory}
+                        options={categories.map((cat) => ({
+                          label: cat,
+                          value: cat,
+                        }))}
+                        className="flex-1"
+                      />
 
-                      <View className="flex-1">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="w-full justify-between"
-                            >
-                              <Text>{selectedPeriod}</Text>
-                              <Text className="ml-2">▼</Text>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-48" align="end">
-                            <DropdownMenuLabel>
-                              <Text>Filter by Time Period</Text>
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {periods.map((period) => (
-                              <DropdownMenuItem
-                                key={period}
-                                onPress={() => setSelectedPeriod(period)}
-                              >
-                                <Text>{period}</Text>
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </View>
+                      <NativePicker
+                        label="Period"
+                        value={selectedPeriod}
+                        onValueChange={setSelectedPeriod}
+                        options={periods.map((period) => ({
+                          label: period,
+                          value: period,
+                        }))}
+                        className="flex-1"
+                      />
                     </View>
 
                     {/* Second row of filters */}
                     <View className="flex-row space-x-4 gap-4 py-2">
-                      <View className="flex-1">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="w-full justify-between"
-                            >
-                              <Text>{selectedMerchant}</Text>
-                              <Text className="ml-2">▼</Text>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-56" align="start">
-                            <DropdownMenuLabel>
-                              <Text>Filter by Merchant</Text>
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {merchants.map((merchant) => (
-                              <DropdownMenuItem
-                                key={merchant}
-                                onPress={() => setSelectedMerchant(merchant)}
-                              >
-                                <Text>{merchant}</Text>
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </View>
+                      <NativePicker
+                        label="Merchant"
+                        value={selectedMerchant}
+                        onValueChange={setSelectedMerchant}
+                        options={merchants.map((merchant) => ({
+                          label: merchant,
+                          value: merchant,
+                        }))}
+                        className="flex-1"
+                      />
 
-                      <View className="flex-1">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="w-full justify-between"
-                            >
-                              <Text>{selectedType}</Text>
-                              <Text className="ml-2">▼</Text>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-48" align="end">
-                            <DropdownMenuLabel>
-                              <Text>Filter by Type</Text>
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {types.map((type) => (
-                              <DropdownMenuItem
-                                key={type}
-                                onPress={() => setSelectedType(type)}
-                              >
-                                <Text>{type}</Text>
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </View>
+                      <NativePicker
+                        label="Type"
+                        value={selectedType}
+                        onValueChange={setSelectedType}
+                        options={types.map((type) => ({
+                          label: type,
+                          value: type,
+                        }))}
+                        className="flex-1"
+                      />
                     </View>
 
                     {/* Clear Filters Button */}
@@ -698,307 +546,41 @@ export default function Transactions() {
               {/* Modals */}
               <View>
                 {/* Transaction Detail Modal */}
-                <Dialog
+                <TransactionDetailModal
                   open={detailModalOpen}
                   onOpenChange={setDetailModalOpen}
-                >
-                  <DialogContent onClose={() => setDetailModalOpen(false)}>
-                    <DialogHeader>
-                      <DialogTitle>Transaction Details</DialogTitle>
-                      <DialogDescription>
-                        Complete information about this transaction.
-                      </DialogDescription>
-                    </DialogHeader>
-                    {selectedTransaction && (
-                      <View className="space-y-4">
-                        <View className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600">
-                            Description
-                          </Label>
-                          <Text className="text-base font-semibold">
-                            {selectedTransaction.description}
-                          </Text>
-                        </View>
+                  transaction={selectedTransaction}
+                  onClose={() => setDetailModalOpen(false)}
+                />
 
-                        <View className="flex-row space-x-4">
-                          <View className="flex-1 space-y-2">
-                            <Label className="text-sm font-medium text-gray-600">
-                              Amount
-                            </Label>
-                            <Text
-                              className={`text-xl font-bold ${getAmountColor(
-                                selectedTransaction.type
-                              )}`}
-                            >
-                              {selectedTransaction.type === "income"
-                                ? "+"
-                                : "-"}
-                              {formatCurrency(
-                                Math.abs(selectedTransaction.amount)
-                              )}
-                            </Text>
-                          </View>
-                          <View className="flex-1 space-y-2">
-                            <Label className="text-sm font-medium text-gray-600">
-                              Type
-                            </Label>
-                            <Text className="text-base capitalize">
-                              {selectedTransaction.type}
-                            </Text>
-                          </View>
-                        </View>
-
-                        <View className="flex-row space-x-4">
-                          <View className="flex-1 space-y-2">
-                            <Label className="text-sm font-medium text-gray-600">
-                              Category
-                            </Label>
-                            <Text className="text-base">
-                              {selectedTransaction.category}
-                            </Text>
-                          </View>
-                          <View className="flex-1 space-y-2">
-                            <Label className="text-sm font-medium text-gray-600">
-                              Status
-                            </Label>
-                            <Text className="text-base capitalize">
-                              {selectedTransaction.status}
-                            </Text>
-                          </View>
-                        </View>
-
-                        <View className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600">
-                            Merchant
-                          </Label>
-                          <Text className="text-base">
-                            {selectedTransaction.merchant}
-                          </Text>
-                        </View>
-
-                        <View className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600">
-                            Date
-                          </Label>
-                          <Text className="text-base">
-                            {formatFullDate(selectedTransaction.date)}
-                          </Text>
-                        </View>
-
-                        <View className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-600">
-                            Transaction ID
-                          </Label>
-                          <Text className="text-sm text-gray-500 font-mono">
-                            {selectedTransaction.id}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-                    <DialogFooter>
-                      <Button
-                        variant="outline"
-                        onPress={() => setDetailModalOpen(false)}
-                        className="w-full"
-                      >
-                        Close
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
                 {/* Edit Single Transaction Modal */}
-                <Dialog
+                <EditSingleTransactionModal
                   open={editSingleTransactionOpen}
                   onOpenChange={setEditSingleTransactionOpen}
-                >
-                  <DialogContent
-                    className="max-w-[425px]"
-                    onClose={() => setEditSingleTransactionOpen(false)}
-                  >
-                    <DialogHeader>
-                      <DialogTitle>Edit Transaction</DialogTitle>
-                      <DialogDescription>
-                        Update the details of this transaction.
-                      </DialogDescription>
-                    </DialogHeader>
-                    {selectedTransaction && (
-                      <View className="space-y-4 py-4">
-                        <View className="space-y-2">
-                          <Label>Description</Label>
-                          <Input
-                            defaultValue={selectedTransaction.description}
-                            className="w-full"
-                          />
-                        </View>
+                  transaction={selectedTransaction}
+                  onClose={() => setEditSingleTransactionOpen(false)}
+                  onSave={() => {
+                    // TODO: Implement save logic
+                  }}
+                />
 
-                        <View className="flex-row space-x-4">
-                          <View className="flex-1 space-y-2">
-                            <Label>Amount</Label>
-                            <Input
-                              defaultValue={Math.abs(
-                                selectedTransaction.amount
-                              ).toString()}
-                              className="w-full"
-                            />
-                          </View>
-                          <View className="flex-1 space-y-2">
-                            <Label>Type</Label>
-                            <Select
-                              value={selectedTransaction.type}
-                              onValueChange={() => {}}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="expense">Expense</SelectItem>
-                                <SelectItem value="income">Income</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </View>
-                        </View>
-
-                        <View className="flex-row space-x-4">
-                          <View className="flex-1 space-y-2">
-                            <Label>Category</Label>
-                            <Input
-                              defaultValue={selectedTransaction.category}
-                              className="w-full"
-                            />
-                          </View>
-                          <View className="flex-1 space-y-2">
-                            <Label>Status</Label>
-                            <Select
-                              value={selectedTransaction.status}
-                              onValueChange={() => {}}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="completed">
-                                  Completed
-                                </SelectItem>
-                                <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="failed">Failed</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </View>
-                        </View>
-
-                        <View className="space-y-2">
-                          <Label>Merchant</Label>
-                          <Input
-                            defaultValue={selectedTransaction.merchant}
-                            className="w-full"
-                          />
-                        </View>
-
-                        <View className="space-y-2">
-                          <Label>Date</Label>
-                          <Input
-                            defaultValue={selectedTransaction.date}
-                            className="w-full"
-                          />
-                        </View>
-                      </View>
-                    )}
-                    <DialogFooter className="gap-2 flex-row">
-                      <Button
-                        variant="outline"
-                        onPress={() => setEditSingleTransactionOpen(false)}
-                        className="flex-1"
-                      >
-                        Cancel
-                      </Button>
-                      <Button className="flex-1">Save Changes</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
                 {/* Edit All Transactions Modal */}
-                <Dialog
+                <EditTransactionsModal
                   open={editTransactionsOpen}
                   onOpenChange={setEditTransactionsOpen}
-                >
-                  <DialogContent
-                    className="max-w-[600px]"
-                    onClose={() => setEditTransactionsOpen(false)}
-                  >
-                    <DialogHeader>
-                      <DialogTitle>Edit All Transactions</DialogTitle>
-                      <DialogDescription>
-                        Modify your existing transactions and their details.
-                      </DialogDescription>
-                    </DialogHeader>
+                  transactions={filteredTransactions}
+                  onClose={() => setEditTransactionsOpen(false)}
+                  onSave={() => {
+                    // TODO: Implement save logic
+                  }}
+                />
 
-                    <View className="space-y-6 py-4">
-                      {filteredTransactions.map((transaction, index) => (
-                        <View
-                          key={transaction.id}
-                          className="space-y-3 p-4 border border-gray-200 rounded-lg bg-white shadow-sm mb-4"
-                        >
-                          <View className="flex-row items-center justify-between">
-                            <Text className="text-base font-medium">
-                              {transaction.description}
-                            </Text>
-                            <Text className="text-sm text-gray-500">
-                              {formatDate(transaction.date)}
-                            </Text>
-                          </View>
-                          <View className="flex-row space-x-2">
-                            <View className="flex-1 space-y-2">
-                              <Label>Description</Label>
-                              <Input
-                                defaultValue={transaction.description}
-                                className="w-full"
-                              />
-                            </View>
-                            <View className="flex-1 space-y-2">
-                              <Label>Amount</Label>
-                              <Input
-                                defaultValue={Math.abs(
-                                  transaction.amount
-                                ).toString()}
-                                className="w-full"
-                              />
-                            </View>
-                          </View>
-                          <View className="flex-row space-x-2">
-                            <View className="flex-1 space-y-2">
-                              <Label>Category</Label>
-                              <Input
-                                defaultValue={transaction.category}
-                                className="w-full"
-                              />
-                            </View>
-                            <View className="flex-1 space-y-2">
-                              <Label>Merchant</Label>
-                              <Input
-                                defaultValue={transaction.merchant}
-                                className="w-full"
-                              />
-                            </View>
-                          </View>
-                          <Text className="text-sm text-gray-600">
-                            Type: {transaction.type} | Status:
-                            {transaction.status}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-
-                    <DialogFooter className="gap-2 flex-row border-t border-gray-200 pt-4 mt-4">
-                      <Button
-                        variant="outline"
-                        onPress={() => setEditTransactionsOpen(false)}
-                        className="flex-1"
-                      >
-                        Cancel
-                      </Button>
-                      <Button className="flex-1">Save Changes</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                {/* Add Transaction Modal */}
+                <AddTransactionModal
+                  open={addTransactionModalOpen}
+                  onOpenChange={setAddTransactionModalOpen}
+                  onClose={() => setAddTransactionModalOpen(false)}
+                />
               </View>
             </>
           )}

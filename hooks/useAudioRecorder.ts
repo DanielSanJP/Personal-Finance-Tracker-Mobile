@@ -1,7 +1,11 @@
-import { useState, useRef, useCallback } from 'react';
-import { Audio } from 'expo-av';
-import { Platform } from 'react-native';
+import {
+  AudioModule,
+  RecordingPresets,
+  useAudioRecorder as useExpoAudioRecorder,
+} from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
+import { useCallback, useState } from 'react';
+import { Platform } from 'react-native';
 
 interface UseAudioRecorderOptions {
   onTranscription: (transcript: string) => void;
@@ -11,12 +15,12 @@ interface UseAudioRecorderOptions {
 export const useAudioRecorder = ({ onTranscription, onError }: UseAudioRecorderOptions) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const audioRecorder = useExpoAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   const checkPermissions = useCallback(async () => {
     try {
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== 'granted') {
+      const { granted } = await AudioModule.requestRecordingPermissionsAsync();
+      if (!granted) {
         onError?.('Microphone permission is required for voice input');
         return false;
       }
@@ -33,62 +37,23 @@ export const useAudioRecorder = ({ onTranscription, onError }: UseAudioRecorderO
       const hasPermission = await checkPermissions();
       if (!hasPermission) return;
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      // Use LINEAR16 format for Google Cloud Speech-to-Text
-      // This provides lossless quality and is recommended by Google
-      const { recording } = await Audio.Recording.createAsync({
-        isMeteringEnabled: true,
-        android: {
-          extension: '.wav',
-          outputFormat: Audio.AndroidOutputFormat.DEFAULT,
-          audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
-          sampleRate: 16000,
-          numberOfChannels: 1,
-          bitRate: 128000,
-        },
-        ios: {
-          extension: '.wav',
-          outputFormat: Audio.IOSOutputFormat.LINEARPCM,
-          audioQuality: Audio.IOSAudioQuality.HIGH,
-          sampleRate: 16000,
-          numberOfChannels: 1,
-          bitRate: 128000,
-          linearPCMBitDepth: 16,
-          linearPCMIsBigEndian: false,
-          linearPCMIsFloat: false,
-        },
-        web: {
-          mimeType: 'audio/wav',
-          bitsPerSecond: 128000,
-        },
-      });
-
-      recordingRef.current = recording;
+      await audioRecorder.record();
       setIsRecording(true);
     } catch (error) {
       console.error('Failed to start recording:', error);
       onError?.('Failed to start recording');
     }
-  }, [checkPermissions, onError]);
+  }, [checkPermissions, onError, audioRecorder]);
 
   const stopRecording = useCallback(async () => {
-    if (!recordingRef.current) return;
+    if (!audioRecorder.isRecording) return;
 
     try {
       setIsRecording(false);
       setIsProcessing(true);
 
-      await recordingRef.current.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-      });
-
-      const uri = recordingRef.current.getURI();
-      recordingRef.current = null;
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
 
       if (uri) {
         try {
@@ -157,7 +122,7 @@ export const useAudioRecorder = ({ onTranscription, onError }: UseAudioRecorderO
     } finally {
       setIsProcessing(false);
     }
-  }, [onTranscription, onError]);
+  }, [onTranscription, onError, audioRecorder]);
 
   const toggleRecording = useCallback(() => {
     if (isRecording) {

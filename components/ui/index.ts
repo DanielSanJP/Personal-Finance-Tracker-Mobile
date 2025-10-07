@@ -15,6 +15,7 @@ export * from "./label";
 export { default as Logo } from "./logo";
 export * from "./menubar";
 export * from "./mobile-dropdown";
+export * from "./native-picker";
 export * from "./popover";
 export * from "./progress";
 export * from "./select";

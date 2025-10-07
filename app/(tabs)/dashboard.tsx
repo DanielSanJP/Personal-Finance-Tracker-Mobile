@@ -1,10 +1,14 @@
-import { useFocusEffect, useRouter } from "expo-router";
-import React, { useRef } from "react";
+import { useFocusEffect } from "expo-router";
+import React, { useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { DashboardSkeleton } from "../../components/loading-states";
 import Nav from "../../components/nav";
 import { SpendingChart } from "../../components/spending-chart";
-import { DashboardSkeleton } from "../../components/loading-states";
+import {
+  AddIncomeModal,
+  AddTransactionModal,
+} from "../../components/transactions";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -12,14 +16,16 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { formatCurrency } from "../../lib/utils";
-import { useDashboardData } from "../../hooks/queries/useDashboard";
 import { useAuth } from "../../hooks/queries/useAuth";
+import { useDashboardData } from "../../hooks/queries/useDashboard";
+import { formatCurrency } from "../../lib/utils";
 
 export default function Dashboard() {
-  const router = useRouter();
   const { user } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
+  const [isAddIncomeModalOpen, setIsAddIncomeModalOpen] = useState(false);
+  const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] =
+    useState(false);
 
   // Use React Query hook for dashboard data
   const { data: dashboardData, isLoading, refetch } = useDashboardData();
@@ -89,17 +95,17 @@ export default function Dashboard() {
                   <CardTitle>Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <View className="flex-row flex-wrap gap-4 justify-center">
+                  <View className="flex-row flex-wrap gap-2 justify-center">
                     <Button
                       variant="default"
-                      onPress={() => router.push("/addincome")}
+                      onPress={() => setIsAddIncomeModalOpen(true)}
                       className="min-w-[120px] p-6"
                     >
                       Add Income
                     </Button>
                     <Button
                       variant="default"
-                      onPress={() => router.push("/addtransaction")}
+                      onPress={() => setIsAddTransactionModalOpen(true)}
                       className="min-w-[120px] p-6"
                     >
                       Add Expense
@@ -200,6 +206,20 @@ export default function Dashboard() {
           )}
         </View>
       </ScrollView>
+
+      {/* Add Income Modal */}
+      <AddIncomeModal
+        open={isAddIncomeModalOpen}
+        onOpenChange={setIsAddIncomeModalOpen}
+        onClose={() => setIsAddIncomeModalOpen(false)}
+      />
+
+      {/* Add Transaction Modal */}
+      <AddTransactionModal
+        open={isAddTransactionModalOpen}
+        onOpenChange={setIsAddTransactionModalOpen}
+        onClose={() => setIsAddTransactionModalOpen(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -1,49 +1,40 @@
-import { useRouter } from "expo-router";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Nav from "../components/nav";
-import { FormSkeleton } from "../components/loading-states";
-import { Button } from "../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
-import { DatePicker } from "../components/ui/date-picker";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { CategorySelect } from "../components/category-select";
+import { useAccounts } from "../../hooks/queries/useAccounts";
+import { useCreateExpenseTransaction } from "../../hooks/queries/useTransactions";
+import { useReceiptScan } from "../../hooks/useReceiptScan";
+import { useVoiceInput } from "../../hooks/useVoiceInput";
+import { CategorySelect } from "../category-select";
+import { ReceiptScannerModal } from "../receipt-scanner-modal";
+import { Button } from "../ui/button";
+import { DatePicker } from "../ui/date-picker";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../components/ui/select";
-import { useToast } from "../components/ui/sonner";
-import { useAuth } from "../hooks/queries/useAuth";
-import { useAccounts } from "../hooks/queries/useAccounts";
-import { useCreateExpenseTransaction } from "../hooks/queries/useTransactions";
-import { useReceiptScan } from "../hooks/useReceiptScan";
-import { useVoiceInput } from "../hooks/useVoiceInput";
-import { ReceiptScannerModal } from "../components/receipt-scanner-modal";
-import { VoiceInputModal } from "../components/voice-input-modal";
+} from "../ui/select";
+import { useToast } from "../ui/sonner";
+import { VoiceInputModal } from "../voice-input-modal";
 
-export default function AddTransactionPage() {
-  const router = useRouter();
-  const { user, isLoading: loading } = useAuth();
+interface AddTransactionModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
+}
+
+export function AddTransactionModal({
+  open,
+  onOpenChange,
+  onClose,
+}: AddTransactionModalProps) {
   const toast = useToast();
   const { data: accounts = [] } = useAccounts();
   const createExpenseMutation = useCreateExpenseTransaction();
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/login");
-    }
-  }, [user, loading, router]);
 
   const [formData, setFormData] = useState({
     amount: "",
@@ -51,7 +42,7 @@ export default function AddTransactionPage() {
     category: "",
     merchant: "",
     account: "",
-    status: "completed", // Use lowercase value that matches database
+    status: "completed",
     date: new Date() as Date | undefined,
   });
 
@@ -69,7 +60,6 @@ export default function AddTransactionPage() {
     clearPreview,
   } = useReceiptScan({
     onReceiptData: (data) => {
-      // Auto-fill form with receipt data
       setFormData((prev) => ({
         ...prev,
         amount: data.amount?.toString() || prev.amount,
@@ -84,7 +74,6 @@ export default function AddTransactionPage() {
         type: "success",
       });
 
-      // Close modal after a brief delay
       setTimeout(() => {
         setShowReceiptScanner(false);
         clearPreview();
@@ -113,7 +102,6 @@ export default function AddTransactionPage() {
     stopVoiceInput,
   } = useVoiceInput({
     onResult: (result) => {
-      // Auto-fill form with voice data
       setFormData((prev) => ({
         ...prev,
         amount: result.amount?.toString() || prev.amount,
@@ -134,7 +122,6 @@ export default function AddTransactionPage() {
         type: "success",
       });
 
-      // Close modal after a brief delay
       setTimeout(() => {
         setShowVoiceInput(false);
       }, 1500);
@@ -143,7 +130,7 @@ export default function AddTransactionPage() {
     transactionType: "expense",
   });
 
-  // Status options with display labels and database values
+  // Status options
   const statusOptions = [
     { label: "Pending", value: "pending" },
     { label: "Completed", value: "completed" },
@@ -151,18 +138,32 @@ export default function AddTransactionPage() {
     { label: "Failed", value: "failed" },
   ];
 
-  // Helper function to get display label for status
   const getStatusLabel = (value: string) => {
     return (
       statusOptions.find((option) => option.value === value)?.label || value
     );
   };
 
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!open) {
+      setFormData({
+        amount: "",
+        description: "",
+        category: "",
+        merchant: "",
+        account: "",
+        status: "completed",
+        date: new Date(),
+      });
+    }
+  }, [open]);
+
   const handleCancel = () => {
-    router.push("/transactions");
+    onClose();
+    onOpenChange(false);
   };
 
-  // Helper function to extract account ID from display value
   const getAccountIdFromDisplayValue = (displayValue: string) => {
     const account = accounts.find(
       (acc) => `${acc.name} (${acc.type})` === displayValue
@@ -171,7 +172,6 @@ export default function AddTransactionPage() {
   };
 
   const handleSave = async () => {
-    // Validate required fields
     if (
       !formData.amount ||
       !formData.description ||
@@ -202,7 +202,7 @@ export default function AddTransactionPage() {
         category: formData.category || undefined,
         merchant: formData.merchant || undefined,
         accountId: accountId,
-        status: formData.status, // Already using correct lowercase database values
+        status: formData.status,
         date: formData.date,
       });
 
@@ -212,17 +212,18 @@ export default function AddTransactionPage() {
         type: "success",
       });
 
-      // Reset form
+      // Reset form and close modal
       setFormData({
         amount: "",
         description: "",
         category: "",
         merchant: "",
         account: "",
-        status: "completed", // Use lowercase value that matches database
+        status: "completed",
         date: new Date(),
       });
-      router.push("/transactions");
+      onClose();
+      onOpenChange(false);
     } catch (error) {
       console.error("Error saving expense:", error);
       toast.toast({
@@ -260,37 +261,21 @@ export default function AddTransactionPage() {
     clearPreview();
   };
 
-  // Show loading while checking auth state
-  if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-50">
-        <Nav />
-        <View className="max-w-7xl mx-auto px-6 py-8">
-          <FormSkeleton />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Don't render if user is not authenticated (will redirect)
-  if (!user) {
-    return null;
-  }
-
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <Nav />
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent
+          className="max-w-2xl max-h-[90vh]"
+          onClose={handleCancel}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center py-2">
+              Add New Expense
+            </DialogTitle>
+          </DialogHeader>
 
-      <ScrollView className="flex-1">
-        <View className="max-w-7xl mx-auto px-6 py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold text-center py-2">
-                Add New Expense
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-6">
+          <ScrollView className="flex-1">
+            <View className="space-y-6 p-4">
               {/* Amount */}
               <View className="space-y-2 py-2">
                 <Label className="text-base font-medium">
@@ -422,14 +407,14 @@ export default function AddTransactionPage() {
                   <Button
                     onPress={handleCancel}
                     variant="outline"
-                    className="w-40"
+                    className="w-36"
                   >
                     <Text>Cancel</Text>
                   </Button>
                   <Button
                     onPress={handleSave}
                     variant="default"
-                    className="w-40"
+                    className="w-36"
                   >
                     Save
                   </Button>
@@ -440,23 +425,23 @@ export default function AddTransactionPage() {
                   <Button
                     onPress={handleVoiceInput}
                     variant="outline"
-                    className="w-40"
+                    className="w-36"
                   >
                     <Text>Voice Input</Text>
                   </Button>
                   <Button
                     onPress={handleScanReceipt}
                     variant="outline"
-                    className="w-40"
+                    className="w-36"
                   >
                     <Text>Scan Receipt</Text>
                   </Button>
                 </View>
               </View>
-            </CardContent>
-          </Card>
-        </View>
-      </ScrollView>
+            </View>
+          </ScrollView>
+        </DialogContent>
+      </Dialog>
 
       {/* Receipt Scanner Modal */}
       <ReceiptScannerModal
@@ -496,6 +481,6 @@ export default function AddTransactionPage() {
         confidence={voiceConfidence}
         type="expense"
       />
-    </SafeAreaView>
+    </>
   );
 }

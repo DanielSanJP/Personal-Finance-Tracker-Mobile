@@ -7,10 +7,10 @@ import React from "react";
 //   configureReanimatedLogger,
 //   ReanimatedLogLevel,
 // } from "react-native-reanimated";
-import { AuthProvider } from "../lib/auth-context";
-import { QueryProvider } from "../lib/query-provider";
 import { ToastProvider } from "../components/ui/sonner";
 import "../global.css";
+import { AuthProvider } from "../lib/auth-context";
+import { QueryProvider } from "../lib/query-provider";
 
 // Disable Reanimated strict mode warnings
 // configureReanimatedLogger({
@@ -27,6 +27,8 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               headerShown: false,
+              animation: "none",
+              animationDuration: 0,
             }}
           >
             <Stack.Screen name="index" />

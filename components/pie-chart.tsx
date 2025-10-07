@@ -1,7 +1,11 @@
+import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Text, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
-import { Feather } from "@expo/vector-icons";
+import Svg, { Circle, G, Path } from "react-native-svg";
+import { useTransactions } from "../hooks/queries/useTransactions";
+import { formatCurrency } from "../lib/utils";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import {
   Card,
   CardContent,
@@ -9,8 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,8 +21,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { useTransactions } from "../hooks/queries/useTransactions";
-import { formatCurrency } from "../lib/utils";
 
 export const description = "A pie chart showing actual spending by category";
 
@@ -81,9 +81,25 @@ const SimplePieChart = ({
       percentage: number;
     }
   ) => {
+    const sliceAngle = endAngle - startAngle;
+
+    // Handle full circle (100% - single category)
+    if (sliceAngle >= 359.99) {
+      // Draw as a circle for better rendering and click handling
+      // Use onPressIn for immediate response on touch
+      return (
+        <G
+          key={`${startAngle}-${endAngle}`}
+          onPressIn={() => onSlicePress?.(item)}
+        >
+          <Circle cx={center} cy={center} r={radius} fill={color} />
+        </G>
+      );
+    }
+
     const start = polarToCartesian(center, center, radius, endAngle);
     const end = polarToCartesian(center, center, radius, startAngle);
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+    const largeArcFlag = sliceAngle <= 180 ? "0" : "1";
 
     const d = [
       "M",
@@ -108,7 +124,7 @@ const SimplePieChart = ({
         key={`${startAngle}-${endAngle}`}
         d={d}
         fill={color}
-        onPress={() => onSlicePress?.(item)}
+        onPressIn={() => onSlicePress?.(item)}
       />
     );
   };

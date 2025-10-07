@@ -1,16 +1,17 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useRef, useState, useEffect } from "react";
-import { ScrollView, Text, View, Pressable } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AddAccountModal } from "../components/accounts";
+import { EditAccountModal } from "../components/edit-account-modal";
+import { AccountsListSkeleton } from "../components/loading-states";
 import Nav from "../components/nav";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
-import { AccountsListSkeleton } from "../components/loading-states";
-import { EditAccountModal } from "../components/edit-account-modal";
-import { formatCurrency } from "../lib/utils";
-import { useAuth } from "../hooks/queries/useAuth";
 import { useAccounts } from "../hooks/queries/useAccounts";
+import { useAuth } from "../hooks/queries/useAuth";
 import type { Account } from "../lib/types";
+import { formatCurrency } from "../lib/utils";
 
 export default function Accounts() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function Accounts() {
   } = useAccounts();
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Redirect to login if not authenticated
@@ -56,7 +58,11 @@ export default function Accounts() {
   };
 
   const handleAddAccount = () => {
-    router.push("/addaccount");
+    setIsAddModalOpen(true);
+  };
+
+  const handleCloseAddModal = () => {
+    setIsAddModalOpen(false);
   };
 
   const handleEditAccount = (account: Account) => {
@@ -205,6 +211,13 @@ export default function Accounts() {
         isOpen={isEditModalOpen}
         onClose={handleCloseEditModal}
         onAccountUpdated={handleAccountUpdated}
+      />
+
+      {/* Add Account Modal */}
+      <AddAccountModal
+        open={isAddModalOpen}
+        onOpenChange={setIsAddModalOpen}
+        onClose={handleCloseAddModal}
       />
     </SafeAreaView>
   );

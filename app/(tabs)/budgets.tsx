@@ -2,8 +2,15 @@ import { useFocusEffect } from "expo-router";
 import React, { useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Nav from "../../components/nav";
+import { AddBudgetModal } from "../../components/budgets/add-budget-modal";
+import {
+  calculatePeriodDates,
+  getBudgetStatus,
+  getProgressWidth,
+} from "../../components/budgets/budget-utils";
+import { EditBudgetsModal } from "../../components/budgets/edit-budgets-modal";
 import { BudgetListSkeleton } from "../../components/loading-states";
+import Nav from "../../components/nav";
 import { Button } from "../../components/ui/button";
 import {
   Card,
@@ -11,32 +18,14 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../../components/ui/dialog";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { CategorySelect } from "../../components/category-select";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../components/ui/select";
+import { useToast } from "../../components/ui/sonner";
 import { useAuth } from "../../hooks/queries/useAuth";
 import {
   useBudgets,
   useCreateBudget,
-  useUpdateBudget,
   useDeleteBudget,
+  useUpdateBudget,
 } from "../../hooks/queries/useBudgets";
-import { useToast } from "../../components/ui/sonner";
 
 export default function Budgets() {
   useAuth();
@@ -65,37 +54,6 @@ export default function Budgets() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [budgetAmount, setBudgetAmount] = useState("");
   const [budgetPeriod, setBudgetPeriod] = useState("");
-
-  // Helper function to calculate period dates
-  const calculatePeriodDates = (period: string) => {
-    const now = new Date();
-    let startDate: Date;
-    let endDate: Date;
-
-    switch (period) {
-      case "weekly":
-        startDate = new Date(now);
-        startDate.setHours(0, 0, 0, 0);
-        startDate.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
-        endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6); // End of week (Saturday)
-        break;
-      case "yearly":
-        startDate = new Date(now.getFullYear(), 0, 1); // Jan 1
-        endDate = new Date(now.getFullYear(), 11, 31); // Dec 31
-        break;
-      case "monthly":
-      default:
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        break;
-    }
-
-    return {
-      startDate: startDate.toISOString().split("T")[0],
-      endDate: endDate.toISOString().split("T")[0],
-    };
-  };
 
   // Reset form function
   const resetAddBudgetForm = () => {
@@ -260,35 +218,6 @@ export default function Budgets() {
     }
   };
 
-  // Using standardized categories from constants
-
-  // Period options with display labels and database values
-  const periodOptions = [
-    { label: "Monthly", value: "monthly" },
-    { label: "Weekly", value: "weekly" },
-    { label: "Yearly", value: "yearly" },
-  ];
-
-  // Helper function to get display label for period
-  const getPeriodLabel = (value: string) => {
-    return (
-      periodOptions.find((option) => option.value === value)?.label || value
-    );
-  };
-
-  const getBudgetStatus = (spent: number, budget: number) => {
-    const percentage = (spent / budget) * 100;
-    if (percentage > 100) return { status: "over", color: "red" };
-    if (percentage >= 100) return { status: "full", color: "red" };
-    if (percentage > 80) return { status: "warning", color: "orange" };
-    return { status: "good", color: "gray" };
-  };
-
-  const getProgressWidth = (spent: number, budget: number) => {
-    const percentage = Math.min((spent / budget) * 100, 100);
-    return percentage;
-  };
-
   // Calculate totals
   const totalBudget = budgets.reduce(
     (sum, budget) => sum + budget.budgetAmount,
@@ -340,22 +269,22 @@ export default function Budgets() {
                   <CardTitle>Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <View className="flex-row flex-wrap gap-4 justify-center">
+                  <View className="flex-row flex-wrap gap-2 justify-center">
                     <Button
                       variant="default"
-                      className="min-w-[130px] p-6"
+                      className="min-w-[120px] p-6"
                       onPress={() => setAddBudgetOpen(true)}
                     >
                       Add Budget
                     </Button>
                     <Button
                       variant="outline"
-                      className="min-w-[130px] p-6"
+                      className="min-w-[120px] p-6"
                       onPress={() => setEditBudgetsOpen(true)}
                     >
                       Edit Budgets
                     </Button>
-                    <Button variant="outline" className="min-w-[130px] p-6">
+                    <Button variant="outline" className="min-w-[120px] p-6">
                       Export Data
                     </Button>
                   </View>
@@ -521,180 +450,34 @@ export default function Budgets() {
                   </View>
 
                   {/* Add Budget Modal */}
-                  <Dialog
+                  <AddBudgetModal
                     open={addBudgetOpen}
                     onOpenChange={(open) => {
                       if (!open) handleAddBudgetClose();
                       else setAddBudgetOpen(true);
                     }}
-                  >
-                    <DialogContent onClose={handleAddBudgetClose}>
-                      <DialogHeader>
-                        <DialogTitle>Add New Budget</DialogTitle>
-                        <DialogDescription>
-                          Create a new budget category with your desired
-                          spending limit.
-                        </DialogDescription>
-                      </DialogHeader>
-
-                      <View className="space-y-4 pb-4">
-                        <CategorySelect
-                          value={selectedCategory}
-                          onValueChange={setSelectedCategory}
-                          type="expense"
-                          required
-                          className="w-full"
-                          existingCategories={budgets.map((b) => b.category)}
-                        />
-
-                        <View className="space-y-2 py-2">
-                          <Label>Budget Amount</Label>
-                          <Input
-                            placeholder="Enter budget amount"
-                            value={budgetAmount}
-                            onChangeText={setBudgetAmount}
-                            keyboardType="decimal-pad"
-                            returnKeyType="done"
-                            blurOnSubmit={true}
-                            className="w-full"
-                          />
-                        </View>
-
-                        <View className="space-y-2 py-2">
-                          <Label>Budget Period</Label>
-                          <Select
-                            value={budgetPeriod}
-                            onValueChange={setBudgetPeriod}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue
-                                placeholder="Select period"
-                                displayValue={
-                                  budgetPeriod
-                                    ? getPeriodLabel(budgetPeriod)
-                                    : undefined
-                                }
-                              />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {periodOptions.map((option) => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </View>
-                      </View>
-
-                      <DialogFooter>
-                        <Button
-                          variant="outline"
-                          onPress={handleAddBudgetClose}
-                          className="w-full"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          className="w-full mt-2"
-                          onPress={handleCreateBudget}
-                        >
-                          Create Budget
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                    selectedCategory={selectedCategory}
+                    setSelectedCategory={setSelectedCategory}
+                    budgetAmount={budgetAmount}
+                    setBudgetAmount={setBudgetAmount}
+                    budgetPeriod={budgetPeriod}
+                    setBudgetPeriod={setBudgetPeriod}
+                    existingCategories={budgets.map((b) => b.category)}
+                    onSubmit={handleCreateBudget}
+                    onClose={handleAddBudgetClose}
+                  />
 
                   {/* Edit Budgets Modal */}
-                  <Dialog
+                  <EditBudgetsModal
                     open={editBudgetsOpen}
                     onOpenChange={setEditBudgetsOpen}
-                  >
-                    <DialogContent onClose={() => setEditBudgetsOpen(false)}>
-                      <DialogHeader>
-                        <DialogTitle>Edit Budget Categories</DialogTitle>
-                        <DialogDescription>
-                          Modify your existing budget amounts and categories.
-                        </DialogDescription>
-                      </DialogHeader>
-
-                      <View className="space-y-6">
-                        {budgets.map((budget, index) => (
-                          <View
-                            key={budget.id}
-                            className={`space-y-3 p-4 border border-gray-200 rounded-lg bg-white ${
-                              index > 0 ? "mt-4" : ""
-                            }`}
-                          >
-                            <View className="flex-row items-center justify-between">
-                              <Text className="text-base font-medium">
-                                {budget.category}
-                              </Text>
-                            </View>
-
-                            <View className="space-y-2 py-2">
-                              <Label>Budget Amount</Label>
-                              <Input
-                                value={
-                                  budget.id in editedBudgets
-                                    ? editedBudgets[budget.id]
-                                    : budget.budgetAmount.toString()
-                                }
-                                onChangeText={(text) =>
-                                  setEditedBudgets((prev) => ({
-                                    ...prev,
-                                    [budget.id]: text,
-                                  }))
-                                }
-                                keyboardType="decimal-pad"
-                                returnKeyType="done"
-                                blurOnSubmit={true}
-                                className="w-full"
-                              />
-                            </View>
-
-                            <Text className="text-sm text-gray-600 py-2">
-                              Current spending: ${budget.spentAmount.toFixed(2)}
-                            </Text>
-
-                            {/* Individual Save and Delete buttons */}
-                            <View className="flex-row gap-4 pt-2">
-                              <Button
-                                onPress={() => handleSaveBudget(budget.id)}
-                                className="min-w-[130px]"
-                                size="sm"
-                              >
-                                Save
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                onPress={() =>
-                                  handleDeleteBudget(budget.id, budget.category)
-                                }
-                                className="min-w-[130px]"
-                                size="sm"
-                              >
-                                Delete
-                              </Button>
-                            </View>
-                          </View>
-                        ))}
-                      </View>
-
-                      <DialogFooter>
-                        <Button
-                          variant="outline"
-                          onPress={() => setEditBudgetsOpen(false)}
-                          className="w-full"
-                        >
-                          Close
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                    budgets={budgets}
+                    editedBudgets={editedBudgets}
+                    setEditedBudgets={setEditedBudgets}
+                    onSaveBudget={handleSaveBudget}
+                    onDeleteBudget={handleDeleteBudget}
+                    onClose={() => setEditBudgetsOpen(false)}
+                  />
                 </CardContent>
               </Card>
             </>

@@ -1,6 +1,6 @@
 import { Tabs, useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { View, Text } from "react-native";
+import { Text, View } from "react-native";
 import { useAuth } from "../../lib/auth-context";
 
 export default function TabLayout() {
@@ -33,6 +33,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: { display: "none" }, // Hide the default tab bar since we have custom nav
+        animation: "none",
       }}
     >
       <Tabs.Screen

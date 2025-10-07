@@ -2,38 +2,38 @@ import React, { useState } from "react";
 import { Modal, Text, TouchableOpacity, View } from "react-native";
 import { cn } from "../../lib/utils";
 
-interface DropdownMenuProps {
+interface NavDropdownProps {
   children: React.ReactNode;
 }
 
-interface DropdownMenuTriggerProps {
+interface NavDropdownTriggerProps {
   children: React.ReactNode;
   asChild?: boolean;
 }
 
-interface DropdownMenuContentProps {
+interface NavDropdownContentProps {
   children: React.ReactNode;
   align?: "start" | "end" | "center";
   className?: string;
 }
 
-interface DropdownMenuItemProps {
+interface NavDropdownItemProps {
   children: React.ReactNode;
   onPress?: () => void;
   className?: string;
   asChild?: boolean;
 }
 
-interface DropdownMenuLabelProps {
+interface NavDropdownLabelProps {
   children: React.ReactNode;
   className?: string;
 }
 
-interface DropdownMenuSeparatorProps {
+interface NavDropdownSeparatorProps {
   className?: string;
 }
 
-export function DropdownMenu({ children }: DropdownMenuProps) {
+export function NavDropdown({ children }: NavDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleDropdown = () => {
@@ -62,11 +62,11 @@ export function DropdownMenu({ children }: DropdownMenuProps) {
   );
 }
 
-export function DropdownMenuTrigger({
+export function NavDropdownTrigger({
   children,
   asChild,
   ...props
-}: DropdownMenuTriggerProps & any) {
+}: NavDropdownTriggerProps & any) {
   const { openDropdown } = props;
 
   if (asChild && React.isValidElement(children)) {
@@ -93,12 +93,12 @@ export function DropdownMenuTrigger({
   );
 }
 
-export function DropdownMenuContent({
+export function NavDropdownContent({
   children,
   align = "end",
   className,
   ...props
-}: DropdownMenuContentProps & any) {
+}: NavDropdownContentProps & any) {
   const { isOpen, setIsOpen } = props;
 
   if (!isOpen) return null;
@@ -117,7 +117,7 @@ export function DropdownMenuContent({
         <View
           style={{
             position: "absolute",
-            top: 45,
+            top: 48,
             right: 10,
             zIndex: 1000,
           }}
@@ -144,13 +144,13 @@ export function DropdownMenuContent({
   );
 }
 
-export function DropdownMenuItem({
+export function NavDropdownItem({
   children,
   onPress,
   className,
   asChild,
   ...props
-}: DropdownMenuItemProps & any) {
+}: NavDropdownItemProps & any) {
   const { setIsOpen } = props;
 
   const handlePress = () => {
@@ -179,10 +179,10 @@ export function DropdownMenuItem({
   );
 }
 
-export function DropdownMenuLabel({
+export function NavDropdownLabel({
   children,
   className,
-}: DropdownMenuLabelProps) {
+}: NavDropdownLabelProps) {
   return (
     <View className={cn("px-3 py-2", className)}>
       <Text className="text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -192,8 +192,6 @@ export function DropdownMenuLabel({
   );
 }
 
-export function DropdownMenuSeparator({
-  className,
-}: DropdownMenuSeparatorProps) {
+export function NavDropdownSeparator({ className }: NavDropdownSeparatorProps) {
   return <View className={cn("h-px bg-gray-200 my-1", className)} />;
 }

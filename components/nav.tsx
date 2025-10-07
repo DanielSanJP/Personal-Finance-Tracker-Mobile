@@ -5,20 +5,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../lib/auth-context";
 import Breadcrumbs from "./breadcrumbs";
 import { Button } from "./ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 import Logo from "./ui/logo";
+import {
+  NavDropdown,
+  NavDropdownContent,
+  NavDropdownItem,
+  NavDropdownLabel,
+  NavDropdownSeparator,
+  NavDropdownTrigger,
+} from "./ui/nav-dropdown";
 
 export default function Nav() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const [isNavigating, setIsNavigating] = React.useState(false);
 
   // Handle sign out with navigation
   const handleSignOut = async () => {
@@ -95,8 +96,8 @@ export default function Nav() {
 
             {showDashboardTabs && (
               <View className="flex-row items-center gap-2 sm:gap-3">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <NavDropdown>
+                  <NavDropdownTrigger asChild>
                     <TouchableOpacity className="flex-row items-center gap-2 hover:bg-gray-100 rounded-lg p-2">
                       <View className="w-8 h-8 rounded-full bg-gray-300 items-center justify-center">
                         <Text className="text-sm font-medium text-gray-600">
@@ -107,36 +108,36 @@ export default function Nav() {
                         {user.display_name}
                       </Text>
                     </TouchableOpacity>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onPress={() => router.push("/profile")}>
+                  </NavDropdownTrigger>
+                  <NavDropdownContent align="end" className="w-56">
+                    <NavDropdownLabel>My Account</NavDropdownLabel>
+                    <NavDropdownSeparator />
+                    <NavDropdownItem onPress={() => router.push("/profile")}>
                       <Text>Profile</Text>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onPress={() => router.push("/accounts")}>
+                    </NavDropdownItem>
+                    <NavDropdownItem onPress={() => router.push("/accounts")}>
                       <Text>Bank Accounts</Text>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onPress={() => router.push("/reports")}>
+                    </NavDropdownItem>
+                    <NavDropdownItem onPress={() => router.push("/reports")}>
                       <Text>View Reports</Text>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onPress={() => router.push("/settings")}>
+                    </NavDropdownItem>
+                    <NavDropdownItem onPress={() => router.push("/settings")}>
                       <Text>Settings</Text>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
+                    </NavDropdownItem>
+                    <NavDropdownItem
                       onPress={() => router.push("/preferences")}
                     >
                       <Text>Preferences</Text>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onPress={() => router.push("/help")}>
+                    </NavDropdownItem>
+                    <NavDropdownSeparator />
+                    <NavDropdownItem onPress={() => router.push("/help")}>
                       <Text>Help & Support</Text>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onPress={handleSignOut}>
+                    </NavDropdownItem>
+                    <NavDropdownItem onPress={handleSignOut}>
                       <Text className="text-red-600">Sign Out</Text>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    </NavDropdownItem>
+                  </NavDropdownContent>
+                </NavDropdown>
               </View>
             )}
           </View>
@@ -151,18 +152,27 @@ export default function Nav() {
               {navigationItems.map((item) => (
                 <TouchableOpacity
                   key={item.href}
-                  onPress={() => router.push(item.href as any)}
-                  className={`flex-1 py-2 sm:py-3 px-2 sm:px-4 rounded-lg flex items-center justify-center ${
+                  onPress={() => {
+                    if (!isNavigating && !isActiveTab(item.href)) {
+                      setIsNavigating(true);
+                      router.push(item.href as any);
+                      // Reset navigation state after a short delay
+                      setTimeout(() => setIsNavigating(false), 500);
+                    }
+                  }}
+                  disabled={isNavigating || isActiveTab(item.href)}
+                  className={`flex-1 py-2 sm:py-3 px-1 sm:px-4 rounded-lg flex items-center justify-center ${
                     isActiveTab(item.href)
                       ? "bg-white text-black border border-gray-200"
                       : "bg-transparent"
                   }`}
                 >
                   <Text
-                    className={`text-xs sm:text-sm font-medium ${
+                    className={`text-[11px] sm:text-sm font-medium ${
                       isActiveTab(item.href) ? "text-black" : "text-zinc-500"
                     }`}
                     numberOfLines={1}
+                    ellipsizeMode="tail"
                   >
                     {item.label}
                   </Text>
