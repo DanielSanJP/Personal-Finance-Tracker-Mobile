@@ -39,8 +39,7 @@ export function LoginForm({ className }: LoginFormProps) {
   };
 
   const handleForgotPassword = () => {
-    // Add forgot password logic here
-    console.log("Forgot password pressed");
+    // TODO: Add forgot password logic here
   };
 
   const handleSignUp = () => {

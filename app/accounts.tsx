@@ -7,15 +7,19 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { AccountsListSkeleton } from "../components/loading-states";
 import { EditAccountModal } from "../components/edit-account-modal";
-import { getCurrentUserAccounts, formatCurrency } from "../lib/data";
-import { useAuth } from "../lib/auth-context";
+import { formatCurrency } from "../lib/utils";
+import { useAuth } from "../hooks/queries/useAuth";
+import { useAccounts } from "../hooks/queries/useAccounts";
 import type { Account } from "../lib/types";
 
 export default function Accounts() {
   const router = useRouter();
-  const { user, loading } = useAuth();
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [accountsLoading, setAccountsLoading] = useState(true);
+  const { user, isLoading: loading } = useAuth();
+  const {
+    data: accounts = [],
+    isLoading: accountsLoading,
+    refetch,
+  } = useAccounts();
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -27,30 +31,12 @@ export default function Accounts() {
     }
   }, [user, loading, router]);
 
-  // Load accounts when component mounts or user changes
-  useEffect(() => {
-    const loadAccounts = async () => {
-      if (!user) return;
-
-      try {
-        setAccountsLoading(true);
-        const accountsData = await getCurrentUserAccounts();
-        setAccounts(accountsData);
-      } catch (error) {
-        console.error("Error loading accounts:", error);
-      } finally {
-        setAccountsLoading(false);
-      }
-    };
-
-    loadAccounts();
-  }, [user]);
-
-  // Scroll to top when the page is focused
+  // Scroll to top and refresh data when the page is focused
   useFocusEffect(
     React.useCallback(() => {
       scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
-    }, [])
+      refetch();
+    }, [refetch])
   );
 
   // Get account type color (matching Next.js exactly)
@@ -83,17 +69,8 @@ export default function Accounts() {
     setEditingAccount(null);
   };
 
-  const handleAccountUpdated = async () => {
-    // Refresh the accounts list
-    try {
-      setAccountsLoading(true);
-      const accountsData = await getCurrentUserAccounts();
-      setAccounts(accountsData);
-    } catch (error) {
-      console.error("Error refreshing accounts:", error);
-    } finally {
-      setAccountsLoading(false);
-    }
+  const handleAccountUpdated = () => {
+    // Data will be automatically refreshed by React Query after mutation
   };
 
   // Show loading while checking auth state

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Text, View } from "react-native";
 import Svg, { Rect, Line, Text as SvgText } from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
@@ -22,8 +22,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { formatCurrency } from "../lib/data/utils";
-import { getYearlyBudgetAnalysis } from "../lib/data/budgets";
+import { formatCurrency } from "../lib/utils";
+import { useYearlyBudgetAnalysis } from "../hooks/queries/useBudgets";
 
 interface MonthlyBudgetData {
   month: string;
@@ -186,11 +186,12 @@ const YearlyBarChart = ({
 };
 
 export function BarChart({ data: propData }: BarChartProps = {}) {
-  const [data, setData] = useState<MonthlyBudgetData[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(() => {
     return new Date().getFullYear();
   });
+  const { data: fetchedData = [], isLoading } =
+    useYearlyBudgetAnalysis(selectedYear);
+  const data = propData || fetchedData;
   const [selectedBar, setSelectedBar] = useState<{
     item: MonthlyBudgetData;
     index: number;
@@ -225,28 +226,7 @@ export function BarChart({ data: propData }: BarChartProps = {}) {
     setTimeout(() => setSelectedBar(null), 3000);
   };
 
-  useEffect(() => {
-    const loadYearlyData = async () => {
-      try {
-        setLoading(true);
-        if (propData) {
-          setData(propData);
-        } else {
-          const yearlyAnalysis = await getYearlyBudgetAnalysis(selectedYear);
-          setData(yearlyAnalysis || []);
-        }
-      } catch (error) {
-        console.error("Error loading yearly data:", error);
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadYearlyData();
-  }, [selectedYear, propData]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -261,7 +241,10 @@ export function BarChart({ data: propData }: BarChartProps = {}) {
   }
 
   // Handle empty data state
-  if (data.length === 0 || data.every((item) => item.spending === 0)) {
+  if (
+    data.length === 0 ||
+    data.every((item: MonthlyBudgetData) => item.spending === 0)
+  ) {
     const now = new Date();
     const isCurrentYear = selectedYear === now.getFullYear();
 
@@ -346,9 +329,17 @@ export function BarChart({ data: propData }: BarChartProps = {}) {
   }
 
   // Calculate totals and statistics
-  const totalSpending = data.reduce((sum, item) => sum + item.spending, 0);
-  const totalBudget = data.reduce((sum, item) => sum + item.budgetLimit, 0);
-  const maxBudget = Math.max(...data.map((item) => item.budgetLimit));
+  const totalSpending = data.reduce(
+    (sum: number, item: MonthlyBudgetData) => sum + item.spending,
+    0
+  );
+  const totalBudget = data.reduce(
+    (sum: number, item: MonthlyBudgetData) => sum + item.budgetLimit,
+    0
+  );
+  const maxBudget = Math.max(
+    ...data.map((item: MonthlyBudgetData) => item.budgetLimit)
+  );
 
   // Calculate budget utilization
   const budgetUtilization =
@@ -357,9 +348,11 @@ export function BarChart({ data: propData }: BarChartProps = {}) {
 
   // Count months by status
   const monthsUnderBudget = data.filter(
-    (item) => item.status === "under"
+    (item: MonthlyBudgetData) => item.status === "under"
   ).length;
-  const monthsOverBudget = data.filter((item) => item.status === "over").length;
+  const monthsOverBudget = data.filter(
+    (item: MonthlyBudgetData) => item.status === "over"
+  ).length;
 
   return (
     <Card>

@@ -31,8 +31,11 @@ export const useVoiceInput = ({
 
   const { isRecording, startRecording, stopRecording, isSupported } = useAudioRecorder({
     onTranscription: (newTranscript: string) => {
-      if (newTranscript.trim()) {
+      if (newTranscript && typeof newTranscript === 'string' && newTranscript.trim()) {
         handleVoiceProcessing(newTranscript);
+      } else {
+        console.warn('⚠️  Received invalid transcript:', newTranscript);
+        setError('No speech detected. Please try again.');
       }
     },
     onError: (err) => setError(err)
@@ -46,29 +49,22 @@ export const useVoiceInput = ({
     setLastTranscript(rawTranscript);
 
     try {
-      // Send to our enhanced Gemini API for comprehensive processing
+      // Send to our local Expo API route for processing
       const formData = new FormData();
       formData.append('transcript', rawTranscript);
       formData.append('accounts', JSON.stringify(accounts));
       formData.append('type', transactionType);
 
-      // Get the API URL from environment or use localhost for development
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
-
-      const response = await fetch(`${apiUrl}/api/speech-to-text`, {
+      // Use local Expo API route
+      const response = await fetch('/api/speech-to-text', {
         method: 'POST',
         body: formData,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to process voice input');
-      }
-
       const data = await response.json();
       
-      if (data.error) {
-        throw new Error(data.error);
+      if (!response.ok || data.error) {
+        throw new Error(data.error || `API error: ${response.status}`);
       }
 
       // Gemini has already done all the parsing - just map the results
@@ -83,8 +79,6 @@ export const useVoiceInput = ({
         confidence: data.confidence || 0.8
       };
 
-      console.log('Processed voice input result:', result);
-      
       // Update local state for the modal
       setParsedData(result);
       setConfidence(result.confidence);

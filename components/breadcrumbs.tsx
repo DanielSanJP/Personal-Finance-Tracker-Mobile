@@ -91,7 +91,6 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
   }
 
   const handleNavigation = (href: string) => {
-    console.log("Breadcrumb navigation to:", href);
     try {
       router.push(href as any);
     } catch (error) {

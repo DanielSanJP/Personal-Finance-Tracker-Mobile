@@ -1,4 +1,6 @@
-import { supabase } from "../supabase";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { queryKeys } from "@/lib/query-keys";
 
 export interface UserProfile {
   id: string;
@@ -17,10 +19,8 @@ export interface UpdateProfileData {
   display_name?: string;
 }
 
-/**
- * Get the current user's profile information
- */
-export async function getUserProfile(): Promise<UserProfile | null> {
+// Profile data functions
+async function getUserProfile(): Promise<UserProfile | null> {
   try {
     const {
       data: { user },
@@ -28,7 +28,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.error("Error getting authenticated user:", authError);
+      console.error('Auth error:', authError);
       return null;
     }
 
@@ -40,17 +40,17 @@ export async function getUserProfile(): Promise<UserProfile | null> {
       .single();
 
     if (dbError) {
-      console.error("Error fetching user profile from database:", dbError);
+      console.error('Database error:', dbError);
       return null;
     }
 
-    // Merge auth data with database data (email and display_name come from auth only)
+    // Merge auth data with database data
     const profile: UserProfile = {
       id: user.id,
       first_name: user.user_metadata?.first_name || dbProfile.first_name || "",
       last_name: user.user_metadata?.last_name || dbProfile.last_name || "",
-      email: user.email || "", // Always from auth table
-      display_name: user.user_metadata?.display_name || null, // Always from auth metadata
+      email: user.email || "",
+      display_name: user.user_metadata?.display_name || null,
       initials: user.user_metadata?.initials || dbProfile.initials,
       avatar: user.user_metadata?.avatar || dbProfile.avatar,
       created_at: dbProfile.created_at,
@@ -63,10 +63,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
   }
 }
 
-/**
- * Update the current user's profile information
- */
-export async function updateUserProfile(
+async function updateUserProfile(
   profileData: UpdateProfileData
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -76,71 +73,51 @@ export async function updateUserProfile(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return {
-        success: false,
-        error: "User not authenticated",
-      };
+      return { success: false, error: "User not authenticated" };
     }
 
-    // Generate initials from first and last name
+    // Generate initials and display name
     const initials = `${profileData.first_name.charAt(0)}${profileData.last_name.charAt(0)}`.toUpperCase();
-
-    // Generate display name if not provided
     const display_name = profileData.display_name || `${profileData.first_name} ${profileData.last_name}`;
 
-    // Update auth user metadata first
-    const { error: authUpdateError } = await supabase.auth.updateUser({
+    // Update auth user metadata
+    const { error: updateAuthError } = await supabase.auth.updateUser({
       data: {
-        first_name: profileData.first_name.trim(),
-        last_name: profileData.last_name.trim(),
-        display_name: display_name.trim(),
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
+        display_name,
         initials,
       }
     });
 
-    if (authUpdateError) {
-      console.error("Error updating auth user metadata:", authUpdateError);
-      return {
-        success: false,
-        error: authUpdateError.message || "Failed to update auth profile",
-      };
+    if (updateAuthError) {
+      console.error('Auth update error:', updateAuthError);
+      return { success: false, error: updateAuthError.message };
     }
 
-    // Also update the users table to keep it in sync (only first_name, last_name, initials)
-    const updateData = {
-      first_name: profileData.first_name.trim(),
-      last_name: profileData.last_name.trim(),
-      initials,
-    };
-
-    const { error: dbError } = await supabase
+    // Update database record
+    const { error: updateDbError } = await supabase
       .from("users")
-      .update(updateData)
+      .update({
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
+        initials,
+      })
       .eq("id", user.id);
 
-    if (dbError) {
-      console.error("Error updating users table:", dbError);
-      console.error("Error details:", JSON.stringify(dbError, null, 2));
-      console.error("Update data:", updateData);
-      // Don't return error here since auth update succeeded
-      // The users table sync is secondary
-      console.warn("Auth profile updated successfully, but users table sync failed");
+    if (updateDbError) {
+      console.error('Database update error:', updateDbError);
+      return { success: false, error: updateDbError.message };
     }
 
     return { success: true };
   } catch (error) {
     console.error("Error in updateUserProfile:", error);
-    return {
-      success: false,
-      error: "An unexpected error occurred",
-    };
+    return { success: false, error: "An unexpected error occurred" };
   }
 }
 
-/**
- * Validate profile data before updating
- */
-export function validateProfileData(data: UpdateProfileData): {
+function validateProfileData(data: UpdateProfileData): {
   isValid: boolean;
   errors: string[];
 } {
@@ -173,4 +150,46 @@ export function validateProfileData(data: UpdateProfileData): {
     isValid: errors.length === 0,
     errors,
   };
+}
+
+export { getUserProfile, updateUserProfile, validateProfileData };
+
+// Legacy query keys for backwards compatibility
+export const PROFILE_QUERY_KEYS = {
+  userProfile: ["profile", "user"] as const,
+} as const;
+
+/**
+ * Hook to fetch user profile
+ */
+export function useUserProfile() {
+  return useQuery({
+    queryKey: queryKeys.profile.current(),
+    queryFn: getUserProfile,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+/**
+ * Mutation hook to update user profile
+ */
+export function useUpdateUserProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateUserProfile,
+    onSuccess: (result: { success: boolean; error?: string }) => {
+      if (result.success) {
+        // Invalidate user profile and auth data
+        queryClient.invalidateQueries({ queryKey: queryKeys.profile.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
+        // Legacy key
+        queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEYS.userProfile });
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Error updating profile:", error);
+    },
+  });
 }

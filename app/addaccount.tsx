@@ -21,14 +21,14 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { useToast } from "../components/ui/sonner";
-import { createAccount } from "../lib/data";
-import { checkGuestAndWarn } from "../lib/guest-protection";
-import { useAuth } from "../lib/auth-context";
+import { useAuth } from "../hooks/queries/useAuth";
+import { useCreateAccount } from "../hooks/queries/useAccounts";
 
 export default function AddAccount() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, isLoading: loading } = useAuth();
   const toast = useToast();
+  const createAccountMutation = useCreateAccount();
   const [formData, setFormData] = useState({
     name: "",
     type: "",
@@ -50,10 +50,6 @@ export default function AddAccount() {
   };
 
   const handleSave = async () => {
-    // Check if user is guest first
-    const isGuest = await checkGuestAndWarn("create accounts");
-    if (isGuest) return;
-
     // Validate form data
     if (!formData.name || !formData.type || !formData.balance) {
       toast.toast({
@@ -74,7 +70,7 @@ export default function AddAccount() {
     }
 
     try {
-      const result = await createAccount({
+      const result = await createAccountMutation.mutateAsync({
         name: formData.name,
         type: formData.type,
         balance: Number(formData.balance),

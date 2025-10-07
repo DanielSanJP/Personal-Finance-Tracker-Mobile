@@ -168,8 +168,6 @@ export const isGuestUser = (user: User | null): boolean => {
 
 // Sign in as guest user
 export const signInAsGuest = async () => {
-  console.log('🔍 Guest login attempt for mobile app');
-  
   try {
     // Sign in with the actual guest account credentials
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -188,7 +186,6 @@ export const signInAsGuest = async () => {
       throw new Error('Guest account configuration error')
     }
     
-    console.log('🔍 Guest login successful for mobile app');
     return data
     
   } catch (error) {

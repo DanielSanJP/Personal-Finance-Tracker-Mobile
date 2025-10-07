@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
@@ -19,11 +19,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import {
-  getCurrentMonthSpendingByCategory,
-  getSpendingByCategoryForMonth,
-} from "../lib/data/transactions";
-import { formatCurrency } from "../lib/data/utils";
+import { useTransactions } from "../hooks/queries/useTransactions";
+import { formatCurrency } from "../lib/utils";
 
 export const description = "A pie chart showing actual spending by category";
 
@@ -175,10 +172,7 @@ const SimplePieChart = ({
 };
 
 export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
-  const [spendingData, setSpendingData] = useState<
-    { category: string; spentAmount: number }[]
-  >([]);
-  const [loading, setLoading] = useState(true);
+  const { data: transactions = [], isLoading } = useTransactions();
   const [selectedDate, setSelectedDate] = useState<{
     year: number;
     month: number;
@@ -248,39 +242,34 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
     }
   };
 
-  useEffect(() => {
-    const loadSpendingData = async () => {
-      if (propSpendingData) {
-        setSpendingData(propSpendingData);
-        setLoading(false);
-        return;
-      }
+  // Process transactions to get spending by category
+  // Direct calculation - React Query handles caching, no need for useMemo with unstable deps
+  const spendingData = (() => {
+    if (propSpendingData) return propSpendingData;
 
-      try {
-        let data: { category: string; spentAmount: number }[];
+    // Filter transactions for selected month
+    const filteredTransactions = transactions.filter((t) => {
+      if (t.type !== "expense") return false;
+      const date = new Date(t.date);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      return year === selectedDate.year && month === selectedDate.month;
+    });
 
-        if (isCurrentMonth) {
-          data = await getCurrentMonthSpendingByCategory();
-        } else {
-          data = await getSpendingByCategoryForMonth(
-            selectedDate.year,
-            selectedDate.month
-          );
-        }
+    // Group by category and sum amounts
+    const categoryMap = new Map<string, number>();
+    filteredTransactions.forEach((t) => {
+      const current = categoryMap.get(t.category) || 0;
+      categoryMap.set(t.category, current + Math.abs(t.amount));
+    });
 
-        setSpendingData(data || []);
-      } catch (error) {
-        console.error("Error loading spending data:", error);
-        setSpendingData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    return Array.from(categoryMap.entries()).map(([category, spentAmount]) => ({
+      category,
+      spentAmount,
+    }));
+  })();
 
-    loadSpendingData();
-  }, [propSpendingData, selectedDate, isCurrentMonth]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader className="items-center pb-0">

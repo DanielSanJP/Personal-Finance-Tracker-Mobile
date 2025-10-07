@@ -22,11 +22,11 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { useToast } from "../components/ui/sonner";
-import { useAuth } from "../lib/auth-context";
+import { useAuth } from "../hooks/queries/useAuth";
 
 export default function PreferencesPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, isLoading: loading } = useAuth();
   const [saving, setSaving] = useState(false);
   const { success } = useToast();
 

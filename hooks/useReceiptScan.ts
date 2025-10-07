@@ -32,33 +32,30 @@ export const useReceiptScan = ({ onReceiptData, onError }: UseReceiptScanOptions
       const match = /\.(\w+)$/.exec(filename);
       const type = match ? `image/${match[1]}` : 'image/jpeg';
 
+      // Important: For React Native, append the image with proper format
       formData.append('image', {
         uri: imageUri,
         name: filename,
         type,
       } as any);
 
-      // Get the API URL from environment or use localhost for development
-      const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
-      
-      // Send to API
-      const response = await fetch(`${apiUrl}/api/receipt-scan`, {
+      // Use the Expo API route (local to the app)
+      // Send to API - React Native automatically handles multipart/form-data
+      const response = await fetch('/api/receipt-scan', {
         method: 'POST',
         body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to process receipt');
+        throw new Error(data.error || data.details || 'Failed to process receipt');
       }
 
+      // The API returns data in parsedData field (matching Next.js format)
       if (data.parsedData) {
         setParsedData(data.parsedData);
-        setConfidence(data.confidence || 0);
+        setConfidence((data.confidence || 0.85) * 100); // Convert 0-1 to 0-100
         onReceiptData(data.parsedData);
       } else {
         throw new Error('No data returned from receipt scan');
@@ -75,26 +72,41 @@ export const useReceiptScan = ({ onReceiptData, onError }: UseReceiptScanOptions
 
   const scanFromCamera = useCallback(async () => {
     try {
-      // Request camera permissions
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      // Check current permission status
+      const { status: currentStatus } = await ImagePicker.getCameraPermissionsAsync();
       
-      if (status !== 'granted') {
-        onError?.('Camera permission is required to scan receipts');
-        return;
+      let hasPermission = currentStatus === 'granted';
+      
+      // If not granted, request permission
+      if (!hasPermission) {
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        
+        if (permissionResult.status !== 'granted') {
+          // Check if we can ask again
+          if (permissionResult.canAskAgain === false) {
+            onError?.('Camera permission denied. Please enable it in your device settings.');
+          } else {
+            onError?.('Camera permission is required to scan receipts');
+          }
+          return;
+        }
+        hasPermission = true;
       }
 
-      // Launch camera
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.8,
-        aspect: [3, 4],
-      });
+      // Launch camera (only if we have permission)
+      if (hasPermission) {
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          quality: 0.8,
+          aspect: [3, 4],
+        });
 
-      if (!result.canceled && result.assets[0]) {
-        const uri = result.assets[0].uri;
-        setPreviewUrl(uri);
-        await processImage(uri);
+        if (!result.canceled && result.assets[0]) {
+          const uri = result.assets[0].uri;
+          setPreviewUrl(uri);
+          await processImage(uri);
+        }
       }
     } catch (error) {
       console.error('Error scanning from camera:', error);
@@ -104,15 +116,7 @@ export const useReceiptScan = ({ onReceiptData, onError }: UseReceiptScanOptions
 
   const scanFromFile = useCallback(async () => {
     try {
-      // Request media library permissions
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
-        onError?.('Photo library permission is required to select receipts');
-        return;
-      }
-
-      // Launch image picker
+      // No permissions request is necessary for launching the image library (per Expo docs)
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,

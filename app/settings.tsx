@@ -15,13 +15,13 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Separator } from "../components/ui/separator";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { useAuth } from "../lib/auth-context";
+import { useAuth } from "../hooks/queries/useAuth";
 import { useToast } from "../components/ui/sonner";
 import { supabase } from "../lib/supabase";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, isLoading: loading } = useAuth();
   const { success, error } = useToast();
 
   const [emailLoading, setEmailLoading] = useState(false);

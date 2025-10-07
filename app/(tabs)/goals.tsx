@@ -1,5 +1,5 @@
 import { useFocusEffect } from "expo-router";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../../components/nav";
@@ -29,74 +29,38 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { formatCurrency } from "../../lib/utils";
+import { useAuth } from "../../hooks/queries/useAuth";
 import {
-  formatCurrency,
-  getCurrentUserGoals,
-  getCurrentUserAccounts,
-  makeGoalContribution,
-  createGoal,
-  updateGoal,
-  deleteGoal,
-} from "../../lib/data";
-import { useAuth } from "../../lib/auth-context";
+  useGoals,
+  useCreateGoal,
+  useUpdateGoal,
+  useDeleteGoal,
+  useMakeGoalContribution,
+} from "../../hooks/queries/useGoals";
+import { useAccounts } from "../../hooks/queries/useAccounts";
 import { useToast } from "../../components/ui/sonner";
-import type { Goal, Account } from "../../lib/types";
+import type { Goal } from "../../lib/types";
 
 export default function Goals() {
-  const { user } = useAuth();
+  useAuth();
   const { toast } = useToast();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  // Loading state for goals
-  const [loading, setLoading] = useState(true);
+  const { data: goals = [], isLoading, refetch: refetchGoals } = useGoals();
+  const { data: accounts = [], refetch: refetchAccounts } = useAccounts();
+  const createGoalMutation = useCreateGoal();
+  const updateGoalMutation = useUpdateGoal();
+  const deleteGoalMutation = useDeleteGoal();
+  const makeContributionMutation = useMakeGoalContribution();
+
   const scrollViewRef = useRef<ScrollView>(null);
-
-  // Load goals when component mounts or user changes
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
-
-      try {
-        setLoading(true);
-        const [goalsData, accountsData] = await Promise.all([
-          getCurrentUserGoals(),
-          getCurrentUserAccounts(),
-        ]);
-        setGoals(goalsData);
-        setAccounts(accountsData);
-      } catch (error) {
-        console.error("Error loading data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [user]);
 
   // Scroll to top and refresh data when the tab is focused
   useFocusEffect(
     React.useCallback(() => {
       scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
-
-      // Refresh data when tab is focused
-      if (user) {
-        const loadData = async () => {
-          try {
-            const [goalsData, accountsData] = await Promise.all([
-              getCurrentUserGoals(),
-              getCurrentUserAccounts(),
-            ]);
-            setGoals(goalsData);
-            setAccounts(accountsData);
-          } catch (error) {
-            console.error("Error loading data:", error);
-          }
-        };
-
-        loadData();
-      }
-    }, [user])
+      refetchGoals();
+      refetchAccounts();
+    }, [refetchGoals, refetchAccounts])
   );
 
   // Modal state
@@ -172,18 +136,8 @@ export default function Goals() {
 
   // Handle creating a new goal
   const handleCreateGoal = async () => {
-    console.log("handleCreateGoal called");
-    console.log("Form data:", {
-      goalName,
-      targetAmount,
-      currentAmount,
-      targetDate,
-      priorityLevel,
-    });
-
     try {
       if (!goalName.trim() || !targetAmount) {
-        console.log("Validation failed: missing name or target amount");
         toast({
           message: "Please fill in the goal name and target amount",
           type: "error",
@@ -191,11 +145,8 @@ export default function Goals() {
         return;
       }
 
-      console.log("Name and target amount validation passed");
-
       const targetAmountNum = parseFloat(targetAmount);
       if (isNaN(targetAmountNum) || targetAmountNum <= 0) {
-        console.log("Validation failed: invalid target amount");
         toast({
           message: "Please enter a valid target amount",
           type: "error",
@@ -203,13 +154,10 @@ export default function Goals() {
         return;
       }
 
-      console.log("Target amount validation passed");
-
       let currentAmountNum = 0;
       if (currentAmount) {
         currentAmountNum = parseFloat(currentAmount);
         if (isNaN(currentAmountNum) || currentAmountNum < 0) {
-          console.log("Validation failed: invalid current amount");
           toast({
             message: "Please enter a valid current amount",
             type: "error",
@@ -218,8 +166,6 @@ export default function Goals() {
         }
       }
 
-      console.log("Current amount validation passed");
-
       // Validate target date is in the future
       if (targetDate) {
         const today = new Date();
@@ -227,14 +173,7 @@ export default function Goals() {
         const selectedDate = new Date(targetDate);
         selectedDate.setHours(0, 0, 0, 0);
 
-        console.log("Date validation:", {
-          today,
-          selectedDate,
-          isInFuture: selectedDate > today,
-        });
-
         if (selectedDate <= today) {
-          console.log("Validation failed: target date not in future");
           toast({
             message: "Target date must be in the future",
             type: "error",
@@ -243,21 +182,7 @@ export default function Goals() {
         }
       }
 
-      console.log("Date validation passed");
-
-      if (!user) {
-        console.log("Validation failed: no user");
-        toast({
-          message: "You must be logged in to create a goal",
-          type: "error",
-        });
-        return;
-      }
-
-      console.log("User validation passed, user:", user.id);
-
-      console.log("Creating goal with data:", {
-        userId: user.id,
+      await createGoalMutation.mutateAsync({
         name: goalName.trim(),
         targetAmount: targetAmountNum,
         currentAmount: currentAmountNum,
@@ -267,28 +192,10 @@ export default function Goals() {
         priority: priorityLevel || "medium",
         status: "active",
       });
-
-      const result = await createGoal({
-        userId: user.id,
-        name: goalName.trim(),
-        targetAmount: targetAmountNum,
-        currentAmount: currentAmountNum,
-        targetDate: targetDate
-          ? targetDate.toISOString().split("T")[0]
-          : undefined,
-        priority: priorityLevel || "medium",
-        status: "active",
-      });
-
-      console.log("Goal creation result:", result);
 
       // Reset form
       resetAddGoalForm();
       setAddGoalOpen(false);
-
-      // Reload goals
-      const goalsData = await getCurrentUserGoals();
-      setGoals(goalsData);
 
       toast({
         message: "Goal created successfully!",
@@ -326,7 +233,7 @@ export default function Goals() {
       const goalId = getGoalIdFromDisplayValue(selectedGoal);
       const accountId = getAccountIdFromDisplayValue(sourceAccount);
 
-      await makeGoalContribution({
+      await makeContributionMutation.mutateAsync({
         goalId: goalId,
         accountId: accountId,
         amount: amount,
@@ -336,14 +243,6 @@ export default function Goals() {
       // Reset form and reload data
       resetContributionForm();
       setContributionOpen(false);
-
-      // Reload data
-      const [goalsData, accountsData] = await Promise.all([
-        getCurrentUserGoals(),
-        getCurrentUserAccounts(),
-      ]);
-      setGoals(goalsData);
-      setAccounts(accountsData);
 
       toast({
         message: "Contribution made successfully!",
@@ -407,17 +306,16 @@ export default function Goals() {
         updates.targetDate = editedGoal.targetDate.toISOString().split("T")[0];
       }
 
-      const result = await updateGoal(goalId, updates);
+      const result = await updateGoalMutation.mutateAsync({
+        goalId,
+        goalData: updates,
+      });
 
       if (result) {
         toast({
           message: "Goal updated successfully",
           type: "success",
         });
-
-        // Refresh goals data
-        const goalsData = await getCurrentUserGoals();
-        setGoals(goalsData);
 
         // Clear the edited value
         setEditedGoals((prev) => {
@@ -443,17 +341,13 @@ export default function Goals() {
   // Individual goal delete function
   const handleDeleteGoal = async (goalId: string, goalName: string) => {
     try {
-      const result = await deleteGoal(goalId);
+      const result = await deleteGoalMutation.mutateAsync(goalId);
 
       if (result) {
         toast({
           message: `Goal "${goalName}" deleted successfully`,
           type: "success",
         });
-
-        // Refresh goals data
-        const goalsData = await getCurrentUserGoals();
-        setGoals(goalsData);
 
         // Clear any edited value for this goal
         setEditedGoals((prev) => {
@@ -507,7 +401,7 @@ export default function Goals() {
             {goals.length} active goals
           </Text>
 
-          {loading && (
+          {isLoading && (
             <View className="space-y-6">
               <GoalsListSkeleton />
               <GoalsListSkeleton />
@@ -515,7 +409,7 @@ export default function Goals() {
             </View>
           )}
 
-          {!loading && (
+          {!isLoading && (
             <>
               {/* Quick Actions */}
               <Card className="mb-6">

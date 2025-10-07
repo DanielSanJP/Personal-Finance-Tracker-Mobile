@@ -19,11 +19,11 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Separator } from "../components/ui/separator";
-import { useAuth } from "../lib/auth-context";
+import { useAuth } from "../hooks/queries/useAuth";
 
 export default function HelpPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, isLoading: loading } = useAuth();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -217,7 +217,11 @@ export default function HelpPage() {
                 <Text className="text-lg font-medium">Resources</Text>
 
                 <View className="gap-4">
-                  <Pressable onPress={() => console.log("User Guide clicked")}>
+                  <Pressable
+                    onPress={() => {
+                      /* TODO: Implement user guide */
+                    }}
+                  >
                     <View className="border border-gray-200 rounded-lg p-4 bg-white">
                       <View className="flex-col items-center gap-2">
                         <Feather name="file-text" size={24} color="#374151" />
@@ -232,7 +236,9 @@ export default function HelpPage() {
                   </Pressable>
 
                   <Pressable
-                    onPress={() => console.log("Community Forum clicked")}
+                    onPress={() => {
+                      /* TODO: Implement community forum */
+                    }}
                   >
                     <View className="border border-gray-200 rounded-lg p-4 bg-white">
                       <View className="flex-col items-center gap-2">
@@ -252,7 +258,9 @@ export default function HelpPage() {
                   </Pressable>
 
                   <Pressable
-                    onPress={() => console.log("Video Tutorials clicked")}
+                    onPress={() => {
+                      /* TODO: Implement video tutorials */
+                    }}
                   >
                     <View className="border border-gray-200 rounded-lg p-4 bg-white">
                       <View className="flex-col items-center gap-2">

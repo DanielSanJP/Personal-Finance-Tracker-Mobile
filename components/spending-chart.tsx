@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Text, View } from "react-native";
 import Svg, { Rect, Line, Text as SvgText } from "react-native-svg";
-import { formatCurrency, getCurrentUserTransactions } from "../lib/data";
+import { formatCurrency } from "../lib/utils";
+import { useTransactions } from "../hooks/queries/useTransactions";
 import {
   Card,
   CardContent,
@@ -50,14 +51,7 @@ interface SpendingChartProps {
 }
 
 // Group expenses by month from January to current month - matches Next.js version
-const processChartData = async (
-  propTransactions?: any[]
-): Promise<ChartDataPoint[]> => {
-  console.log("🔍 Processing chart data...");
-
-  const transactions = propTransactions || (await getCurrentUserTransactions());
-  console.log("🔍 Transactions loaded:", transactions.length);
-
+const processChartData = (transactions: any[]): ChartDataPoint[] => {
   const months = [
     "January",
     "February",
@@ -101,7 +95,6 @@ const processChartData = async (
     });
   }
 
-  console.log("🔍 Chart data processed:", chartData);
   return chartData;
 };
 
@@ -193,9 +186,18 @@ const BarChart = ({
 export function SpendingChart({
   transactions: propTransactions,
 }: SpendingChartProps = {}) {
-  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: fetchedTransactions = [],
+    isLoading,
+    isError,
+  } = useTransactions();
+  const transactions = propTransactions || fetchedTransactions;
+
+  // Process chart data directly - no useMemo needed since processChartData is pure
+  // and React Query already handles caching
+  const chartData =
+    transactions.length > 0 ? processChartData(transactions) : [];
+
   const [selectedBar, setSelectedBar] = useState<{
     item: ChartDataPoint;
     index: number;
@@ -208,33 +210,7 @@ export function SpendingChart({
     setTimeout(() => setSelectedBar(null), 3000);
   };
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Use provided transactions or fetch them
-        const data = await processChartData(propTransactions);
-
-        if (Array.isArray(data)) {
-          setChartData(data);
-        } else {
-          setChartData([]);
-        }
-      } catch (err) {
-        console.error("Error loading chart data:", err);
-        setError("Failed to load chart data");
-        setChartData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [propTransactions]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="w-full">
         <CardHeader>
@@ -250,7 +226,7 @@ export function SpendingChart({
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <Card className="w-full">
         <CardHeader>
@@ -259,7 +235,7 @@ export function SpendingChart({
         </CardHeader>
         <CardContent>
           <View className="flex items-center justify-center h-64">
-            <Text className="text-red-500">{error}</Text>
+            <Text className="text-red-500">Failed to load chart data</Text>
           </View>
         </CardContent>
       </Card>

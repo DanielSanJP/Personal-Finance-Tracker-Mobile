@@ -1,5 +1,5 @@
 import { useFocusEffect } from "expo-router";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../../components/nav";
@@ -29,21 +29,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { useAuth } from "../../hooks/queries/useAuth";
 import {
-  getCurrentUserBudgetsWithRealTimeSpending,
-  createBudgetSimple,
-  updateBudget,
-  deleteBudget,
-} from "../../lib/data";
-import { useAuth } from "../../lib/auth-context";
-import type { Budget } from "../../lib/types";
+  useBudgets,
+  useCreateBudget,
+  useUpdateBudget,
+  useDeleteBudget,
+} from "../../hooks/queries/useBudgets";
 import { useToast } from "../../components/ui/sonner";
 
 export default function Budgets() {
-  const { user } = useAuth();
+  useAuth();
   const { toast } = useToast();
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: budgets = [], isLoading, refetch } = useBudgets();
+  const createBudgetMutation = useCreateBudget();
+  const updateBudgetMutation = useUpdateBudget();
+  const deleteBudgetMutation = useDeleteBudget();
+
   const [addBudgetOpen, setAddBudgetOpen] = useState(false);
   const [editBudgetsOpen, setEditBudgetsOpen] = useState(false);
   const [editedBudgets, setEditedBudgets] = useState<{ [key: string]: string }>(
@@ -51,51 +53,49 @@ export default function Budgets() {
   );
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Load budgets when component mounts or user changes
-  useEffect(() => {
-    const loadBudgets = async () => {
-      if (!user) return;
-
-      try {
-        setLoading(true);
-        const budgetsData = await getCurrentUserBudgetsWithRealTimeSpending();
-        setBudgets(budgetsData);
-      } catch (error) {
-        console.error("Error loading budgets:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadBudgets();
-  }, [user]);
-
   // Scroll to top and refresh data when the tab is focused
   useFocusEffect(
     React.useCallback(() => {
       scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
-
-      // Refresh budgets data when tab is focused
-      if (user) {
-        const loadBudgets = async () => {
-          try {
-            const budgetsData =
-              await getCurrentUserBudgetsWithRealTimeSpending();
-            setBudgets(budgetsData);
-          } catch (error) {
-            console.error("Error loading budgets:", error);
-          }
-        };
-
-        loadBudgets();
-      }
-    }, [user])
+      refetch();
+    }, [refetch])
   );
 
   // Add Budget form state
   const [selectedCategory, setSelectedCategory] = useState("");
   const [budgetAmount, setBudgetAmount] = useState("");
   const [budgetPeriod, setBudgetPeriod] = useState("");
+
+  // Helper function to calculate period dates
+  const calculatePeriodDates = (period: string) => {
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date;
+
+    switch (period) {
+      case "weekly":
+        startDate = new Date(now);
+        startDate.setHours(0, 0, 0, 0);
+        startDate.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6); // End of week (Saturday)
+        break;
+      case "yearly":
+        startDate = new Date(now.getFullYear(), 0, 1); // Jan 1
+        endDate = new Date(now.getFullYear(), 11, 31); // Dec 31
+        break;
+      case "monthly":
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        break;
+    }
+
+    return {
+      startDate: startDate.toISOString().split("T")[0],
+      endDate: endDate.toISOString().split("T")[0],
+    };
+  };
 
   // Reset form function
   const resetAddBudgetForm = () => {
@@ -112,14 +112,6 @@ export default function Budgets() {
 
   // Handle create budget
   const handleCreateBudget = async () => {
-    if (!user) {
-      toast({
-        message: "You must be logged in to create a budget",
-        type: "error",
-      });
-      return;
-    }
-
     if (!selectedCategory || !budgetAmount || !budgetPeriod) {
       toast({
         message: "Please fill in all fields",
@@ -138,10 +130,13 @@ export default function Budgets() {
     }
 
     try {
-      const result = await createBudgetSimple({
+      const { startDate, endDate } = calculatePeriodDates(budgetPeriod);
+      const result = await createBudgetMutation.mutateAsync({
         category: selectedCategory,
         budgetAmount: amount,
-        period: budgetPeriod as "monthly" | "weekly" | "yearly",
+        period: budgetPeriod,
+        startDate,
+        endDate,
       });
 
       if (result.success) {
@@ -149,10 +144,6 @@ export default function Budgets() {
           message: "Budget created successfully!",
           type: "success",
         });
-
-        // Refresh budgets data
-        const budgetsData = await getCurrentUserBudgetsWithRealTimeSpending();
-        setBudgets(budgetsData);
 
         // Close modal and reset form
         handleAddBudgetClose();
@@ -167,16 +158,7 @@ export default function Budgets() {
           });
 
           // Optionally, highlight the existing budget in the list
-          const existingBudget = budgets.find(
-            (b) => b.category === selectedCategory
-          );
-          if (existingBudget) {
-            // You could add visual feedback here, like scrolling to the existing budget
-            console.log(
-              `Found existing budget for ${selectedCategory}:`,
-              existingBudget
-            );
-          }
+          // Budget already exists - user was notified via toast
         } else {
           toast({
             message:
@@ -185,8 +167,7 @@ export default function Budgets() {
           });
         }
       }
-    } catch (error) {
-      console.error("Error creating budget:", error);
+    } catch {
       toast({
         message: "Failed to create budget. Please try again.",
         type: "error",
@@ -198,7 +179,9 @@ export default function Budgets() {
   const handleSaveBudget = async (budgetId: string) => {
     try {
       const editedAmount = editedBudgets[budgetId];
-      if (!editedAmount) {
+
+      // Allow the field to be empty during typing, but validate on save
+      if (!editedAmount || editedAmount.trim() === "") {
         toast({
           message: "Please enter a budget amount",
           type: "error",
@@ -209,14 +192,15 @@ export default function Budgets() {
       const amount = parseFloat(editedAmount);
       if (isNaN(amount) || amount <= 0) {
         toast({
-          message: "Please enter a valid budget amount",
+          message: "Please enter a valid budget amount greater than 0",
           type: "error",
         });
         return;
       }
 
-      const result = await updateBudget(budgetId, {
-        budgetAmount: amount,
+      const result = await updateBudgetMutation.mutateAsync({
+        id: budgetId,
+        budgetData: { budgetAmount: amount },
       });
 
       if (result) {
@@ -224,10 +208,6 @@ export default function Budgets() {
           message: "Budget updated successfully",
           type: "success",
         });
-
-        // Refresh budgets data
-        const budgetsData = await getCurrentUserBudgetsWithRealTimeSpending();
-        setBudgets(budgetsData);
 
         // Clear the edited value
         setEditedBudgets((prev) => {
@@ -241,8 +221,7 @@ export default function Budgets() {
           type: "error",
         });
       }
-    } catch (error) {
-      console.error("Error updating budget:", error);
+    } catch {
       toast({
         message: "Failed to update budget. Please try again.",
         type: "error",
@@ -253,17 +232,13 @@ export default function Budgets() {
   // Individual budget delete function
   const handleDeleteBudget = async (budgetId: string, category: string) => {
     try {
-      const result = await deleteBudget(budgetId);
+      const result = await deleteBudgetMutation.mutateAsync(budgetId);
 
       if (result) {
         toast({
           message: `Budget for ${category} deleted successfully`,
           type: "success",
         });
-
-        // Refresh budgets data
-        const budgetsData = await getCurrentUserBudgetsWithRealTimeSpending();
-        setBudgets(budgetsData);
 
         // Clear any edited value for this budget
         setEditedBudgets((prev) => {
@@ -277,8 +252,7 @@ export default function Budgets() {
           type: "error",
         });
       }
-    } catch (error) {
-      console.error("Error deleting budget:", error);
+    } catch {
       toast({
         message: "Failed to delete budget. Please try again.",
         type: "error",
@@ -335,7 +309,7 @@ export default function Budgets() {
           <Text className="text-2xl font-bold text-gray-900 mb-1">Budgets</Text>
           <Text className="text-gray-600 mb-6">Monthly Budget Overview</Text>
 
-          {loading && (
+          {isLoading && (
             <View className="space-y-6">
               <BudgetListSkeleton />
               <BudgetListSkeleton />
@@ -343,7 +317,7 @@ export default function Budgets() {
             </View>
           )}
 
-          {!loading && (
+          {!isLoading && (
             <>
               {/* Over Budget Alert */}
               {budgets.some(
@@ -570,6 +544,7 @@ export default function Budgets() {
                           type="expense"
                           required
                           className="w-full"
+                          existingCategories={budgets.map((b) => b.category)}
                         />
 
                         <View className="space-y-2 py-2">
@@ -664,8 +639,9 @@ export default function Budgets() {
                               <Label>Budget Amount</Label>
                               <Input
                                 value={
-                                  editedBudgets[budget.id] ||
-                                  budget.budgetAmount.toString()
+                                  budget.id in editedBudgets
+                                    ? editedBudgets[budget.id]
+                                    : budget.budgetAmount.toString()
                                 }
                                 onChangeText={(text) =>
                                   setEditedBudgets((prev) => ({

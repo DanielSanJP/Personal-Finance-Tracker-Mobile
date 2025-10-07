@@ -51,6 +51,10 @@ interface CategorySelectProps {
    * Whether the field is required
    */
   required?: boolean;
+  /**
+   * Array of categories that are already added (to show "Added" indicator)
+   */
+  existingCategories?: string[];
 }
 
 export function CategorySelect({
@@ -63,16 +67,22 @@ export function CategorySelect({
   showIcons = true,
   className,
   required = false,
+  existingCategories = [],
 }: CategorySelectProps) {
   const categories =
     type === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
   const defaultLabel = type === "expense" ? "Category" : "Income Category";
 
   const formatCategoryDisplay = (category: Category) => {
-    if (showIcons && category.icon) {
-      return `${category.icon} ${category.name}`;
+    const isAlreadyAdded = existingCategories.includes(category.name);
+    let display =
+      showIcons && category.icon
+        ? `${category.icon} ${category.name}`
+        : category.name;
+    if (isAlreadyAdded) {
+      display += " (Added)";
     }
-    return category.name;
+    return display;
   };
 
   return (
@@ -83,16 +93,32 @@ export function CategorySelect({
           {required && <Text className="text-red-500 ml-1">*</Text>}
         </Label>
       )}
-      <Select value={value} onValueChange={onValueChange}>
+      <Select
+        value={value}
+        onValueChange={(val) => {
+          // Prevent selection of already added categories
+          const isAlreadyAdded = existingCategories.includes(val);
+          if (!isAlreadyAdded) {
+            onValueChange(val);
+          }
+        }}
+      >
         <SelectTrigger>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {categories.map((category) => (
-            <SelectItem key={category.id} value={category.name}>
-              {formatCategoryDisplay(category)}
-            </SelectItem>
-          ))}
+          {categories.map((category) => {
+            const isAlreadyAdded = existingCategories.includes(category.name);
+            return (
+              <SelectItem
+                key={category.id}
+                value={category.name}
+                className={isAlreadyAdded ? "opacity-40" : ""}
+              >
+                {formatCategoryDisplay(category)}
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
     </View>

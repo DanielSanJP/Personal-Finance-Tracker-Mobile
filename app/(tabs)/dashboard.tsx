@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../../components/nav";
@@ -12,113 +12,27 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import {
-  formatCurrency,
-  getCurrentUserAccounts,
-  getCurrentUserSummary,
-} from "../../lib/data";
-import { getDashboardData } from "../../lib/data/dashboard";
-import { useAuth } from "../../lib/auth-context";
-import type { Account, Summary } from "../../lib/types";
+import { formatCurrency } from "../../lib/utils";
+import { useDashboardData } from "../../hooks/queries/useDashboard";
+import { useAuth } from "../../hooks/queries/useAuth";
 
 export default function Dashboard() {
   const router = useRouter();
   const { user } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // State for async data
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Use React Query hook for dashboard data
+  const { data: dashboardData, isLoading, refetch } = useDashboardData();
 
-  // Load data when component mounts or user changes
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
-
-      try {
-        setLoading(true);
-
-        // Use the new getDashboardData function like Next.js
-        const dashboardData = await getDashboardData();
-
-        if (dashboardData) {
-          setAccounts(dashboardData.accounts);
-          // Convert the dashboard summary to the expected Summary type
-          setSummary({
-            userId: dashboardData.user.id,
-            totalBalance: dashboardData.summary.totalBalance,
-            monthlyChange: dashboardData.summary.monthlyChange,
-            monthlyIncome: dashboardData.summary.monthlyIncome,
-            monthlyExpenses: dashboardData.summary.monthlyExpenses,
-            budgetRemaining: dashboardData.summary.budgetRemaining,
-            accountBreakdown: dashboardData.summary.accountBreakdown,
-            categorySpending: dashboardData.summary.categorySpending,
-            lastUpdated: new Date().toISOString(),
-          });
-        } else {
-          // Fallback to original method
-          const [accountsData, summaryData] = await Promise.all([
-            getCurrentUserAccounts(),
-            getCurrentUserSummary(),
-          ]);
-          setAccounts(accountsData);
-          setSummary(summaryData);
-        }
-      } catch (error) {
-        console.error("Error loading dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [user]);
+  // Extract data from dashboard response
+  const accounts = dashboardData?.accounts || [];
+  const summary = dashboardData?.summary || null;
 
   // Refresh data when tab is focused
   useFocusEffect(
     React.useCallback(() => {
-      if (user) {
-        const loadData = async () => {
-          try {
-            setLoading(true);
-
-            // Use the new getDashboardData function like Next.js
-            const dashboardData = await getDashboardData();
-
-            if (dashboardData) {
-              setAccounts(dashboardData.accounts);
-              // Convert the dashboard summary to the expected Summary type
-              setSummary({
-                userId: dashboardData.user.id,
-                totalBalance: dashboardData.summary.totalBalance,
-                monthlyChange: dashboardData.summary.monthlyChange,
-                monthlyIncome: dashboardData.summary.monthlyIncome,
-                monthlyExpenses: dashboardData.summary.monthlyExpenses,
-                budgetRemaining: dashboardData.summary.budgetRemaining,
-                accountBreakdown: dashboardData.summary.accountBreakdown,
-                categorySpending: dashboardData.summary.categorySpending,
-                lastUpdated: new Date().toISOString(),
-              });
-            } else {
-              // Fallback to original method
-              const [accountsData, summaryData] = await Promise.all([
-                getCurrentUserAccounts(),
-                getCurrentUserSummary(),
-              ]);
-              setAccounts(accountsData);
-              setSummary(summaryData);
-            }
-          } catch (error) {
-            console.error("Error loading dashboard data:", error);
-          } finally {
-            setLoading(false);
-          }
-        };
-
-        loadData();
-      }
-    }, [user])
+      refetch();
+    }, [refetch])
   );
 
   // Get current month name
@@ -147,6 +61,10 @@ export default function Dashboard() {
     }, [])
   );
 
+  // Get user's display name from user metadata
+  const displayName =
+    user?.user_metadata?.first_name || user?.email?.split("@")[0] || "User";
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
       <Nav />
@@ -158,10 +76,10 @@ export default function Dashboard() {
             Dashboard
           </Text>
           <Text className="text-gray-600 mb-6">
-            Welcome back, {user?.first_name || user?.firstName || "User"}!
+            Welcome back, {displayName}!
           </Text>
 
-          {loading ? (
+          {isLoading ? (
             <DashboardSkeleton />
           ) : (
             <>
@@ -188,14 +106,18 @@ export default function Dashboard() {
                     </Button>
                     <Button
                       variant="outline"
-                      onPress={() => console.log("Scan Receipt pressed")}
+                      onPress={() => {
+                        /* TODO: Implement receipt scanning */
+                      }}
                       className="min-w-[120px] p-6"
                     >
                       Scan Receipt
                     </Button>
                     <Button
                       variant="outline"
-                      onPress={() => console.log("View Reports pressed")}
+                      onPress={() => {
+                        /* TODO: Implement reports view */
+                      }}
                       className="min-w-[120px] p-6"
                     >
                       View Reports

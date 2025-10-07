@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../../components/nav";
@@ -45,15 +45,26 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
-import { formatCurrency, getCurrentUserTransactions } from "../../lib/data";
-import { useAuth } from "../../lib/auth-context";
+import { formatCurrency } from "../../lib/utils";
+import { useAuth } from "../../hooks/queries/useAuth";
+import {
+  useTransactions,
+  useTransactionFilterOptions,
+} from "../../hooks/queries/useTransactions";
 import type { Transaction } from "../../lib/types";
+import {
+  exportTransactionsToCSV,
+  exportTransactionsToPDF,
+} from "../../lib/export";
 
 export default function Transactions() {
   const router = useRouter();
-  const { user } = useAuth();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  useAuth(); // Keep auth context active
+
+  // Use React Query hooks for transactions and filter options
+  const { data: transactions = [], isLoading, refetch } = useTransactions();
+  const { data: filterOptions } = useTransactionFilterOptions();
+
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedPeriod, setSelectedPeriod] = useState("This Month");
   const [selectedMerchant, setSelectedMerchant] = useState("All Merchants");
@@ -80,52 +91,22 @@ export default function Transactions() {
     }
   };
 
-  // Load transactions when component mounts or user changes
-  useEffect(() => {
-    const loadTransactions = async () => {
-      if (!user) return;
-
-      try {
-        setLoading(true);
-        const transactionsData = await getCurrentUserTransactions();
-        setTransactions(transactionsData);
-      } catch (error) {
-        console.error("Error loading transactions:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTransactions();
-  }, [user]);
-
   // Scroll to top and refresh data when the tab is focused
   useFocusEffect(
     React.useCallback(() => {
       scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
-
-      // Refresh transactions data when tab is focused
-      if (user) {
-        const loadTransactions = async () => {
-          try {
-            const transactionsData = await getCurrentUserTransactions();
-            setTransactions(transactionsData);
-          } catch (error) {
-            console.error("Error loading transactions:", error);
-          }
-        };
-
-        loadTransactions();
-      }
-    }, [user])
+      // Refetch transactions when tab is focused
+      refetch();
+    }, [refetch])
   );
 
-  // Get unique categories for filter
-  const categories = [
+  // Get filter options from React Query or compute from transactions
+  const categories = filterOptions?.categories || [
     "All Categories",
     ...Array.from(new Set(transactions.map((t) => t.category))),
   ];
-  const periods = [
+
+  const periods = filterOptions?.periods || [
     "This Month",
     "Last Month",
     "Last 3 Months",
@@ -133,14 +114,12 @@ export default function Transactions() {
     "All Time",
   ];
 
-  // Get unique merchants for filter
-  const merchants = [
+  const merchants = filterOptions?.merchants || [
     "All Merchants",
     ...Array.from(new Set(transactions.map((t) => t.merchant).filter(Boolean))),
   ];
 
-  // Get unique transaction types for filter
-  const types = [
+  const types = filterOptions?.types || [
     "All Types",
     ...Array.from(
       new Set(transactions.map((t) => formatTransactionType(t.type)))
@@ -259,13 +238,13 @@ export default function Transactions() {
             {filteredTransactions.length} transactions
           </Text>
 
-          {loading && (
+          {isLoading && (
             <View className="space-y-4">
               <TransactionsListSkeleton />
             </View>
           )}
 
-          {!loading && (
+          {!isLoading && (
             <>
               {/* Quick Actions */}
               <Card className="mb-6">
@@ -290,14 +269,18 @@ export default function Transactions() {
                     </Button>
                     <Button
                       variant="outline"
-                      onPress={() => console.log("Export to CSV")}
+                      onPress={() =>
+                        exportTransactionsToCSV(filteredTransactions)
+                      }
                       className="min-w-[140px] p-6"
                     >
                       Export to CSV
                     </Button>
                     <Button
                       variant="outline"
-                      onPress={() => console.log("Export to PDF")}
+                      onPress={() =>
+                        exportTransactionsToPDF(filteredTransactions)
+                      }
                       className="min-w-[140px] p-6"
                     >
                       Export to PDF
@@ -629,389 +612,394 @@ export default function Transactions() {
                       </TableBody>
                     </Table>
                   </View>
-                  {/* Transaction Totals Summary */}
-                  <View className="mt-6 border-t border-gray-200 pt-6 pb-6">
-                    <View className="flex-row flex-wrap justify-center gap-4">
-                      <View className="items-center flex-1 min-w-[120px]">
-                        <Text className="text-sm text-gray-600 font-medium mb-2">
-                          Total Income
-                        </Text>
-                        <Badge
-                          variant="default"
-                          className="text-base font-bold px-4 py-2 bg-green-600"
-                        >
-                          <Text>
-                            +
-                            {formatCurrency(
-                              filteredTransactions
-                                .filter((t) => t.type === "income")
-                                .reduce((sum, t) => sum + t.amount, 0)
-                            )}
-                          </Text>
-                        </Badge>
-                      </View>
+                </CardContent>
+              </Card>
 
-                      <View className="items-center flex-1 min-w-[120px]">
-                        <Text className="text-sm text-gray-600 font-medium mb-2">
-                          Total Expenses
+              {/* Transaction Summary */}
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Transaction Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <View className="flex-row flex-wrap justify-center gap-4">
+                    <View className="items-center flex-1 min-w-[120px]">
+                      <Text className="text-sm text-gray-600 font-medium mb-2">
+                        Total Income
+                      </Text>
+                      <Badge
+                        variant="default"
+                        className="text-base font-bold px-4 py-2 bg-green-600"
+                      >
+                        <Text>
+                          +
+                          {formatCurrency(
+                            filteredTransactions
+                              .filter((t) => t.type === "income")
+                              .reduce((sum, t) => sum + t.amount, 0)
+                          )}
                         </Text>
-                        <Badge
-                          variant="destructive"
-                          className="text-base font-bold px-4 py-2"
-                        >
-                          <Text>
-                            {formatCurrency(
-                              filteredTransactions
-                                .filter((t) => t.type === "expense")
-                                .reduce((sum, t) => sum + Math.abs(t.amount), 0)
-                            )}
-                          </Text>
-                        </Badge>
-                      </View>
+                      </Badge>
+                    </View>
 
-                      <View className="items-center flex-1 min-w-[120px]">
-                        <Text className="text-sm text-gray-600 font-medium mb-2">
-                          Net Total
+                    <View className="items-center flex-1 min-w-[120px]">
+                      <Text className="text-sm text-gray-600 font-medium mb-2">
+                        Total Expenses
+                      </Text>
+                      <Badge
+                        variant="destructive"
+                        className="text-base font-bold px-4 py-2"
+                      >
+                        <Text>
+                          {formatCurrency(
+                            filteredTransactions
+                              .filter((t) => t.type === "expense")
+                              .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+                          )}
                         </Text>
-                        <Badge
-                          variant={
+                      </Badge>
+                    </View>
+
+                    <View className="items-center flex-1 min-w-[120px]">
+                      <Text className="text-sm text-gray-600 font-medium mb-2">
+                        Net Total
+                      </Text>
+                      <Badge
+                        variant={
+                          filteredTransactions.reduce(
+                            (sum, t) => sum + t.amount,
+                            0
+                          ) >= 0
+                            ? "default"
+                            : "destructive"
+                        }
+                        className={`text-base font-bold px-4 py-2 ${
+                          filteredTransactions.reduce(
+                            (sum, t) => sum + t.amount,
+                            0
+                          ) >= 0
+                            ? "bg-green-600"
+                            : ""
+                        }`}
+                      >
+                        <Text>
+                          {formatCurrency(
                             filteredTransactions.reduce(
                               (sum, t) => sum + t.amount,
                               0
-                            ) >= 0
-                              ? "default"
-                              : "destructive"
-                          }
-                          className={`text-base font-bold px-4 py-2 ${
-                            filteredTransactions.reduce(
-                              (sum, t) => sum + t.amount,
-                              0
-                            ) >= 0
-                              ? "bg-green-600"
-                              : ""
-                          }`}
-                        >
-                          <Text>
-                            {formatCurrency(
-                              filteredTransactions.reduce(
-                                (sum, t) => sum + t.amount,
-                                0
-                              )
-                            )}
-                          </Text>
-                        </Badge>
-                      </View>
+                            )
+                          )}
+                        </Text>
+                      </Badge>
                     </View>
                   </View>
+                </CardContent>
+              </Card>
 
-                  {/* Transaction Detail Modal */}
-                  <Dialog
-                    open={detailModalOpen}
-                    onOpenChange={setDetailModalOpen}
-                  >
-                    <DialogContent onClose={() => setDetailModalOpen(false)}>
-                      <DialogHeader>
-                        <DialogTitle>Transaction Details</DialogTitle>
-                        <DialogDescription>
-                          Complete information about this transaction.
-                        </DialogDescription>
-                      </DialogHeader>
-                      {selectedTransaction && (
-                        <View className="space-y-4">
-                          <View className="space-y-2">
+              {/* Modals */}
+              <View>
+                {/* Transaction Detail Modal */}
+                <Dialog
+                  open={detailModalOpen}
+                  onOpenChange={setDetailModalOpen}
+                >
+                  <DialogContent onClose={() => setDetailModalOpen(false)}>
+                    <DialogHeader>
+                      <DialogTitle>Transaction Details</DialogTitle>
+                      <DialogDescription>
+                        Complete information about this transaction.
+                      </DialogDescription>
+                    </DialogHeader>
+                    {selectedTransaction && (
+                      <View className="space-y-4">
+                        <View className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-600">
+                            Description
+                          </Label>
+                          <Text className="text-base font-semibold">
+                            {selectedTransaction.description}
+                          </Text>
+                        </View>
+
+                        <View className="flex-row space-x-4">
+                          <View className="flex-1 space-y-2">
                             <Label className="text-sm font-medium text-gray-600">
-                              Description
+                              Amount
                             </Label>
-                            <Text className="text-base font-semibold">
-                              {selectedTransaction.description}
+                            <Text
+                              className={`text-xl font-bold ${getAmountColor(
+                                selectedTransaction.type
+                              )}`}
+                            >
+                              {selectedTransaction.type === "income"
+                                ? "+"
+                                : "-"}
+                              {formatCurrency(
+                                Math.abs(selectedTransaction.amount)
+                              )}
                             </Text>
                           </View>
-
-                          <View className="flex-row space-x-4">
-                            <View className="flex-1 space-y-2">
-                              <Label className="text-sm font-medium text-gray-600">
-                                Amount
-                              </Label>
-                              <Text
-                                className={`text-xl font-bold ${getAmountColor(
-                                  selectedTransaction.type
-                                )}`}
-                              >
-                                {selectedTransaction.type === "income"
-                                  ? "+"
-                                  : "-"}
-                                {formatCurrency(
-                                  Math.abs(selectedTransaction.amount)
-                                )}
-                              </Text>
-                            </View>
-                            <View className="flex-1 space-y-2">
-                              <Label className="text-sm font-medium text-gray-600">
-                                Type
-                              </Label>
-                              <Text className="text-base capitalize">
-                                {selectedTransaction.type}
-                              </Text>
-                            </View>
-                          </View>
-
-                          <View className="flex-row space-x-4">
-                            <View className="flex-1 space-y-2">
-                              <Label className="text-sm font-medium text-gray-600">
-                                Category
-                              </Label>
-                              <Text className="text-base">
-                                {selectedTransaction.category}
-                              </Text>
-                            </View>
-                            <View className="flex-1 space-y-2">
-                              <Label className="text-sm font-medium text-gray-600">
-                                Status
-                              </Label>
-                              <Text className="text-base capitalize">
-                                {selectedTransaction.status}
-                              </Text>
-                            </View>
-                          </View>
-
-                          <View className="space-y-2">
+                          <View className="flex-1 space-y-2">
                             <Label className="text-sm font-medium text-gray-600">
-                              Merchant
+                              Type
                             </Label>
-                            <Text className="text-base">
-                              {selectedTransaction.merchant}
-                            </Text>
-                          </View>
-
-                          <View className="space-y-2">
-                            <Label className="text-sm font-medium text-gray-600">
-                              Date
-                            </Label>
-                            <Text className="text-base">
-                              {formatFullDate(selectedTransaction.date)}
-                            </Text>
-                          </View>
-
-                          <View className="space-y-2">
-                            <Label className="text-sm font-medium text-gray-600">
-                              Transaction ID
-                            </Label>
-                            <Text className="text-sm text-gray-500 font-mono">
-                              {selectedTransaction.id}
+                            <Text className="text-base capitalize">
+                              {selectedTransaction.type}
                             </Text>
                           </View>
                         </View>
-                      )}
-                      <DialogFooter>
-                        <Button
-                          variant="outline"
-                          onPress={() => setDetailModalOpen(false)}
-                          className="w-full"
-                        >
-                          Close
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  {/* Edit Single Transaction Modal */}
-                  <Dialog
-                    open={editSingleTransactionOpen}
-                    onOpenChange={setEditSingleTransactionOpen}
+
+                        <View className="flex-row space-x-4">
+                          <View className="flex-1 space-y-2">
+                            <Label className="text-sm font-medium text-gray-600">
+                              Category
+                            </Label>
+                            <Text className="text-base">
+                              {selectedTransaction.category}
+                            </Text>
+                          </View>
+                          <View className="flex-1 space-y-2">
+                            <Label className="text-sm font-medium text-gray-600">
+                              Status
+                            </Label>
+                            <Text className="text-base capitalize">
+                              {selectedTransaction.status}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-600">
+                            Merchant
+                          </Label>
+                          <Text className="text-base">
+                            {selectedTransaction.merchant}
+                          </Text>
+                        </View>
+
+                        <View className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-600">
+                            Date
+                          </Label>
+                          <Text className="text-base">
+                            {formatFullDate(selectedTransaction.date)}
+                          </Text>
+                        </View>
+
+                        <View className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-600">
+                            Transaction ID
+                          </Label>
+                          <Text className="text-sm text-gray-500 font-mono">
+                            {selectedTransaction.id}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onPress={() => setDetailModalOpen(false)}
+                        className="w-full"
+                      >
+                        Close
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                {/* Edit Single Transaction Modal */}
+                <Dialog
+                  open={editSingleTransactionOpen}
+                  onOpenChange={setEditSingleTransactionOpen}
+                >
+                  <DialogContent
+                    className="max-w-[425px]"
+                    onClose={() => setEditSingleTransactionOpen(false)}
                   >
-                    <DialogContent
-                      className="max-w-[425px]"
-                      onClose={() => setEditSingleTransactionOpen(false)}
-                    >
-                      <DialogHeader>
-                        <DialogTitle>Edit Transaction</DialogTitle>
-                        <DialogDescription>
-                          Update the details of this transaction.
-                        </DialogDescription>
-                      </DialogHeader>
-                      {selectedTransaction && (
-                        <View className="space-y-4 py-4">
-                          <View className="space-y-2">
-                            <Label>Description</Label>
+                    <DialogHeader>
+                      <DialogTitle>Edit Transaction</DialogTitle>
+                      <DialogDescription>
+                        Update the details of this transaction.
+                      </DialogDescription>
+                    </DialogHeader>
+                    {selectedTransaction && (
+                      <View className="space-y-4 py-4">
+                        <View className="space-y-2">
+                          <Label>Description</Label>
+                          <Input
+                            defaultValue={selectedTransaction.description}
+                            className="w-full"
+                          />
+                        </View>
+
+                        <View className="flex-row space-x-4">
+                          <View className="flex-1 space-y-2">
+                            <Label>Amount</Label>
                             <Input
-                              defaultValue={selectedTransaction.description}
+                              defaultValue={Math.abs(
+                                selectedTransaction.amount
+                              ).toString()}
                               className="w-full"
                             />
                           </View>
+                          <View className="flex-1 space-y-2">
+                            <Label>Type</Label>
+                            <Select
+                              value={selectedTransaction.type}
+                              onValueChange={() => {}}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="expense">Expense</SelectItem>
+                                <SelectItem value="income">Income</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </View>
+                        </View>
 
-                          <View className="flex-row space-x-4">
+                        <View className="flex-row space-x-4">
+                          <View className="flex-1 space-y-2">
+                            <Label>Category</Label>
+                            <Input
+                              defaultValue={selectedTransaction.category}
+                              className="w-full"
+                            />
+                          </View>
+                          <View className="flex-1 space-y-2">
+                            <Label>Status</Label>
+                            <Select
+                              value={selectedTransaction.status}
+                              onValueChange={() => {}}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="completed">
+                                  Completed
+                                </SelectItem>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="failed">Failed</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </View>
+                        </View>
+
+                        <View className="space-y-2">
+                          <Label>Merchant</Label>
+                          <Input
+                            defaultValue={selectedTransaction.merchant}
+                            className="w-full"
+                          />
+                        </View>
+
+                        <View className="space-y-2">
+                          <Label>Date</Label>
+                          <Input
+                            defaultValue={selectedTransaction.date}
+                            className="w-full"
+                          />
+                        </View>
+                      </View>
+                    )}
+                    <DialogFooter className="gap-2 flex-row">
+                      <Button
+                        variant="outline"
+                        onPress={() => setEditSingleTransactionOpen(false)}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button className="flex-1">Save Changes</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                {/* Edit All Transactions Modal */}
+                <Dialog
+                  open={editTransactionsOpen}
+                  onOpenChange={setEditTransactionsOpen}
+                >
+                  <DialogContent
+                    className="max-w-[600px]"
+                    onClose={() => setEditTransactionsOpen(false)}
+                  >
+                    <DialogHeader>
+                      <DialogTitle>Edit All Transactions</DialogTitle>
+                      <DialogDescription>
+                        Modify your existing transactions and their details.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <View className="space-y-6 py-4">
+                      {filteredTransactions.map((transaction, index) => (
+                        <View
+                          key={transaction.id}
+                          className="space-y-3 p-4 border border-gray-200 rounded-lg bg-white shadow-sm mb-4"
+                        >
+                          <View className="flex-row items-center justify-between">
+                            <Text className="text-base font-medium">
+                              {transaction.description}
+                            </Text>
+                            <Text className="text-sm text-gray-500">
+                              {formatDate(transaction.date)}
+                            </Text>
+                          </View>
+                          <View className="flex-row space-x-2">
+                            <View className="flex-1 space-y-2">
+                              <Label>Description</Label>
+                              <Input
+                                defaultValue={transaction.description}
+                                className="w-full"
+                              />
+                            </View>
                             <View className="flex-1 space-y-2">
                               <Label>Amount</Label>
                               <Input
                                 defaultValue={Math.abs(
-                                  selectedTransaction.amount
+                                  transaction.amount
                                 ).toString()}
                                 className="w-full"
                               />
                             </View>
-                            <View className="flex-1 space-y-2">
-                              <Label>Type</Label>
-                              <Select
-                                value={selectedTransaction.type}
-                                onValueChange={() => {}}
-                              >
-                                <SelectTrigger className="w-full">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="expense">
-                                    Expense
-                                  </SelectItem>
-                                  <SelectItem value="income">Income</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </View>
                           </View>
-
-                          <View className="flex-row space-x-4">
+                          <View className="flex-row space-x-2">
                             <View className="flex-1 space-y-2">
                               <Label>Category</Label>
                               <Input
-                                defaultValue={selectedTransaction.category}
+                                defaultValue={transaction.category}
                                 className="w-full"
                               />
                             </View>
                             <View className="flex-1 space-y-2">
-                              <Label>Status</Label>
-                              <Select
-                                value={selectedTransaction.status}
-                                onValueChange={() => {}}
-                              >
-                                <SelectTrigger className="w-full">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="completed">
-                                    Completed
-                                  </SelectItem>
-                                  <SelectItem value="pending">
-                                    Pending
-                                  </SelectItem>
-                                  <SelectItem value="failed">Failed</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <Label>Merchant</Label>
+                              <Input
+                                defaultValue={transaction.merchant}
+                                className="w-full"
+                              />
                             </View>
                           </View>
-
-                          <View className="space-y-2">
-                            <Label>Merchant</Label>
-                            <Input
-                              defaultValue={selectedTransaction.merchant}
-                              className="w-full"
-                            />
-                          </View>
-
-                          <View className="space-y-2">
-                            <Label>Date</Label>
-                            <Input
-                              defaultValue={selectedTransaction.date}
-                              className="w-full"
-                            />
-                          </View>
+                          <Text className="text-sm text-gray-600">
+                            Type: {transaction.type} | Status:
+                            {transaction.status}
+                          </Text>
                         </View>
-                      )}
-                      <DialogFooter className="gap-2 flex-row">
-                        <Button
-                          variant="outline"
-                          onPress={() => setEditSingleTransactionOpen(false)}
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
-                        <Button className="flex-1">Save Changes</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  {/* Edit All Transactions Modal */}
-                  <Dialog
-                    open={editTransactionsOpen}
-                    onOpenChange={setEditTransactionsOpen}
-                  >
-                    <DialogContent
-                      className="max-w-[600px]"
-                      onClose={() => setEditTransactionsOpen(false)}
-                    >
-                      <DialogHeader>
-                        <DialogTitle>Edit All Transactions</DialogTitle>
-                        <DialogDescription>
-                          Modify your existing transactions and their details.
-                        </DialogDescription>
-                      </DialogHeader>
+                      ))}
+                    </View>
 
-                      <View className="space-y-6 py-4">
-                        {filteredTransactions.map((transaction, index) => (
-                          <View
-                            key={transaction.id}
-                            className="space-y-3 p-4 border border-gray-200 rounded-lg bg-white shadow-sm mb-4"
-                          >
-                            <View className="flex-row items-center justify-between">
-                              <Text className="text-base font-medium">
-                                {transaction.description}
-                              </Text>
-                              <Text className="text-sm text-gray-500">
-                                {formatDate(transaction.date)}
-                              </Text>
-                            </View>
-                            <View className="flex-row space-x-2">
-                              <View className="flex-1 space-y-2">
-                                <Label>Description</Label>
-                                <Input
-                                  defaultValue={transaction.description}
-                                  className="w-full"
-                                />
-                              </View>
-                              <View className="flex-1 space-y-2">
-                                <Label>Amount</Label>
-                                <Input
-                                  defaultValue={Math.abs(
-                                    transaction.amount
-                                  ).toString()}
-                                  className="w-full"
-                                />
-                              </View>
-                            </View>
-                            <View className="flex-row space-x-2">
-                              <View className="flex-1 space-y-2">
-                                <Label>Category</Label>
-                                <Input
-                                  defaultValue={transaction.category}
-                                  className="w-full"
-                                />
-                              </View>
-                              <View className="flex-1 space-y-2">
-                                <Label>Merchant</Label>
-                                <Input
-                                  defaultValue={transaction.merchant}
-                                  className="w-full"
-                                />
-                              </View>
-                            </View>
-                            <Text className="text-sm text-gray-600">
-                              Type: {transaction.type} | Status:
-                              {transaction.status}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-
-                      <DialogFooter className="gap-2 flex-row border-t border-gray-200 pt-4 mt-4">
-                        <Button
-                          variant="outline"
-                          onPress={() => setEditTransactionsOpen(false)}
-                          className="flex-1"
-                        >
-                          Cancel
-                        </Button>
-                        <Button className="flex-1">Save Changes</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </CardContent>
-              </Card>
+                    <DialogFooter className="gap-2 flex-row border-t border-gray-200 pt-4 mt-4">
+                      <Button
+                        variant="outline"
+                        onPress={() => setEditTransactionsOpen(false)}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button className="flex-1">Save Changes</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </View>
             </>
           )}
         </View>

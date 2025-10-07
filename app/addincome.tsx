@@ -24,15 +24,16 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { useToast } from "../components/ui/sonner";
-import { getCurrentUserAccounts, createIncomeTransaction } from "../lib/data";
-import { useAuth } from "../lib/auth-context";
-import { checkGuestAndWarn } from "../lib/guest-protection";
+import { useAuth } from "../hooks/queries/useAuth";
+import { useAccounts } from "../hooks/queries/useAccounts";
+import { useCreateIncomeTransaction } from "../hooks/queries/useTransactions";
 
 export default function AddIncomePage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, isLoading: loading } = useAuth();
   const toast = useToast();
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const { data: accounts = [] } = useAccounts();
+  const createIncomeMutation = useCreateIncomeTransaction();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -40,21 +41,6 @@ export default function AddIncomePage() {
       router.replace("/login");
     }
   }, [user, loading, router]);
-
-  // Load accounts when user is available
-  useEffect(() => {
-    const loadAccounts = async () => {
-      if (user) {
-        try {
-          const accountsData = await getCurrentUserAccounts();
-          setAccounts(accountsData);
-        } catch (error) {
-          console.error("Error loading accounts:", error);
-        }
-      }
-    };
-    loadAccounts();
-  }, [user]);
 
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -78,10 +64,6 @@ export default function AddIncomePage() {
   };
 
   const handleSubmit = async () => {
-    // Check if user is guest first
-    const isGuest = await checkGuestAndWarn("create income");
-    if (isGuest) return;
-
     // Validate required fields
     if (!amount || !description || !incomeSource || !account || !date) {
       toast.toast({
@@ -102,35 +84,27 @@ export default function AddIncomePage() {
     try {
       const accountId = getAccountIdFromDisplayValue(account);
 
-      const result = await createIncomeTransaction({
+      await createIncomeMutation.mutateAsync({
         amount: Number(amount),
         description: description,
-        category: incomeSource,
+        source: incomeSource,
         accountId: accountId,
-        status: "completed",
         date: date,
       });
 
-      if (result.success) {
-        toast.toast({
-          message:
-            "Success: Income saved successfully! Your income has been recorded.",
-          type: "success",
-        });
+      toast.toast({
+        message:
+          "Success: Income saved successfully! Your income has been recorded.",
+        type: "success",
+      });
 
-        // Reset form
-        setAmount("");
-        setDescription("");
-        setIncomeSource("");
-        setAccount("");
-        setDate(new Date());
-        router.push("/transactions");
-      } else {
-        toast.toast({
-          message: `Error: ${result.error || "Failed to save income"}`,
-          type: "error",
-        });
-      }
+      // Reset form
+      setAmount("");
+      setDescription("");
+      setIncomeSource("");
+      setAccount("");
+      setDate(new Date());
+      router.push("/transactions");
     } catch (error) {
       console.error("Error saving income:", error);
       toast.toast({

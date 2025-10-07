@@ -14,14 +14,18 @@ import {
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Separator } from "../components/ui/separator";
-import { useAuth } from "../lib/auth-context";
+import { useAuth } from "../hooks/queries/useAuth";
 import { useToast } from "../components/ui/sonner";
-import { updateUserProfile, validateProfileData } from "../lib/data/profile";
+import {
+  useUpdateUserProfile,
+  validateProfileData,
+} from "../hooks/queries/useProfile";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, isLoading: loading } = useAuth();
   const { success, error } = useToast();
+  const updateProfileMutation = useUpdateUserProfile();
 
   const [updateLoading, setUpdateLoading] = useState(false);
 
@@ -43,9 +47,9 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setProfileForm({
-        first_name: user.first_name || "",
-        last_name: user.last_name || "",
-        display_name: user.display_name || "",
+        first_name: user.user_metadata?.first_name || "",
+        last_name: user.user_metadata?.last_name || "",
+        display_name: user.user_metadata?.display_name || "",
       });
     }
   }, [user]);
@@ -61,7 +65,7 @@ export default function ProfilePage() {
     setUpdateLoading(true);
 
     try {
-      const result = await updateUserProfile(profileForm);
+      const result = await updateProfileMutation.mutateAsync(profileForm);
 
       if (result.success) {
         success("Profile updated successfully!");
@@ -79,18 +83,18 @@ export default function ProfilePage() {
   const handleReset = () => {
     if (user) {
       setProfileForm({
-        first_name: user.first_name || "",
-        last_name: user.last_name || "",
-        display_name: user.display_name || "",
+        first_name: user.user_metadata?.first_name || "",
+        last_name: user.user_metadata?.last_name || "",
+        display_name: user.user_metadata?.display_name || "",
       });
     }
   };
 
   const hasChanges =
     user &&
-    (profileForm.first_name !== (user.first_name || "") ||
-      profileForm.last_name !== (user.last_name || "") ||
-      profileForm.display_name !== (user.display_name || ""));
+    (profileForm.first_name !== (user.user_metadata?.first_name || "") ||
+      profileForm.last_name !== (user.user_metadata?.last_name || "") ||
+      profileForm.display_name !== (user.user_metadata?.display_name || ""));
 
   // Show loading while checking auth state
   if (loading) {

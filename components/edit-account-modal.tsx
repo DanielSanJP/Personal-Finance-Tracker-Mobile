@@ -19,8 +19,7 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { useToast } from "./ui/sonner";
-import { updateAccount } from "../lib/data/accounts";
-import { checkGuestAndWarn } from "../lib/guest-protection";
+import { useUpdateAccount } from "../hooks/queries/useAccounts";
 import type { Account } from "../lib/types";
 
 interface EditAccountModalProps {
@@ -43,8 +42,8 @@ export function EditAccountModal({
     accountNumber: "",
     isActive: true,
   });
-  const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
+  const updateAccountMutation = useUpdateAccount();
 
   // Populate form when account changes
   useEffect(() => {
@@ -77,16 +76,8 @@ export function EditAccountModal({
     toast.toast({ message: `${title}: ${message}`, type: "error" });
   };
 
-  const showSuccessAlert = (title: string, message: string) => {
-    toast.toast({ message: `${title}: ${message}`, type: "success" });
-  };
-
   const handleSave = async () => {
     if (!account) return;
-
-    // Check if user is guest first
-    const isGuest = await checkGuestAndWarn("edit accounts");
-    if (isGuest) return;
 
     // Validate form data
     if (!formData.name || !formData.type || !formData.balance) {
@@ -102,29 +93,24 @@ export function EditAccountModal({
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      const updatedAccount = await updateAccount(account.id, {
-        name: formData.name,
-        type: formData.type,
-        balance: Number(formData.balance),
-        accountNumber: formData.accountNumber || "",
-        isActive: formData.isActive,
+      await updateAccountMutation.mutateAsync({
+        accountId: account.id,
+        accountData: {
+          name: formData.name,
+          type: formData.type,
+          balance: Number(formData.balance),
+          accountNumber: formData.accountNumber || "",
+          isActive: formData.isActive,
+        },
       });
 
-      if (updatedAccount) {
-        showSuccessAlert("Success", `${formData.name} has been updated.`);
-        onAccountUpdated();
-        onClose();
-      } else {
-        showAlert("Error", "Failed to update account. Please try again.");
-      }
+      // Success handled by mutation hook
+      onAccountUpdated();
+      onClose();
     } catch (error) {
+      // Error handled by mutation hook
       console.error("Error updating account:", error);
-      showAlert("Error", "An error occurred while updating the account.");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -243,17 +229,17 @@ export function EditAccountModal({
             <Button
               variant="outline"
               onPress={handleClose}
-              disabled={isLoading}
+              disabled={updateAccountMutation.isPending}
               className="flex-1"
             >
               Cancel
             </Button>
             <Button
               onPress={handleSave}
-              disabled={isLoading}
+              disabled={updateAccountMutation.isPending}
               className="flex-1"
             >
-              {isLoading ? "Saving..." : "Save"}
+              {updateAccountMutation.isPending ? "Saving..." : "Save"}
             </Button>
           </View>
         </DialogFooter>
