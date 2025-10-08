@@ -1,6 +1,14 @@
 import { Picker } from "@react-native-picker/picker";
-import React, { useRef } from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import {
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 interface PickerOption {
   label: string;
@@ -24,7 +32,8 @@ export function NativePicker({
   placeholder = "Select an option",
   className,
 }: NativePickerProps) {
-  const pickerRef = useRef<any>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [tempValue, setTempValue] = useState(value);
 
   // Find the display label for the current value
   const selectedOption = options.find((opt) => opt.value === value);
@@ -45,6 +54,114 @@ export function NativePicker({
     }
   };
 
+  const handleConfirm = () => {
+    onValueChange(tempValue);
+    setShowModal(false);
+  };
+
+  const handleCancel = () => {
+    setTempValue(value);
+    setShowModal(false);
+  };
+
+  // iOS uses Modal, Android uses native dialog
+  if (Platform.OS === "ios") {
+    return (
+      <View className={className}>
+        {label && (
+          <Text className="text-sm font-medium text-gray-700 mb-1">
+            {label}
+          </Text>
+        )}
+
+        <Pressable
+          onPress={() => setShowModal(true)}
+          style={[
+            {
+              borderRadius: 8,
+              alignItems: "center",
+              justifyContent: "center",
+              flexDirection: "row",
+              backgroundColor: "#ffffff",
+              borderWidth: 1,
+              borderColor: "#ebebeb",
+              paddingHorizontal: 16,
+              height: 44,
+            },
+            getShadowStyles(),
+          ]}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "500",
+              color: !selectedOption ? "#9CA3AF" : "#000000",
+              flex: 1,
+            }}
+          >
+            {displayValue}
+          </Text>
+          <Text style={{ fontSize: 14, color: "#4B5563" }}>▼</Text>
+        </Pressable>
+
+        <Modal
+          visible={showModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={handleCancel}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Pressable onPress={handleCancel} style={styles.modalButton}>
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </Pressable>
+                <Text style={styles.modalTitle}>{label || "Select"}</Text>
+                <Pressable onPress={handleConfirm} style={styles.modalButton}>
+                  <Text style={[styles.modalButtonText, styles.confirmText]}>
+                    Done
+                  </Text>
+                </Pressable>
+              </View>
+              <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                bounces={true}
+                showsVerticalScrollIndicator={true}
+              >
+                {options.map((option) => {
+                  const isSelected = tempValue === option.value;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      onPress={() => setTempValue(option.value)}
+                      style={[
+                        styles.listItem,
+                        isSelected && styles.listItemSelected,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.listItemText,
+                          isSelected && styles.listItemTextSelected,
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {option.label}
+                      </Text>
+                      {isSelected && <Text style={styles.checkmark}>✓</Text>}
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    );
+  }
+
+  // Android native dialog
   return (
     <View className={className}>
       {label && (
@@ -52,7 +169,6 @@ export function NativePicker({
       )}
 
       <View style={{ position: "relative", zIndex: 1 }}>
-        {/* Button-style visual */}
         <View
           pointerEvents="none"
           style={[
@@ -84,8 +200,6 @@ export function NativePicker({
           </Text>
         </View>
 
-        {/* Actual Picker overlaid - receives all touches */}
-        {/* Extended left and right to make dropdown wider */}
         <View
           style={{
             position: "absolute",
@@ -94,13 +208,13 @@ export function NativePicker({
             right: -40,
             height: 44,
           }}
+          pointerEvents="box-only"
         >
           <Picker
-            ref={pickerRef}
             selectedValue={value}
             onValueChange={(itemValue) => onValueChange(itemValue as string)}
             style={styles.pickerOverlay}
-            mode={Platform.OS === "android" ? "dialog" : undefined}
+            mode="dialog"
             dropdownIconColor="#4B5563"
           >
             {options.map((option) => (
@@ -108,11 +222,7 @@ export function NativePicker({
                 key={option.value}
                 label={option.label}
                 value={option.value}
-                style={
-                  Platform.OS === "android"
-                    ? { fontSize: 16, paddingVertical: 14 }
-                    : undefined
-                }
+                style={{ fontSize: 16, paddingVertical: 14 }}
               />
             ))}
           </Picker>
@@ -127,5 +237,84 @@ const styles = StyleSheet.create({
     height: 44,
     width: "100%",
     opacity: 0,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    paddingHorizontal: 10,
+    paddingVertical: 40,
+  },
+  modalContent: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    width: "100%",
+    height: "100%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    backgroundColor: "#f9fafb",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  modalButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minWidth: 80,
+  },
+  modalButtonText: {
+    fontSize: 20,
+    color: "#007AFF",
+    fontWeight: "400",
+  },
+  confirmText: {
+    fontWeight: "600",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#000000",
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+  scrollContent: {
+    paddingVertical: 8,
+  },
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    minHeight: 60,
+  },
+  listItemSelected: {
+    backgroundColor: "#eff6ff",
+  },
+  listItemText: {
+    fontSize: 18,
+    color: "#111827",
+    flex: 1,
+    marginRight: 12,
+  },
+  listItemTextSelected: {
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  checkmark: {
+    fontSize: 24,
+    color: "#007AFF",
+    fontWeight: "bold",
   },
 });

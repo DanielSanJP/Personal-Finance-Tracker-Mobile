@@ -3,7 +3,7 @@ import { View } from "react-native";
 import type { Goal } from "../../lib/types";
 import { formatCurrency } from "../../lib/utils";
 import { Button } from "../ui/button";
-import { DatePicker } from "../ui/date-picker";
+import { DateTimePicker } from "../ui/date-time-picker";
 import {
   Dialog,
   DialogContent,
@@ -128,13 +128,13 @@ export function ContributionModal({
             </Select>
           </View>
 
-          <View className="space-y-2">
-            <Label>Contribution Date</Label>
-            <DatePicker
+          <View className="py-2">
+            <DateTimePicker
               date={contributionDate}
-              onDateChange={setContributionDate}
-              placeholder="Select contribution date"
-              className="w-full"
+              onDateTimeChange={setContributionDate}
+              placeholder="Select date"
+              showLabel={true}
+              required={true}
             />
           </View>
         </View>

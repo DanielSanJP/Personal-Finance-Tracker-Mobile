@@ -1,11 +1,10 @@
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import React, { useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TransactionsListSkeleton } from "../../components/loading-states";
 import Nav from "../../components/nav";
 import {
-  AddTransactionModal,
   EditSingleTransactionModal,
   EditTransactionsModal,
   formatDate,
@@ -60,15 +59,18 @@ export default function Transactions() {
 
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedPeriod, setSelectedPeriod] = useState("This Month");
-  const [selectedMerchant, setSelectedMerchant] = useState("All Merchants");
+  const [selectedParty, setSelectedParty] = useState("All Parties");
   const [selectedType, setSelectedType] = useState("All Types");
+  const [sortBy, setSortBy] = useState<"amount" | "name" | "date" | "none">(
+    "none"
+  );
+  const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc");
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editTransactionsOpen, setEditTransactionsOpen] = useState(false);
   const [editSingleTransactionOpen, setEditSingleTransactionOpen] =
     useState(false);
-  const [addTransactionModalOpen, setAddTransactionModalOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Scroll to top and refresh data when the tab is focused
@@ -83,7 +85,13 @@ export default function Transactions() {
   // Get filter options from React Query or compute from transactions
   const categories = filterOptions?.categories || [
     "All Categories",
-    ...Array.from(new Set(transactions.map((t) => t.category))),
+    ...Array.from(
+      new Set(
+        transactions
+          .map((t) => t.category)
+          .filter((c): c is string => Boolean(c))
+      )
+    ),
   ];
 
   const periods = filterOptions?.periods || [
@@ -94,32 +102,25 @@ export default function Transactions() {
     "All Time",
   ];
 
-  const merchants = filterOptions?.merchants || [
-    "All Merchants",
-    ...Array.from(new Set(transactions.map((t) => t.merchant).filter(Boolean))),
-  ];
+  // Format types from backend (they come as lowercase: "expense", "income", "transfer")
+  // Backend already includes "All Types" as first element
+  const types = filterOptions?.types
+    ? filterOptions.types.map((t) =>
+        t === "All Types" ? t : formatTransactionType(t)
+      )
+    : [
+        "All Types",
+        ...Array.from(
+          new Set(transactions.map((t) => formatTransactionType(t.type)))
+        ),
+      ];
 
-  const types = filterOptions?.types || [
-    "All Types",
-    ...Array.from(
-      new Set(transactions.map((t) => formatTransactionType(t.type)))
-    ),
-  ];
-
-  // Filter transactions based on selected filters
-  const filteredTransactions = transactions.filter((transaction) => {
+  // Filter transactions FIRST (without party filter)
+  const preFilteredTransactions = transactions.filter((transaction) => {
     // Category filter
     if (
       selectedCategory !== "All Categories" &&
       transaction.category !== selectedCategory
-    ) {
-      return false;
-    }
-
-    // Merchant filter
-    if (
-      selectedMerchant !== "All Merchants" &&
-      transaction.merchant !== selectedMerchant
     ) {
       return false;
     }
@@ -136,9 +137,129 @@ export default function Transactions() {
     return isDateInPeriod(transaction.date, selectedPeriod);
   });
 
+  // Calculate party spending/earnings from pre-filtered transactions
+  const partyAmounts = new Map<string, { amount: number; type: string }>();
+  preFilteredTransactions.forEach((t) => {
+    const parties = [t.from_party, t.to_party].filter(Boolean);
+    parties.forEach((party) => {
+      if (party) {
+        const current = partyAmounts.get(party) || { amount: 0, type: "" };
+        // For expenses, to_party gets negative (money out)
+        // For income, from_party gets positive (money in)
+        // For transfers, track separately with special symbol
+        if (t.type === "expense" && party === t.to_party) {
+          partyAmounts.set(party, {
+            amount: current.amount + Number(t.amount), // Store as positive, will negate in display
+            type: "expense",
+          });
+        } else if (t.type === "income" && party === t.from_party) {
+          partyAmounts.set(party, {
+            amount: current.amount + Number(t.amount),
+            type: "income",
+          });
+        } else if (t.type === "transfer" && party === t.to_party) {
+          partyAmounts.set(party, {
+            amount: current.amount + Number(t.amount),
+            type: "transfer",
+          });
+        }
+      }
+    });
+  });
+
+  // Sort parties based on user selection (only for amount/name, date doesn't apply to parties)
+  const sortedPartyEntries = Array.from(partyAmounts.entries()).sort((a, b) => {
+    if (sortBy === "amount") {
+      const comparison = b[1].amount - a[1].amount;
+      return sortDirection === "desc" ? comparison : -comparison;
+    } else {
+      // Trim whitespace for proper alphabetical sorting
+      const nameA = a[0].trim().toLowerCase();
+      const nameB = b[0].trim().toLowerCase();
+      const comparison = nameA.localeCompare(nameB);
+      return sortDirection === "desc" ? comparison : -comparison;
+    }
+  });
+
+  // Format party list with amounts
+  const parties = [
+    "All Parties",
+    ...sortedPartyEntries.map(([party, { amount, type }]) => {
+      // Use absolute value to avoid doubling minus signs
+      const formattedAmount = formatCurrency(Math.abs(amount));
+      // Use different symbols based on transaction type
+      let displayAmount = "";
+      if (type === "expense") {
+        displayAmount = `-${formattedAmount}`; // Expenses are money out
+      } else if (type === "income") {
+        displayAmount = `+${formattedAmount}`; // Income is money in
+      } else if (type === "transfer") {
+        displayAmount = `→${formattedAmount}`; // Transfers use arrow symbol
+      }
+      return `${party} (${displayAmount})`;
+    }),
+  ];
+
+  // Apply party filter and sort transactions
+  const filteredTransactionsBase = preFilteredTransactions.filter(
+    (transaction) => {
+      // Party filter (check both from_party and to_party)
+      if (selectedParty !== "All Parties") {
+        // Extract party name from formatted string like "BP (-$100.00)"
+        const partyName = selectedParty.includes(" (")
+          ? selectedParty.substring(0, selectedParty.indexOf(" ("))
+          : selectedParty;
+        return (
+          transaction.from_party === partyName ||
+          transaction.to_party === partyName
+        );
+      }
+      return true;
+    }
+  );
+
+  const filteredTransactions =
+    sortBy === "none"
+      ? filteredTransactionsBase
+      : filteredTransactionsBase.sort((a, b) => {
+          // Sort transactions based on user selection
+          if (sortBy === "date") {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            const comparison = dateB - dateA; // Default newest first
+            return sortDirection === "desc" ? comparison : -comparison;
+          } else if (sortBy === "amount") {
+            const comparison =
+              Math.abs(Number(b.amount)) - Math.abs(Number(a.amount));
+            return sortDirection === "desc" ? comparison : -comparison;
+          } else {
+            // Sort by party name
+            const partyA = (a.to_party || a.from_party || "")
+              .trim()
+              .toLowerCase();
+            const partyB = (b.to_party || b.from_party || "")
+              .trim()
+              .toLowerCase();
+            const comparison = partyA.localeCompare(partyB);
+            return sortDirection === "desc" ? comparison : -comparison;
+          }
+        });
+
   const handleTransactionClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
     setDetailModalOpen(true);
+  };
+
+  // Helper function to get the relevant party to display
+  const getDisplayParty = (transaction: Transaction): string => {
+    if (transaction.type === "expense") {
+      return transaction.to_party || "N/A"; // Show merchant
+    } else if (transaction.type === "income") {
+      return transaction.from_party || "N/A"; // Show income source
+    } else if (transaction.type === "transfer") {
+      return `To: ${transaction.to_party || "N/A"}`; // Show destination
+    }
+    return "N/A";
   };
 
   return (
@@ -171,10 +292,10 @@ export default function Transactions() {
                   <View className="flex-row flex-wrap gap-2 justify-center">
                     <Button
                       variant="default"
-                      onPress={() => setAddTransactionModalOpen(true)}
+                      onPress={() => router.push("/addtransaction")}
                       className="min-w-[120px] p-6"
                     >
-                      Add
+                      Add Expense
                     </Button>
                     <Button
                       variant="outline"
@@ -243,12 +364,12 @@ export default function Transactions() {
                     {/* Second row of filters */}
                     <View className="flex-row space-x-4 gap-4 py-2">
                       <NativePicker
-                        label="Merchant"
-                        value={selectedMerchant}
-                        onValueChange={setSelectedMerchant}
-                        options={merchants.map((merchant) => ({
-                          label: merchant,
-                          value: merchant,
+                        label="Party"
+                        value={selectedParty}
+                        onValueChange={setSelectedParty}
+                        options={parties.map((party) => ({
+                          label: party,
+                          value: party,
                         }))}
                         className="flex-1"
                       />
@@ -265,6 +386,34 @@ export default function Transactions() {
                       />
                     </View>
 
+                    {/* Sort Control */}
+                    <View className="pt-2 pb-4">
+                      <NativePicker
+                        label="Sort By"
+                        value={`${sortBy}-${sortDirection}`}
+                        onValueChange={(value) => {
+                          const [newSortBy, newSortDirection] = value.split(
+                            "-"
+                          ) as [
+                            "amount" | "name" | "date" | "none",
+                            "desc" | "asc"
+                          ];
+                          setSortBy(newSortBy);
+                          setSortDirection(newSortDirection);
+                        }}
+                        options={[
+                          { label: "Sort By", value: "none-desc" },
+                          { label: "Newest-Oldest", value: "date-desc" },
+                          { label: "Oldest-Newest", value: "date-asc" },
+                          { label: "A-Z", value: "name-desc" },
+                          { label: "Z-A", value: "name-asc" },
+                          { label: "High-Low", value: "amount-desc" },
+                          { label: "Low-High", value: "amount-asc" },
+                        ]}
+                        className="flex-1"
+                      />
+                    </View>
+
                     {/* Clear Filters Button */}
                     <View className="flex justify-center pt-2 pb-4">
                       <Button
@@ -273,7 +422,7 @@ export default function Transactions() {
                         onPress={() => {
                           setSelectedCategory("All Categories");
                           setSelectedPeriod("This Month");
-                          setSelectedMerchant("All Merchants");
+                          setSelectedParty("All Parties");
                           setSelectedType("All Types");
                         }}
                       >
@@ -281,6 +430,7 @@ export default function Transactions() {
                       </Button>
                     </View>
                   </View>
+
                   {/* Transaction List */}
                   <View className="rounded-md border border-gray-200">
                     <Table>
@@ -349,7 +499,7 @@ export default function Transactions() {
                                     numberOfLines={1}
                                     ellipsizeMode="tail"
                                   >
-                                    {transaction.merchant}
+                                    {getDisplayParty(transaction)}
                                   </Text>
                                 </View>
                               </TableCell>
@@ -559,9 +709,6 @@ export default function Transactions() {
                   onOpenChange={setEditSingleTransactionOpen}
                   transaction={selectedTransaction}
                   onClose={() => setEditSingleTransactionOpen(false)}
-                  onSave={() => {
-                    // TODO: Implement save logic
-                  }}
                 />
 
                 {/* Edit All Transactions Modal */}
@@ -571,15 +718,8 @@ export default function Transactions() {
                   transactions={filteredTransactions}
                   onClose={() => setEditTransactionsOpen(false)}
                   onSave={() => {
-                    // TODO: Implement save logic
+                    refetch();
                   }}
-                />
-
-                {/* Add Transaction Modal */}
-                <AddTransactionModal
-                  open={addTransactionModalOpen}
-                  onOpenChange={setAddTransactionModalOpen}
-                  onClose={() => setAddTransactionModalOpen(false)}
                 />
               </View>
             </>

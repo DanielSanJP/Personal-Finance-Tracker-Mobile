@@ -106,6 +106,7 @@ export async function POST(req: Request) {
       "merchant": "business name (clean, no extra numbers or text)",
       "amount": "final total amount as decimal number (e.g., 25.50)",
       "date": "date in YYYY-MM-DD format if found",
+      "time": "time in HH:MM format if found on receipt (24-hour format)",
       "items": ["list of main purchased items if clearly visible"],
       "category": "best matching category from: ${categoryOptions}"
     }
@@ -116,7 +117,14 @@ export async function POST(req: Request) {
     - If multiple amounts, choose the one most likely to be the final total the customer paid
     - For merchant: Use the main business name, clean up any store numbers or extra text
     - For date: Use the transaction date, not printed date
+    - For time: Extract the transaction time if visible on receipt (look for time stamps near date/total)
     - For category: Choose the most appropriate category based on the merchant and items. Use ONLY the exact category names from the list above.
+
+    IMPORTANT SYSTEM CONTEXT:
+    - Our app uses a universal party system: transactions have "from_party" (source) and "to_party" (destination)
+    - For expenses: from_party = account name, to_party = merchant name
+    - Date field stores full timestamp including time (YYYY-MM-DDTHH:MM:SS format)
+    - If time is found, it will be combined with the date; if not, current time will be used
 
     Return only valid JSON, no additional text.
     `;
@@ -192,10 +200,18 @@ export async function POST(req: Request) {
     }
 
     // Validate and clean the parsed data
+    // Combine date and time if both are available
+    let dateValue = null;
+    if (parsedData.date) {
+      const dateStr = parsedData.date;
+      const timeStr = parsedData.time || new Date().toTimeString().split(' ')[0].substring(0, 5); // Use current time if not found
+      dateValue = new Date(`${dateStr}T${timeStr}`);
+    }
+
     const result_data = {
       merchant: parsedData.merchant || '',
       amount: parsedData.amount ? String(parsedData.amount) : '',
-      date: parsedData.date ? new Date(parsedData.date) : null,
+      date: dateValue,
       items: Array.isArray(parsedData.items) ? parsedData.items : [],
       category: parsedData.category || 'Other'
     };

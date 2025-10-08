@@ -12,15 +12,20 @@ export interface Account {
 
 export interface Transaction {
   id: string;
-  userId: string;
-  accountId: string;
-  date: string;
+  user_id: string; // This will be converted from UUID to string
+  account_id: string;
+  date: string; // Timestamp with time zone, converted to ISO string (e.g., "2025-10-08T14:30:00.000Z")
   description: string;
   amount: number;
-  category: string;
-  type: string;
-  merchant: string;
-  status: string;
+  category: string | null;
+  type: 'income' | 'expense' | 'transfer';
+  // New universal party system (replaces merchant)
+  from_party: string | null;
+  to_party: string | null;
+  destination_account_id?: string | null; // For transfers and goal contributions
+  status: 'pending' | 'completed' | 'cancelled' | 'failed';
+  created_at: string; // Timestamp will be converted to string
+  updated_at: string; // Timestamp will be converted to string
 }
 
 export interface User {

@@ -8,7 +8,7 @@ import { queryKeys } from '@/lib/query-keys';
 export interface TransactionFilters {
   category?: string;
   period?: string;
-  merchant?: string;
+  party?: string; // Replaces merchant - can be from_party or to_party
   type?: string;
 }
 
@@ -21,7 +21,7 @@ export interface TransactionSummary {
 
 export interface FilterOptions {
   categories: string[];
-  merchants: string[];
+  parties: string[]; // Replaces merchants - includes both from_party and to_party
   types: string[];
   periods: string[];
 }
@@ -36,7 +36,9 @@ interface DatabaseTransaction {
   amount: number;
   category: string | null;
   type: 'income' | 'expense' | 'transfer';
-  merchant: string | null;
+  from_party: string | null; // New universal party system
+  to_party: string | null; // New universal party system
+  destination_account_id?: string | null; // For transfers and goal contributions
   status: 'pending' | 'completed' | 'cancelled' | 'failed';
   created_at: string | Date;
   updated_at: string | Date;
@@ -67,18 +69,22 @@ async function getFilteredTransactions(
     throw new Error(`Failed to fetch transactions: ${error.message}`);
   }
 
-  // Transform the data to match our interface (convert snake_case to camelCase)
+  // Transform the data to match our interface (keep database column names)
   let transformedData = (data || []).map((transaction: DatabaseTransaction) => ({
     id: transaction.id,
-    userId: transaction.user_id?.toString() || '',
-    accountId: transaction.account_id,
+    user_id: transaction.user_id?.toString() || '',
+    account_id: transaction.account_id,
     date: transaction.date?.toString() || '',
     description: transaction.description,
     amount: transaction.amount,
     category: transaction.category || '',
     type: transaction.type,
-    merchant: transaction.merchant || '',
+    from_party: transaction.from_party || null,
+    to_party: transaction.to_party || null,
+    destination_account_id: transaction.destination_account_id || null,
     status: transaction.status,
+    created_at: transaction.created_at?.toString() || '',
+    updated_at: transaction.updated_at?.toString() || '',
   })) as Transaction[];
 
   // Apply client-side filters
@@ -90,8 +96,10 @@ async function getFilteredTransactions(
     transformedData = transformedData.filter(t => t.type === filters.type);
   }
 
-  if (filters.merchant && filters.merchant !== 'All Merchants') {
-    transformedData = transformedData.filter(t => t.merchant === filters.merchant);
+  if (filters.party && filters.party !== 'All Parties') {
+    transformedData = transformedData.filter(t => 
+      t.from_party === filters.party || t.to_party === filters.party
+    );
   }
 
   if (filters.period && filters.period !== 'All Time') {
@@ -143,16 +151,16 @@ async function getTransactionFilterOptions(): Promise<FilterOptions> {
   if (!user) {
     return {
       categories: ['All Categories'],
-      merchants: ['All Merchants'],
+      parties: ['All Parties'],
       types: ['All Types'],
       periods: ['This Month', 'Last Month', 'Last 3 Months', 'This Year', 'All Time'],
     };
   }
 
   // Fetch all transactions to get unique filter values
-  const { data: transactions, error } = await supabase
+  const { data: transactions, error} = await supabase
     .from('transactions')
-    .select('category, merchant, type')
+    .select('category, from_party, to_party, type')
     .eq('user_id', user.id);
 
   if (error) {
@@ -160,7 +168,7 @@ async function getTransactionFilterOptions(): Promise<FilterOptions> {
     // Return default options on error
     return {
       categories: ['All Categories'],
-      merchants: ['All Merchants'],
+      parties: ['All Parties'],
       types: ['All Types'],
       periods: ['This Month', 'Last Month', 'Last 3 Months', 'This Year', 'All Time'],
     };
@@ -168,7 +176,7 @@ async function getTransactionFilterOptions(): Promise<FilterOptions> {
 
   // Extract unique values from transactions
   const categories = ['All Categories'];
-  const merchants = ['All Merchants'];
+  const parties = ['All Parties'];
   const types = ['All Types'];
 
   if (transactions) {
@@ -178,11 +186,12 @@ async function getTransactionFilterOptions(): Promise<FilterOptions> {
     )).sort();
     categories.push(...uniqueCategories);
 
-    // Get unique merchants
-    const uniqueMerchants = Array.from(new Set(
-      transactions.map(t => t.merchant).filter(Boolean)
-    )).sort();
-    merchants.push(...uniqueMerchants);
+    // Get unique parties (from both from_party and to_party)
+    const uniqueParties = Array.from(new Set([
+      ...transactions.map(t => t.from_party).filter(Boolean),
+      ...transactions.map(t => t.to_party).filter(Boolean)
+    ])).sort();
+    parties.push(...uniqueParties);
 
     // Get unique types
     const uniqueTypes = Array.from(new Set(
@@ -193,7 +202,7 @@ async function getTransactionFilterOptions(): Promise<FilterOptions> {
 
   return {
     categories,
-    merchants,
+    parties,
     types,
     periods: ['This Month', 'Last Month', 'Last 3 Months', 'This Year', 'All Time'],
   };
@@ -218,18 +227,22 @@ async function getRecentTransactions(limit: number = 10): Promise<Transaction[]>
     throw new Error(`Failed to fetch recent transactions: ${error.message}`);
   }
 
-  // Transform the data to match our interface (convert snake_case to camelCase)
+  // Transform the data to match our interface (keep database column names)
   return (data || []).map((transaction: DatabaseTransaction) => ({
     id: transaction.id,
-    userId: transaction.user_id?.toString() || '',
-    accountId: transaction.account_id,
+    user_id: transaction.user_id?.toString() || '',
+    account_id: transaction.account_id,
     date: transaction.date?.toString() || '',
     description: transaction.description,
     amount: transaction.amount,
     category: transaction.category || '',
     type: transaction.type,
-    merchant: transaction.merchant || '',
+    from_party: transaction.from_party || null,
+    to_party: transaction.to_party || null,
+    destination_account_id: transaction.destination_account_id || null,
     status: transaction.status,
+    created_at: transaction.created_at?.toString() || '',
+    updated_at: transaction.updated_at?.toString() || '',
   })) as Transaction[];
 }
 
@@ -365,103 +378,86 @@ export async function createExpenseTransaction(expenseData: {
   const user = await getCurrentUser();
   if (!user) throw new Error('User not authenticated');
   
-  // Start a transaction to ensure data consistency
-  const { data: transaction, error: transactionError } = await supabase.rpc('create_expense_transaction', {
-    p_user_id: user.id,
-    p_account_id: expenseData.accountId,
-    p_amount: Math.abs(expenseData.amount), // Pass positive amount, function handles sign
-    p_description: expenseData.description,
-    p_category: expenseData.category || null,
-    p_merchant: expenseData.merchant || null,
-    p_date: expenseData.date.toISOString().split('T')[0],
-    p_status: expenseData.status || 'completed'
-  });
-
-  if (transactionError) {
-    console.error('Error creating expense transaction:', transactionError);
-    throw new Error(`Failed to create expense transaction: ${transactionError.message}`);
-  }
-
-  // If RPC function doesn't exist, fall back to manual transaction + account update
-  if (!transaction) {
-    // Generate a unique ID for the transaction
-    const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert({
-        id: transactionId,
-        user_id: user.id,
-        account_id: expenseData.accountId,
-        type: 'expense',
-        amount: -Math.abs(expenseData.amount), // Expenses are negative
-        description: expenseData.description,
-        category: expenseData.category || null,
-        merchant: expenseData.merchant || null,
-        date: expenseData.date.toISOString().split('T')[0],
-        status: expenseData.status || 'completed',
-      })
+  // Get account name for from_party
+  const { data: account } = await supabase
+    .from('accounts')
+    .select('name')
+    .eq('id', expenseData.accountId)
+    .single();
+  
+  const accountName = account?.name || 'Account';
+  
+  // Generate a unique ID for the transaction
+  const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert({
+      id: transactionId,
+      user_id: user.id,
+      account_id: expenseData.accountId,
+      type: 'expense',
+      amount: -Math.abs(expenseData.amount), // Expenses are negative
+      description: expenseData.description,
+      category: expenseData.category || null,
+      from_party: accountName, // Money comes FROM user's account
+      to_party: expenseData.merchant || 'Unknown Merchant', // Money goes TO merchant
+      date: expenseData.date.toISOString(), // Full timestamp with time
+      status: expenseData.status || 'completed',
+    })
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating expense transaction:', error);
-      throw new Error(`Failed to create expense transaction: ${error.message}`);
-    }
-
-    // Update account balance (subtract expense amount)
-    const { error: accountError } = await supabase.rpc('update_account_balance', {
-      account_id_param: expenseData.accountId,
-      amount_change: -Math.abs(expenseData.amount)
-    });
-
-    if (accountError) {
-      // Try direct update if RPC doesn't exist
-      const { data: accountData, error: fetchError } = await supabase
-        .from('accounts')
-        .select('balance')
-        .eq('id', expenseData.accountId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching account for balance update:', fetchError);
-        throw new Error(`Failed to fetch account for balance update: ${fetchError.message}`);
-      }
-
-      const newBalance = Number(accountData.balance) - Math.abs(expenseData.amount);
-      
-      const { error: updateError } = await supabase
-        .from('accounts')
-        .update({
-          balance: newBalance,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', expenseData.accountId)
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        console.error('Error updating account balance:', updateError);
-        throw new Error(`Failed to update account balance: ${updateError.message}`);
-      }
-    }
-
-    // Transform the data to match our interface (convert snake_case to camelCase)
-    return {
-      id: data.id,
-      userId: data.user_id?.toString() || '',
-      accountId: data.account_id,
-      date: data.date?.toString() || '',
-      description: data.description,
-      amount: data.amount,
-      category: data.category || '',
-      type: data.type,
-      merchant: data.merchant || '',
-      status: data.status,
-    } as Transaction;
+  if (error) {
+    console.error('Error creating expense transaction:', error);
+    throw new Error(`Failed to create expense transaction: ${error.message}`);
   }
 
-  return transaction;
+  // Update account balance (subtract expense amount)
+  const { error: accountError } = await supabase.rpc('update_account_balance', {
+    account_id_param: expenseData.accountId,
+    amount_change: -Math.abs(expenseData.amount)
+  });
+
+  if (accountError) {
+    // Try direct update if RPC doesn't exist
+    const { data: accountData, error: fetchError } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('id', expenseData.accountId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching account for balance update:', fetchError);
+      throw new Error(`Failed to fetch account for balance update: ${fetchError.message}`);
+    }
+
+    const newBalance = Number(accountData.balance) - Math.abs(expenseData.amount);
+    
+    const { error: updateError } = await supabase
+      .from('accounts')
+      .update({
+        balance: newBalance,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', expenseData.accountId)
+      .eq('user_id', user.id);
+
+    if (updateError) {
+      console.error('Error updating account balance:', updateError);
+      throw new Error(`Failed to update account balance: ${updateError.message}`);
+    }
+  }
+
+  // Transform the data to match our interface
+  return {
+    ...data,
+    user_id: data.user_id?.toString() || '',
+    date: data.date?.toString() || '',
+    created_at: data.created_at?.toString() || '',
+    updated_at: data.updated_at?.toString() || ''
+  } as Transaction;
 }
 
 /**
@@ -477,102 +473,86 @@ export async function createIncomeTransaction(incomeData: {
   const user = await getCurrentUser();
   if (!user) throw new Error('User not authenticated');
   
-  // Start with RPC function attempt for income transaction
-  const { data: transaction, error: transactionError } = await supabase.rpc('create_income_transaction', {
-    p_user_id: user.id,
-    p_account_id: incomeData.accountId,
-    p_amount: Math.abs(incomeData.amount),
-    p_description: incomeData.description,
-    p_category: incomeData.source || 'income',
-    p_merchant: 'Income Source',
-    p_date: incomeData.date.toISOString().split('T')[0]
+  // Get account name for to_party
+  const { data: account } = await supabase
+    .from('accounts')
+    .select('name')
+    .eq('id', incomeData.accountId)
+    .single();
+  
+  const accountName = account?.name || 'Account';
+  
+  // Generate a unique ID for the transaction
+  const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert({
+      id: transactionId,
+      user_id: user.id,
+      account_id: incomeData.accountId,
+      type: 'income',
+      amount: Math.abs(incomeData.amount), // Income is positive
+      description: incomeData.description,
+      category: incomeData.source, // Keep source in category for consistency
+      from_party: incomeData.source, // Money comes FROM income source (employer, client, etc.)
+      to_party: accountName, // Money goes TO user's account
+      date: incomeData.date.toISOString(), // Full timestamp with time
+      status: 'completed',
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating income transaction:', error);
+    throw new Error(`Failed to create income transaction: ${error.message}`);
+  }
+
+  // Update account balance (add income amount)
+  const { error: accountError } = await supabase.rpc('update_account_balance', {
+    account_id_param: incomeData.accountId,
+    amount_change: Math.abs(incomeData.amount)
   });
 
-  if (transactionError) {
-    console.error('Error creating income transaction:', transactionError);
-    throw new Error(`Failed to create income transaction: ${transactionError.message}`);
-  }
-
-  // If RPC function doesn't exist, fall back to manual transaction + account update
-  if (!transaction) {
-    // Generate a unique ID for the transaction
-    const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert({
-        id: transactionId,
-        user_id: user.id,
-        account_id: incomeData.accountId,
-        type: 'income',
-        amount: Math.abs(incomeData.amount), // Income is positive
-        description: incomeData.description,
-        category: incomeData.source, // Keep source in category for consistency
-        merchant: incomeData.source, // Also store income source as merchant for database compatibility
-        date: incomeData.date.toISOString().split('T')[0],
-        status: 'completed',
-      })
-      .select()
+  if (accountError) {
+    // Try direct update if RPC doesn't exist
+    const { data: accountData, error: fetchError } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('id', incomeData.accountId)
+      .eq('user_id', user.id)
       .single();
 
-    if (error) {
-      console.error('Error creating income transaction:', error);
-      throw new Error(`Failed to create income transaction: ${error.message}`);
+    if (fetchError) {
+      console.error('Error fetching account for balance update:', fetchError);
+      throw new Error(`Failed to fetch account for balance update: ${fetchError.message}`);
     }
 
-    // Update account balance (add income amount)
-    const { error: accountError } = await supabase.rpc('update_account_balance', {
-      account_id_param: incomeData.accountId,
-      amount_change: Math.abs(incomeData.amount)
-    });
+    const newBalance = Number(accountData.balance) + Math.abs(incomeData.amount);
+    
+    const { error: updateError } = await supabase
+      .from('accounts')
+      .update({
+        balance: newBalance,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', incomeData.accountId)
+      .eq('user_id', user.id);
 
-    if (accountError) {
-      // Try direct update if RPC doesn't exist
-      const { data: accountData, error: fetchError } = await supabase
-        .from('accounts')
-        .select('balance')
-        .eq('id', incomeData.accountId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching account for balance update:', fetchError);
-        throw new Error(`Failed to fetch account for balance update: ${fetchError.message}`);
-      }
-
-      const newBalance = Number(accountData.balance) + Math.abs(incomeData.amount);
-      
-      const { error: updateError } = await supabase
-        .from('accounts')
-        .update({
-          balance: newBalance,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', incomeData.accountId)
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        console.error('Error updating account balance:', updateError);
-        throw new Error(`Failed to update account balance: ${updateError.message}`);
-      }
+    if (updateError) {
+      console.error('Error updating account balance:', updateError);
+      throw new Error(`Failed to update account balance: ${updateError.message}`);
     }
-
-    // Transform the data to match our interface (convert snake_case to camelCase)
-    return {
-      id: data.id,
-      userId: data.user_id?.toString() || '',
-      accountId: data.account_id,
-      date: data.date?.toString() || '',
-      description: data.description,
-      amount: data.amount,
-      category: data.category || '',
-      type: data.type,
-      merchant: data.merchant || '',
-      status: data.status,
-    } as Transaction;
   }
 
-  return transaction;
+  // Transform the data to match our interface
+  return {
+    ...data,
+    user_id: data.user_id?.toString() || '',
+    date: data.date?.toString() || '',
+    created_at: data.created_at?.toString() || '',
+    updated_at: data.updated_at?.toString() || ''
+  } as Transaction;
 }
 
 // Query keys for RPC-based queries (consolidated)

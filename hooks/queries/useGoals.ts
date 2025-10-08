@@ -185,22 +185,94 @@ export const makeGoalContribution = async (contributionData: {
   }
 
   try {
-    // Use RPC function for atomic goal contribution transaction
-    const { data, error } = await supabase.rpc('make_goal_contribution', {
-      p_user_id: user.id,
-      p_goal_id: contributionData.goalId,
-      p_account_id: contributionData.accountId,
-      p_amount: contributionData.amount,
-      p_date: contributionData.date.toISOString().split('T')[0], // Format as YYYY-MM-DD
-      p_notes: contributionData.notes || 'Goal contribution'
-    });
+    // Step 1: Get account details
+    const { data: account, error: accountError } = await supabase
+      .from('accounts')
+      .select('name, balance')
+      .eq('id', contributionData.accountId)
+      .eq('user_id', user.id)
+      .single();
 
-    if (error) {
-      console.error('RPC error:', error);
-      throw new Error(`Failed to make goal contribution: ${error.message}`);
+    if (accountError || !account) {
+      throw new Error('Account not found');
     }
 
-    return data;
+    // Step 2: Check sufficient balance
+    if (account.balance < contributionData.amount) {
+      throw new Error('Insufficient account balance');
+    }
+
+    // Step 3: Get goal details
+    const { data: goal, error: goalError } = await supabase
+      .from('goals')
+      .select('name, current_amount, target_amount')
+      .eq('id', contributionData.goalId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (goalError || !goal) {
+      throw new Error('Goal not found');
+    }
+
+    // Step 4: Create transaction
+    const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const { error: transactionError } = await supabase
+      .from('transactions')
+      .insert({
+        id: transactionId,
+        user_id: user.id,
+        account_id: contributionData.accountId,
+        date: contributionData.date.toISOString(), // Full timestamp with time
+        description: contributionData.notes || 'Goal contribution',
+        amount: -contributionData.amount, // Negative: money leaving account
+        category: 'Goal Contribution',
+        type: 'transfer',
+        status: 'completed',
+        from_party: account.name, // Money FROM account
+        to_party: goal.name, // Money TO goal
+        destination_account_id: contributionData.goalId, // ✨ Link to goal
+      });
+
+    if (transactionError) {
+      console.error('Transaction error:', transactionError);
+      throw new Error(`Failed to create transaction: ${transactionError.message}`);
+    }
+
+    // Step 5: Update account balance
+    const { error: updateAccountError } = await supabase
+      .from('accounts')
+      .update({ 
+        balance: account.balance - contributionData.amount,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', contributionData.accountId);
+
+    if (updateAccountError) {
+      console.error('Account update error:', updateAccountError);
+      throw new Error('Failed to update account balance');
+    }
+
+    // Step 6: Update goal current amount
+    const newGoalAmount = goal.current_amount + contributionData.amount;
+    const { error: updateGoalError } = await supabase
+      .from('goals')
+      .update({ 
+        current_amount: newGoalAmount,
+        status: newGoalAmount >= goal.target_amount ? 'completed' : 'active',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', contributionData.goalId);
+
+    if (updateGoalError) {
+      console.error('Goal update error:', updateGoalError);
+      throw new Error('Failed to update goal');
+    }
+
+    return {
+      success: true,
+      transaction_id: transactionId,
+      message: 'Goal contribution recorded successfully'
+    };
   } catch (error) {
     console.error('Error in makeGoalContribution:', error);
     throw error;

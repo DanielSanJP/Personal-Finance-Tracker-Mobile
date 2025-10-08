@@ -22,10 +22,9 @@ function Dialog({ open, onOpenChange, children }: DialogProps) {
     <Modal
       visible={open}
       transparent={true}
-      animationType="slide"
-      presentationStyle="overFullScreen"
-      statusBarTranslucent={true}
+      animationType="fade"
       onRequestClose={() => onOpenChange?.(false)}
+      supportedOrientations={["portrait", "landscape"]}
     >
       {children}
     </Modal>
@@ -64,6 +63,7 @@ function DialogContent({
     <View
       className="flex-1 bg-black/50 justify-center px-4"
       style={{ paddingTop: 0 }}
+      pointerEvents="box-none"
     >
       <TouchableOpacity
         className="absolute inset-0"
@@ -79,6 +79,7 @@ function DialogContent({
           maxHeight: screenHeight * 0.85,
           minHeight: screenHeight * 0.3,
         }}
+        pointerEvents="auto"
       >
         <ScrollView
           showsVerticalScrollIndicator={false}

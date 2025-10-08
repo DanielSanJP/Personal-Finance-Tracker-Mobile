@@ -50,12 +50,14 @@ function SelectTrigger({
   return (
     <TouchableOpacity
       className={cn(
-        "border-gray-300 flex w-full items-center justify-start gap-2 rounded-lg border bg-white px-4 py-2 text-sm shadow-xs",
+        "border-gray-300 flex flex-row w-full items-center justify-start rounded-lg border bg-white px-4 py-2 text-sm shadow-xs",
         size === "default" ? "h-14" : "h-12",
         className
       )}
       onPress={() => setOpen(!open)}
       activeOpacity={0.7}
+      accessible={true}
+      accessibilityRole="button"
       {...props}
     >
       {children}
@@ -81,11 +83,14 @@ function SelectValue({
 
   return (
     <Text
-      className={cn(
-        "text-base",
-        displayText ? "text-gray-900" : "text-gray-500",
-        className
-      )}
+      style={{
+        flex: 1,
+        fontSize: 14,
+        color: displayText ? "#111827" : "#6b7280",
+      }}
+      className={className}
+      numberOfLines={1}
+      ellipsizeMode="tail"
     >
       {displayText || placeholder}
     </Text>

@@ -5,7 +5,7 @@ import { useAccounts } from "../../hooks/queries/useAccounts";
 import { useCreateIncomeTransaction } from "../../hooks/queries/useTransactions";
 import { CategorySelect } from "../category-select";
 import { Button } from "../ui/button";
-import { DatePicker } from "../ui/date-picker";
+import { DateTimePicker } from "../ui/date-time-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -127,7 +127,11 @@ export function AddIncomeModal({
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollView className="flex-1">
+        <ScrollView
+          className="flex-1"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View className="space-y-6 p-4">
             {/* Amount */}
             <View className="space-y-2 py-2">
@@ -149,6 +153,9 @@ export function AddIncomeModal({
                 placeholder="Source of income..."
                 value={description}
                 onChangeText={setDescription}
+                maxLength={150}
+                returnKeyType="done"
+                blurOnSubmit={true}
                 className="px-4 py-3"
               />
             </View>
@@ -183,13 +190,14 @@ export function AddIncomeModal({
               </Select>
             </View>
 
-            {/* Date */}
-            <View className="space-y-2 py-2">
-              <Label>Date</Label>
-              <DatePicker
+            {/* Date & Time */}
+            <View className="py-2">
+              <DateTimePicker
                 date={date}
-                onDateChange={setDate}
-                placeholder="dd/mm/yyyy"
+                onDateTimeChange={setDate}
+                placeholder="Select date"
+                showLabel={true}
+                required={true}
               />
             </View>
 

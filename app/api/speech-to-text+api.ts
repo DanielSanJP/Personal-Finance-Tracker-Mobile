@@ -45,11 +45,25 @@ export async function POST(req: Request) {
       ? `Available accounts: ${accounts.map((a: any) => `${a.name} (${a.type})`).join(', ')}`
       : '';
 
+    const now = new Date();
+    const today = now.toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
+    const currentTime = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM format
+
     const prompt = `You are an AI assistant helping to parse voice input for a ${transactionType} transaction.
 
 User said: "${transcript}"
 
+Current date: ${today}
+Current time: ${currentTime}
+
 ${accountsList}
+
+IMPORTANT SYSTEM CONTEXT:
+- Our app uses a universal party system for transactions
+- For EXPENSES: from_party = account name, to_party = merchant/business name
+- For INCOME: from_party = income source/payer, to_party = account name
+- Date field stores full timestamp including time (YYYY-MM-DDTHH:MM:SS format)
+- If user mentions a specific time, extract it; otherwise use current time (${currentTime})
 
 Extract the following information and return it as a JSON object:
 {
@@ -58,6 +72,8 @@ Extract the following information and return it as a JSON object:
   "merchant": "the business or person name if mentioned",
   "category": "appropriate category (e.g., Food, Transport, Shopping, Entertainment, Bills, Healthcare, etc.)",
   "account": "the account name if mentioned, otherwise empty string",
+  "date": "YYYY-MM-DD format (use ${today} unless user mentions specific date)",
+  "time": "HH:MM in 24-hour format (extract if mentioned, else use ${currentTime})",
   "confidence": "your confidence level (0.0-1.0) in the parsed data"
 }
 
@@ -68,6 +84,8 @@ Rules:
 - If an account is mentioned and matches one from the available accounts, use that account name
 - For income transactions, use categories like "Salary", "Freelance", "Gift", "Investment", etc.
 - Be intelligent about context (e.g., "lunch at Chipotle" → merchant: "Chipotle", category: "Food")
+- ALWAYS use today's date (${today}) unless user specifically mentions a different date
+- Extract time if mentioned (e.g., "at 2pm", "this morning"), otherwise use current time (${currentTime})
 
 Return ONLY the JSON object, no additional text.`;
 
@@ -93,6 +111,11 @@ Return ONLY the JSON object, no additional text.`;
       );
     }
 
+    // Combine date and time into ISO timestamp
+    const dateStr = parsedDetails.date || today;
+    const timeStr = parsedDetails.time || currentTime;
+    const fullDateTime = `${dateStr}T${timeStr}:00`; // Add seconds for full ISO format
+
     return Response.json({
       originalTranscript: transcript,
       parsedDetails: {
@@ -101,7 +124,7 @@ Return ONLY the JSON object, no additional text.`;
         merchant: parsedDetails.merchant || '',
         category: parsedDetails.category || '',
         account: parsedDetails.account || '',
-        date: new Date().toISOString().split('T')[0],
+        date: fullDateTime, // Full ISO timestamp with date and time
       },
       confidence: parsedDetails.confidence || 0.85,
       transcript: transcript, // Return the transcript for compatibility

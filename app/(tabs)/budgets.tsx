@@ -1,4 +1,4 @@
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import React, { useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -284,8 +284,12 @@ export default function Budgets() {
                     >
                       Edit Budgets
                     </Button>
-                    <Button variant="outline" className="min-w-[120px] p-6">
-                      Export Data
+                    <Button
+                      variant="outline"
+                      className="min-w-[120px] p-6"
+                      onPress={() => router.push("/reports")}
+                    >
+                      View Reports
                     </Button>
                   </View>
                 </CardContent>

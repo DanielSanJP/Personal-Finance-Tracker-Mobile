@@ -8,6 +8,7 @@ export * from "./card";
 export * from "./chart";
 export * from "./checkbox";
 export * from "./date-picker";
+export * from "./date-time-picker";
 export * from "./dialog";
 export * from "./dropdown-menu";
 export * from "./input";

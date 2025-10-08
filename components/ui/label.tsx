@@ -13,6 +13,8 @@ const Label = React.forwardRef<Text, LabelProps>(
       <Text
         ref={ref}
         className={cn("text-sm font-medium text-gray-900 mb-1", className)}
+        numberOfLines={1}
+        ellipsizeMode="tail"
         {...props}
       />
     );

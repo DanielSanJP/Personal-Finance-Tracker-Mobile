@@ -94,11 +94,13 @@ export const useVoiceInput = ({
   }, [onResult, accounts, transactionType, isProcessing]);
 
   const startVoiceInput = useCallback(() => {
+    console.log('🎙️ startVoiceInput called');
     setError(null);
     startRecording();
   }, [startRecording]);
 
   const stopVoiceInput = useCallback(() => {
+    console.log('🛑 stopVoiceInput called');
     stopRecording();
   }, [stopRecording]);
 

@@ -130,7 +130,16 @@ export function VoiceInputModal({
               {/* Control Button */}
               {!isProcessing && (
                 <Button
-                  onPress={isRecording ? onStopListening : onStartListening}
+                  onPress={() => {
+                    console.log("🔘 Button pressed, isRecording:", isRecording);
+                    if (isRecording) {
+                      console.log("📵 Calling onStopListening");
+                      onStopListening();
+                    } else {
+                      console.log("🎤 Calling onStartListening");
+                      onStartListening();
+                    }
+                  }}
                   variant={isRecording ? "destructive" : "default"}
                   className="w-full"
                 >

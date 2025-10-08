@@ -2,6 +2,7 @@ import React from "react";
 import { Text, View } from "react-native";
 import type { Transaction } from "../../lib/types";
 import { formatCurrency } from "../../lib/utils";
+import { useGoals } from "../../hooks/queries/useGoals";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -12,7 +13,7 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Label } from "../ui/label";
-import { formatFullDate, getAmountColor } from "./transaction-utils";
+import { getAmountColor } from "./transaction-utils";
 
 interface TransactionDetailModalProps {
   open: boolean;
@@ -27,6 +28,29 @@ export function TransactionDetailModal({
   transaction,
   onClose,
 }: TransactionDetailModalProps) {
+  const { data: goals = [] } = useGoals();
+
+  // Helper function to get goal name from ID
+  const getGoalName = (goalId: string | null | undefined): string | null => {
+    if (!goalId) return null;
+    const goal = goals.find((g) => g.id === goalId);
+    return goal?.name || null;
+  };
+
+  // Format full date time with day of week
+  const formatFullDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent onClose={onClose}>
@@ -69,6 +93,30 @@ export function TransactionDetailModal({
               </View>
             </View>
 
+            {/* From/To Grid */}
+            <View className="flex-row space-x-4">
+              <View className="flex-1 space-y-2">
+                <Label className="text-sm font-medium text-gray-600">
+                  From
+                </Label>
+                <Text className="text-base">
+                  {transaction.from_party || "N/A"}
+                </Text>
+              </View>
+              <View className="flex-1 space-y-2">
+                <Label className="text-sm font-medium text-gray-600">To</Label>
+                <Text className="text-base">
+                  {(() => {
+                    const goalName = getGoalName(
+                      transaction.destination_account_id
+                    );
+                    if (goalName) return `${goalName} (Goal)`;
+                    return transaction.to_party || "N/A";
+                  })()}
+                </Text>
+              </View>
+            </View>
+
             <View className="flex-row space-x-4">
               <View className="flex-1 space-y-2">
                 <Label className="text-sm font-medium text-gray-600">
@@ -87,16 +135,9 @@ export function TransactionDetailModal({
             </View>
 
             <View className="space-y-2">
-              <Label className="text-sm font-medium text-gray-600">
-                Merchant
-              </Label>
-              <Text className="text-base">{transaction.merchant}</Text>
-            </View>
-
-            <View className="space-y-2">
               <Label className="text-sm font-medium text-gray-600">Date</Label>
               <Text className="text-base">
-                {formatFullDate(transaction.date)}
+                {formatFullDateTime(transaction.date)}
               </Text>
             </View>
 
