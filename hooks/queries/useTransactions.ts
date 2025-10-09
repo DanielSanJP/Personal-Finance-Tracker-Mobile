@@ -1,8 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Transaction } from '@/lib/types';
-import { useAuth, getCurrentUser } from './useAuth';
-import { supabase } from '@/lib/supabase';
 import { queryKeys } from '@/lib/query-keys';
+import { supabase } from '@/lib/supabase';
+import { Transaction } from '@/lib/types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getCurrentUser, useAuth } from './useAuth';
 
 // Type definitions
 export interface TransactionFilters {
@@ -493,9 +493,9 @@ export async function createIncomeTransaction(incomeData: {
       account_id: incomeData.accountId,
       type: 'income',
       amount: Math.abs(incomeData.amount), // Income is positive
-      description: incomeData.description,
-      category: incomeData.source, // Keep source in category for consistency
-      from_party: incomeData.source, // Money comes FROM income source (employer, client, etc.)
+      description: incomeData.description, // The specific source name (e.g., "Acme Corp")
+      category: incomeData.source, // Income category (Salary, Freelance, etc.)
+      from_party: incomeData.description, // Money comes FROM the specific source (employer name, client name, etc.)
       to_party: accountName, // Money goes TO user's account
       date: incomeData.date.toISOString(), // Full timestamp with time
       status: 'completed',

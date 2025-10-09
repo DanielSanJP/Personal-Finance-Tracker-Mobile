@@ -45,9 +45,7 @@ CREATE TABLE public.goals (
     target_date date,
     category text,
     priority text CHECK (
-        priority = ANY (
-            ARRAY ['low'::text, 'medium'::text, 'high'::text]
-        )
+        priority = ANY (ARRAY ['low'::text, 'medium'::text, 'high'::text])
     ),
     status text DEFAULT 'active'::text CHECK (
         status = ANY (
@@ -77,7 +75,6 @@ CREATE TABLE public.transactions (
     id text NOT NULL,
     user_id uuid NOT NULL,
     account_id text NOT NULL,
-    date date NOT NULL,
     description character varying NOT NULL,
     amount numeric NOT NULL,
     category text,
@@ -86,7 +83,6 @@ CREATE TABLE public.transactions (
             ARRAY ['income'::text, 'expense'::text, 'transfer'::text]
         )
     ),
-    merchant character varying,
     status text DEFAULT 'completed'::text CHECK (
         status = ANY (
             ARRAY ['pending'::text, 'completed'::text, 'cancelled'::text, 'failed'::text]
@@ -94,6 +90,10 @@ CREATE TABLE public.transactions (
     ),
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
+    from_party text NOT NULL,
+    to_party text NOT NULL,
+    date timestamp with time zone NOT NULL,
+    destination_account_id text,
     CONSTRAINT transactions_pkey PRIMARY KEY (id),
     CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
     CONSTRAINT transactions_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id)

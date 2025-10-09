@@ -1,9 +1,11 @@
 import { useRouter } from "expo-router";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Nav from "../components/nav";
+import { CategorySelect } from "../components/category-select";
 import { FormSkeleton } from "../components/loading-states";
+import Nav from "../components/nav";
+import { ReceiptScannerModal } from "../components/receipt-scanner-modal";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -14,7 +16,6 @@ import {
 import { DateTimePicker } from "../components/ui/date-time-picker";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { CategorySelect } from "../components/category-select";
 import {
   Select,
   SelectContent,
@@ -23,13 +24,12 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { useToast } from "../components/ui/sonner";
-import { useAuth } from "../hooks/queries/useAuth";
+import { VoiceInputModal } from "../components/voice-input-modal";
 import { useAccounts } from "../hooks/queries/useAccounts";
+import { useAuth } from "../hooks/queries/useAuth";
 import { useCreateExpenseTransaction } from "../hooks/queries/useTransactions";
 import { useReceiptScan } from "../hooks/useReceiptScan";
 import { useVoiceInput } from "../hooks/useVoiceInput";
-import { ReceiptScannerModal } from "../components/receipt-scanner-modal";
-import { VoiceInputModal } from "../components/voice-input-modal";
 
 export default function AddTransactionPage() {
   const router = useRouter();
@@ -175,11 +175,14 @@ export default function AddTransactionPage() {
     if (
       !formData.amount ||
       !formData.description ||
+      !formData.category ||
+      !formData.merchant ||
       !formData.account ||
       !formData.date
     ) {
       toast.toast({
-        message: "Error: Please fill in all required fields",
+        message:
+          "Error: Please fill in all required fields (amount, description, category, paid to, and account)",
         type: "error",
       });
       return;
@@ -333,13 +336,13 @@ export default function AddTransactionPage() {
                 required={true}
               />
 
-              {/* Merchant */}
+              {/* Paid To (Merchant) */}
               <View className="space-y-2 py-2">
                 <Label className="text-base font-medium">
-                  Merchant (Optional)
+                  Paid To <Text className="text-red-500">*</Text>
                 </Label>
                 <Input
-                  placeholder="Where was this transaction made?"
+                  placeholder="Who or where did you pay?"
                   value={formData.merchant}
                   onChangeText={(text) =>
                     setFormData({ ...formData, merchant: text })

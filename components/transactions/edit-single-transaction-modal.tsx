@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
-import type { Transaction } from "../../lib/types";
+import {
+  EXPENSE_CATEGORIES,
+  INCOME_CATEGORIES,
+} from "../../constants/categories";
 import { useUpdateTransaction } from "../../hooks/queries/useTransactions";
+import type { Transaction } from "../../lib/types";
 import { CategorySelect } from "../category-select";
 import { Button } from "../ui/button";
 import { DateTimePicker } from "../ui/date-time-picker";
@@ -47,10 +51,11 @@ export function EditSingleTransactionModal({
   >("completed");
   const [date, setDate] = useState<Date | undefined>(new Date());
 
-  // Sync form with transaction prop
+  // Sync form with transaction prop - preserve exact category from database
   useEffect(() => {
     if (transaction) {
       setDescription(transaction.description);
+      // Preserve the exact category from the database (including special categories)
       setCategory(transaction.category || "");
       setStatus(transaction.status);
       setDate(new Date(transaction.date));
@@ -152,13 +157,54 @@ export function EditSingleTransactionModal({
               </View>
 
               {/* Category */}
-              <CategorySelect
-                value={category}
-                onValueChange={setCategory}
-                type={transaction.type as "expense" | "income"}
-                required={true}
-                className="w-full"
-              />
+              {(() => {
+                // Check if category is special (system-managed)
+                const isSpecialCategory =
+                  category === "Transfer" || category === "Goal Contribution";
+
+                // Check if category is in predefined lists
+                const categories =
+                  transaction.type === "income"
+                    ? INCOME_CATEGORIES
+                    : EXPENSE_CATEGORIES;
+                const isInPredefinedList = categories.some(
+                  (cat) => cat.name === category
+                );
+
+                // Show read-only field for special or legacy categories
+                const shouldShowReadOnly =
+                  !isInPredefinedList && category && category.trim() !== "";
+
+                if (shouldShowReadOnly) {
+                  return (
+                    <View className="space-y-2">
+                      <Label>
+                        Category <Text className="text-red-500">*</Text>
+                      </Label>
+                      <Input
+                        value={category}
+                        editable={false}
+                        className="w-full bg-gray-100 text-gray-500"
+                      />
+                      <Text className="text-xs text-gray-500">
+                        {isSpecialCategory
+                          ? "💡 System-managed category (cannot be changed)"
+                          : "💡 Legacy category from previous version (cannot be changed)"}
+                      </Text>
+                    </View>
+                  );
+                }
+
+                return (
+                  <CategorySelect
+                    value={category}
+                    onValueChange={setCategory}
+                    type={transaction.type as "expense" | "income"}
+                    required={true}
+                    className="w-full"
+                  />
+                );
+              })()}
 
               {/* Status */}
               <View className="space-y-2">

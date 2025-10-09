@@ -1,6 +1,11 @@
 import React from "react";
 import { ScrollView, Text, View } from "react-native";
+import {
+  EXPENSE_CATEGORIES,
+  INCOME_CATEGORIES,
+} from "../../constants/categories";
 import type { Transaction } from "../../lib/types";
+import { CategorySelect } from "../category-select";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -41,63 +46,134 @@ export function EditTransactionsModal({
 
         <ScrollView className="max-h-[500px]">
           <View className="space-y-6 py-4">
-            {transactions.map((transaction) => (
-              <View
-                key={transaction.id}
-                className="space-y-3 p-4 border border-gray-200 rounded-lg bg-white shadow-sm mb-4"
-              >
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-base font-medium">
-                    {transaction.description}
+            {transactions.map((transaction) => {
+              // Check if category is special (system-managed)
+              const isSpecialCategory =
+                transaction.category === "Transfer" ||
+                transaction.category === "Goal Contribution";
+
+              // Check if category is in predefined lists
+              const categories =
+                transaction.type === "income"
+                  ? INCOME_CATEGORIES
+                  : EXPENSE_CATEGORIES;
+              const isInPredefinedList = categories.some(
+                (cat) => cat.name === transaction.category
+              );
+
+              // Show read-only field for special or legacy categories
+              const shouldShowReadOnly =
+                !isInPredefinedList &&
+                transaction.category &&
+                transaction.category.trim() !== "";
+
+              // Get party field label based on transaction type
+              const getPartyLabel = () => {
+                if (transaction.type === "expense") return "Paid To";
+                if (transaction.type === "income") return "Received From";
+                if (transaction.type === "transfer") return "Transferred To";
+                return "Party";
+              };
+
+              // Get correct party value based on transaction type
+              const getPartyValue = () => {
+                if (transaction.type === "expense")
+                  return transaction.to_party || "";
+                if (transaction.type === "income")
+                  return transaction.from_party || "";
+                if (transaction.type === "transfer")
+                  return transaction.to_party || "";
+                return "";
+              };
+
+              return (
+                <View
+                  key={transaction.id}
+                  className="space-y-3 p-4 border border-gray-200 rounded-lg bg-white shadow-sm mb-4"
+                >
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-base font-medium">
+                      {transaction.description}
+                    </Text>
+                    <Text className="text-sm text-gray-500">
+                      {formatDate(transaction.date)}
+                    </Text>
+                  </View>
+                  <View className="space-y-2">
+                    <Label>Description</Label>
+                    <Input
+                      defaultValue={transaction.description}
+                      className="w-full"
+                    />
+                  </View>
+
+                  {/* Amount (LOCKED) */}
+                  <View className="space-y-2">
+                    <Label>Amount (Cannot Edit)</Label>
+                    <Input
+                      value={`$${Math.abs(transaction.amount).toFixed(2)}`}
+                      editable={false}
+                      className="w-full bg-gray-100 text-gray-500"
+                    />
+                  </View>
+
+                  {/* Type (LOCKED) */}
+                  <View className="space-y-2">
+                    <Label>Type (Cannot Edit)</Label>
+                    <Input
+                      value={
+                        transaction.type.charAt(0).toUpperCase() +
+                        transaction.type.slice(1)
+                      }
+                      editable={false}
+                      className="w-full bg-gray-100 text-gray-500"
+                    />
+                  </View>
+
+                  {/* Party Field (Dynamic Label) */}
+                  <View className="space-y-2">
+                    <Label>{getPartyLabel()}</Label>
+                    <Input
+                      defaultValue={getPartyValue()}
+                      placeholder={`Enter ${getPartyLabel().toLowerCase()}`}
+                      className="w-full"
+                    />
+                  </View>
+
+                  {/* Category - Handle special and legacy categories */}
+                  {shouldShowReadOnly ? (
+                    <View className="space-y-2">
+                      <Label>Category</Label>
+                      <Input
+                        value={transaction.category || ""}
+                        editable={false}
+                        className="w-full bg-gray-100 text-gray-500"
+                      />
+                      <Text className="text-xs text-gray-500">
+                        {isSpecialCategory
+                          ? "💡 System-managed category (cannot be changed)"
+                          : "💡 Legacy category from previous version (cannot be changed)"}
+                      </Text>
+                    </View>
+                  ) : (
+                    <CategorySelect
+                      value={transaction.category || ""}
+                      onValueChange={(value) => {
+                        // Handle category change (you'll need to implement state management)
+                        console.log(`Category changed to: ${value}`);
+                      }}
+                      type={transaction.type as "expense" | "income"}
+                      required={true}
+                      className="w-full"
+                    />
+                  )}
+
+                  <Text className="text-sm text-gray-600">
+                    Status: {transaction.status}
                   </Text>
-                  <Text className="text-sm text-gray-500">
-                    {formatDate(transaction.date)}
-                  </Text>
                 </View>
-                <View className="space-y-2">
-                  <Label>Description</Label>
-                  <Input
-                    defaultValue={transaction.description}
-                    className="w-full"
-                  />
-                </View>
-
-                {/* Amount (LOCKED) */}
-                <View className="space-y-2">
-                  <Label>Amount (Cannot Edit)</Label>
-                  <Input
-                    value={`$${Math.abs(transaction.amount).toFixed(2)}`}
-                    editable={false}
-                    className="w-full bg-gray-100 text-gray-500"
-                  />
-                </View>
-
-                {/* Type (LOCKED) */}
-                <View className="space-y-2">
-                  <Label>Type (Cannot Edit)</Label>
-                  <Input
-                    value={
-                      transaction.type.charAt(0).toUpperCase() +
-                      transaction.type.slice(1)
-                    }
-                    editable={false}
-                    className="w-full bg-gray-100 text-gray-500"
-                  />
-                </View>
-
-                <View className="space-y-2">
-                  <Label>Category</Label>
-                  <Input
-                    defaultValue={transaction.category || ""}
-                    className="w-full"
-                  />
-                </View>
-
-                <Text className="text-sm text-gray-600">
-                  Status: {transaction.status}
-                </Text>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </ScrollView>
 

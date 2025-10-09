@@ -76,6 +76,7 @@ export default function Goals() {
   const [editedGoals, setEditedGoals] = useState<{
     [key: string]: { name?: string; targetAmount?: string; targetDate?: Date };
   }>({});
+  const [goalsToDelete, setGoalsToDelete] = useState<string[]>([]);
 
   // Reset form functions
   const resetAddGoalForm = () => {
@@ -231,99 +232,94 @@ export default function Goals() {
     resetContributionForm();
   };
 
-  // Individual goal save function
-  const handleSaveGoal = async (goalId: string) => {
+  // Save all changes function
+  const handleSaveAllChanges = async () => {
     try {
-      const editedGoal = editedGoals[goalId];
-      if (!editedGoal) {
-        toast({
-          message: "No changes to save",
-          type: "info",
-        });
-        return;
-      }
+      let hasErrors = false;
 
-      const updates: Partial<Goal> = {};
-
-      if (editedGoal.name !== undefined) {
-        updates.name = editedGoal.name;
-      }
-
-      if (editedGoal.targetAmount !== undefined) {
-        const amount = parseFloat(editedGoal.targetAmount);
-        if (isNaN(amount) || amount <= 0) {
+      // Validate all edited goals
+      for (const editedGoal of Object.values(editedGoals)) {
+        if (editedGoal.targetAmount !== undefined) {
+          const amount = parseFloat(editedGoal.targetAmount);
+          if (isNaN(amount) || amount <= 0) {
+            toast({
+              message: "Please enter valid target amounts greater than 0",
+              type: "error",
+            });
+            hasErrors = true;
+            break;
+          }
+        }
+        if (editedGoal.name !== undefined && editedGoal.name.trim() === "") {
           toast({
-            message: "Please enter a valid target amount",
+            message: "Goal names cannot be empty",
             type: "error",
           });
-          return;
+          hasErrors = true;
+          break;
         }
-        updates.targetAmount = amount;
       }
 
-      if (editedGoal.targetDate !== undefined) {
-        updates.targetDate = editedGoal.targetDate.toISOString().split("T")[0];
+      if (hasErrors) return;
+
+      // Update all edited goals
+      for (const [goalId, editedGoal] of Object.entries(editedGoals)) {
+        const updates: Partial<Goal> = {};
+
+        if (editedGoal.name !== undefined) {
+          updates.name = editedGoal.name;
+        }
+
+        if (editedGoal.targetAmount !== undefined) {
+          const amount = parseFloat(editedGoal.targetAmount);
+          updates.targetAmount = amount;
+        }
+
+        if (editedGoal.targetDate !== undefined) {
+          updates.targetDate = editedGoal.targetDate
+            .toISOString()
+            .split("T")[0];
+        }
+
+        await updateGoalMutation.mutateAsync({
+          goalId,
+          goalData: updates,
+        });
       }
 
-      const result = await updateGoalMutation.mutateAsync({
-        goalId,
-        goalData: updates,
+      // Delete all marked goals
+      for (const goalId of goalsToDelete) {
+        await deleteGoalMutation.mutateAsync(goalId);
+      }
+
+      // Show success message
+      const updateCount = Object.keys(editedGoals).length;
+      const deleteCount = goalsToDelete.length;
+      let message = "";
+
+      if (updateCount > 0 && deleteCount > 0) {
+        message = `${updateCount} goal(s) updated and ${deleteCount} deleted successfully`;
+      } else if (updateCount > 0) {
+        message = `${updateCount} goal(s) updated successfully`;
+      } else if (deleteCount > 0) {
+        message = `${deleteCount} goal(s) deleted successfully`;
+      } else {
+        message = "No changes made";
+      }
+
+      toast({
+        message,
+        type: "success",
       });
 
-      if (result) {
-        toast({
-          message: "Goal updated successfully",
-          type: "success",
-        });
-
-        // Clear the edited value
-        setEditedGoals((prev) => {
-          const newState = { ...prev };
-          delete newState[goalId];
-          return newState;
-        });
-      } else {
-        toast({
-          message: "Failed to update goal",
-          type: "error",
-        });
-      }
+      // Clear state and close modal
+      setEditedGoals({});
+      setGoalsToDelete([]);
+      setEditGoalsOpen(false);
     } catch (error) {
-      console.error("Error updating goal:", error);
+      console.error("Error saving changes:", error);
       toast({
-        message: "Failed to update goal. Please try again.",
-        type: "error",
-      });
-    }
-  };
-
-  // Individual goal delete function
-  const handleDeleteGoal = async (goalId: string, goalName: string) => {
-    try {
-      const result = await deleteGoalMutation.mutateAsync(goalId);
-
-      if (result) {
-        toast({
-          message: `Goal "${goalName}" deleted successfully`,
-          type: "success",
-        });
-
-        // Clear any edited value for this goal
-        setEditedGoals((prev) => {
-          const newState = { ...prev };
-          delete newState[goalId];
-          return newState;
-        });
-      } else {
-        toast({
-          message: "Failed to delete goal",
-          type: "error",
-        });
-      }
-    } catch (error) {
-      console.error("Error deleting goal:", error);
-      toast({
-        message: "Failed to delete goal. Please try again.",
+        message: "Failed to save changes. Please try again.",
         type: "error",
       });
     }
@@ -476,9 +472,14 @@ export default function Goals() {
         goals={goals}
         editedGoals={editedGoals}
         setEditedGoals={setEditedGoals}
-        onSaveGoal={handleSaveGoal}
-        onDeleteGoal={handleDeleteGoal}
-        onClose={handleEditGoalsClose}
+        goalsToDelete={goalsToDelete}
+        setGoalsToDelete={setGoalsToDelete}
+        onSaveAll={handleSaveAllChanges}
+        onClose={() => {
+          setEditGoalsOpen(false);
+          setEditedGoals({});
+          setGoalsToDelete([]);
+        }}
       />
 
       {/* Make Contribution Modal */}

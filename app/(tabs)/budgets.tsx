@@ -40,6 +40,7 @@ export default function Budgets() {
   const [editedBudgets, setEditedBudgets] = useState<{ [key: string]: string }>(
     {}
   );
+  const [budgetsToDelete, setBudgetsToDelete] = useState<string[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Scroll to top and refresh data when the tab is focused
@@ -133,86 +134,76 @@ export default function Budgets() {
     }
   };
 
-  // Individual budget save function
-  const handleSaveBudget = async (budgetId: string) => {
+  // Save all changes function
+  const handleSaveAllChanges = async () => {
     try {
-      const editedAmount = editedBudgets[budgetId];
+      let hasErrors = false;
 
-      // Allow the field to be empty during typing, but validate on save
-      if (!editedAmount || editedAmount.trim() === "") {
-        toast({
-          message: "Please enter a budget amount",
-          type: "error",
-        });
-        return;
+      // Validate all edited budgets
+      for (const editedAmount of Object.values(editedBudgets)) {
+        if (!editedAmount || editedAmount.trim() === "") {
+          toast({
+            message: "Please enter a budget amount for all fields",
+            type: "error",
+          });
+          hasErrors = true;
+          break;
+        }
+
+        const amount = parseFloat(editedAmount);
+        if (isNaN(amount) || amount <= 0) {
+          toast({
+            message: "Please enter valid budget amounts greater than 0",
+            type: "error",
+          });
+          hasErrors = true;
+          break;
+        }
       }
 
-      const amount = parseFloat(editedAmount);
-      if (isNaN(amount) || amount <= 0) {
-        toast({
-          message: "Please enter a valid budget amount greater than 0",
-          type: "error",
+      if (hasErrors) return;
+
+      // Update all edited budgets
+      for (const [budgetId, editedAmount] of Object.entries(editedBudgets)) {
+        const amount = parseFloat(editedAmount);
+        await updateBudgetMutation.mutateAsync({
+          id: budgetId,
+          budgetData: { budgetAmount: amount },
         });
-        return;
       }
 
-      const result = await updateBudgetMutation.mutateAsync({
-        id: budgetId,
-        budgetData: { budgetAmount: amount },
+      // Delete all marked budgets
+      for (const budgetId of budgetsToDelete) {
+        await deleteBudgetMutation.mutateAsync(budgetId);
+      }
+
+      // Show success message
+      const updateCount = Object.keys(editedBudgets).length;
+      const deleteCount = budgetsToDelete.length;
+      let message = "";
+
+      if (updateCount > 0 && deleteCount > 0) {
+        message = `${updateCount} budget(s) updated and ${deleteCount} deleted successfully`;
+      } else if (updateCount > 0) {
+        message = `${updateCount} budget(s) updated successfully`;
+      } else if (deleteCount > 0) {
+        message = `${deleteCount} budget(s) deleted successfully`;
+      } else {
+        message = "No changes made";
+      }
+
+      toast({
+        message,
+        type: "success",
       });
 
-      if (result) {
-        toast({
-          message: "Budget updated successfully",
-          type: "success",
-        });
-
-        // Clear the edited value
-        setEditedBudgets((prev) => {
-          const newState = { ...prev };
-          delete newState[budgetId];
-          return newState;
-        });
-      } else {
-        toast({
-          message: "Failed to update budget",
-          type: "error",
-        });
-      }
+      // Clear state and close modal
+      setEditedBudgets({});
+      setBudgetsToDelete([]);
+      setEditBudgetsOpen(false);
     } catch {
       toast({
-        message: "Failed to update budget. Please try again.",
-        type: "error",
-      });
-    }
-  };
-
-  // Individual budget delete function
-  const handleDeleteBudget = async (budgetId: string, category: string) => {
-    try {
-      const result = await deleteBudgetMutation.mutateAsync(budgetId);
-
-      if (result) {
-        toast({
-          message: `Budget for ${category} deleted successfully`,
-          type: "success",
-        });
-
-        // Clear any edited value for this budget
-        setEditedBudgets((prev) => {
-          const newState = { ...prev };
-          delete newState[budgetId];
-          return newState;
-        });
-      } else {
-        toast({
-          message: "Failed to delete budget",
-          type: "error",
-        });
-      }
-    } catch {
-      toast({
-        message: "Failed to delete budget. Please try again.",
+        message: "Failed to save changes. Please try again.",
         type: "error",
       });
     }
@@ -478,9 +469,14 @@ export default function Budgets() {
                     budgets={budgets}
                     editedBudgets={editedBudgets}
                     setEditedBudgets={setEditedBudgets}
-                    onSaveBudget={handleSaveBudget}
-                    onDeleteBudget={handleDeleteBudget}
-                    onClose={() => setEditBudgetsOpen(false)}
+                    budgetsToDelete={budgetsToDelete}
+                    setBudgetsToDelete={setBudgetsToDelete}
+                    onSaveAll={handleSaveAllChanges}
+                    onClose={() => {
+                      setEditBudgetsOpen(false);
+                      setEditedBudgets({});
+                      setBudgetsToDelete([]);
+                    }}
                   />
                 </CardContent>
               </Card>

@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import React, { useRef, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TransactionsListSkeleton } from "../../components/loading-states";
 import Nav from "../../components/nav";
@@ -11,6 +11,7 @@ import {
   formatTransactionType,
   getAmountColor,
   isDateInPeriod,
+  TransactionActionMenu,
   TransactionDetailModal,
 } from "../../components/transactions";
 import { Badge } from "../../components/ui/badge";
@@ -21,14 +22,6 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../../components/ui/dropdown-menu";
 import { NativePicker } from "../../components/ui/native-picker";
 import {
   Table,
@@ -555,39 +548,23 @@ export default function Transactions() {
                                   maxWidth: 50,
                                 }}
                               >
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Pressable className="h-8 w-8 p-0 items-center justify-center">
-                                      <Text className="text-gray-600">⋯</Text>
-                                    </Pressable>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>
-                                      <Text>Actions</Text>
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuItem
-                                      onPress={() =>
-                                        handleTransactionClick(transaction)
-                                      }
-                                    >
-                                      <Text>View details</Text>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onPress={() => {
-                                        setSelectedTransaction(transaction);
-                                        setEditSingleTransactionOpen(true);
-                                      }}
-                                    >
-                                      <Text>Edit transaction</Text>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-red-600">
-                                      <Text className="text-red-600">
-                                        Delete transaction
-                                      </Text>
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                                <TransactionActionMenu
+                                  transaction={transaction}
+                                  onView={() =>
+                                    handleTransactionClick(transaction)
+                                  }
+                                  onEdit={() => {
+                                    setSelectedTransaction(transaction);
+                                    setEditSingleTransactionOpen(true);
+                                  }}
+                                  onDelete={() => {
+                                    // TODO: Implement delete functionality
+                                    console.log(
+                                      "Delete transaction:",
+                                      transaction.id
+                                    );
+                                  }}
+                                />
                               </TableCell>
                             </TableRow>
                           ))

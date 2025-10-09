@@ -1,9 +1,10 @@
 import { useRouter } from "expo-router";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Nav from "../components/nav";
+import { CategorySelect } from "../components/category-select";
 import { FormSkeleton } from "../components/loading-states";
+import Nav from "../components/nav";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -12,8 +13,6 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { DateTimePicker } from "../components/ui/date-time-picker";
-import { CategorySelect } from "../components/category-select";
-import { getIncomeCategoryNames } from "../constants/categories";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import {
@@ -24,11 +23,12 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { useToast } from "../components/ui/sonner";
-import { useAuth } from "../hooks/queries/useAuth";
+import { VoiceInputModal } from "../components/voice-input-modal";
+import { getIncomeCategoryNames } from "../constants/categories";
 import { useAccounts } from "../hooks/queries/useAccounts";
+import { useAuth } from "../hooks/queries/useAuth";
 import { useCreateIncomeTransaction } from "../hooks/queries/useTransactions";
 import { useVoiceInput } from "../hooks/useVoiceInput";
-import { VoiceInputModal } from "../components/voice-input-modal";
 
 export default function AddIncomePage() {
   const router = useRouter();
@@ -207,26 +207,32 @@ export default function AddIncomePage() {
                   />
                 </View>
 
-                {/* Description */}
-                <View className="space-y-2 py-2">
-                  <Label>Description</Label>
-                  <Input
-                    placeholder="Source of income..."
-                    value={description}
-                    onChangeText={setDescription}
-                    className="px-4 py-3"
-                  />
-                </View>
-
-                {/* Income Source */}
+                {/* Income Category (Source Type) */}
                 <CategorySelect
                   value={incomeSource}
                   onValueChange={setIncomeSource}
                   type="income"
-                  label="Income Source"
+                  label="Income Category"
                   required
                   className="w-full"
                 />
+
+                {/* Received From (Source Name) */}
+                <View className="space-y-2 py-2">
+                  <Label>
+                    Received From <Text className="text-red-500">*</Text>
+                  </Label>
+                  <Input
+                    placeholder="Who sent you this payment?"
+                    value={description}
+                    onChangeText={setDescription}
+                    className="px-4 py-3"
+                  />
+                  <Text className="text-xs text-gray-500">
+                    💡 Enter the specific source (e.g., employer name, client
+                    name, etc.)
+                  </Text>
+                </View>
 
                 {/* Deposit to Account */}
                 <View className="space-y-2 py-2">

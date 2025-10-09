@@ -1,5 +1,6 @@
+import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import type { Goal } from "../../lib/types";
 import { formatCurrency } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -31,8 +32,9 @@ interface EditGoalsModalProps {
       };
     }>
   >;
-  onSaveGoal: (goalId: string) => void;
-  onDeleteGoal: (goalId: string, goalName: string) => void;
+  goalsToDelete: string[];
+  setGoalsToDelete: React.Dispatch<React.SetStateAction<string[]>>;
+  onSaveAll: () => void;
   onClose: () => void;
 }
 
@@ -42,10 +44,14 @@ export function EditGoalsModal({
   goals,
   editedGoals,
   setEditedGoals,
-  onSaveGoal,
-  onDeleteGoal,
+  goalsToDelete,
+  setGoalsToDelete,
+  onSaveAll,
   onClose,
 }: EditGoalsModalProps) {
+  const handleDeleteGoal = (goalId: string) => {
+    setGoalsToDelete((prev) => [...prev, goalId]);
+  };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent onClose={onClose}>
@@ -56,95 +62,105 @@ export function EditGoalsModal({
           </DialogDescription>
         </DialogHeader>
 
-        <View className="space-y-6">
-          {goals.map((goal, index) => (
-            <View
-              key={goal.id}
-              className={`space-y-3 p-4 border border-gray-200 rounded-lg bg-white ${
-                index > 0 ? "mt-4" : ""
-              }`}
-            >
-              <View className="space-y-2">
-                <Label>Goal Name</Label>
-                <Input
-                  value={editedGoals[goal.id]?.name ?? goal.name}
-                  onChangeText={(text) =>
-                    setEditedGoals((prev) => ({
-                      ...prev,
-                      [goal.id]: { ...prev[goal.id], name: text },
-                    }))
-                  }
-                  className="w-full"
-                />
-              </View>
+        <View className="space-y-4">
+          {goals
+            .filter((goal) => !goalsToDelete.includes(goal.id))
+            .map((goal, index) => (
+              <View
+                key={goal.id}
+                className={`space-y-3 p-4 border border-gray-200 rounded-lg bg-white ${
+                  index > 0 ? "mt-2" : ""
+                }`}
+              >
+                {/* Goal Name with Delete Icon */}
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-base font-semibold">
+                    {editedGoals[goal.id]?.name ?? goal.name}
+                  </Text>
+                  <Pressable
+                    onPress={() => handleDeleteGoal(goal.id)}
+                    className="p-2"
+                  >
+                    <Feather name="trash-2" size={20} color="#dc2626" />
+                  </Pressable>
+                </View>
 
-              <View className="space-y-2">
-                <Label>Target Amount</Label>
-                <Input
-                  value={
-                    editedGoals[goal.id]?.targetAmount ??
-                    goal.targetAmount.toString()
-                  }
-                  onChangeText={(text) =>
-                    setEditedGoals((prev) => ({
-                      ...prev,
-                      [goal.id]: { ...prev[goal.id], targetAmount: text },
-                    }))
-                  }
-                  keyboardType="decimal-pad"
-                  returnKeyType="done"
-                  blurOnSubmit={true}
-                  className="w-full"
-                />
-              </View>
+                <View className="space-y-2">
+                  <Label>Goal Name</Label>
+                  <Input
+                    value={editedGoals[goal.id]?.name ?? goal.name}
+                    onChangeText={(text) =>
+                      setEditedGoals((prev) => ({
+                        ...prev,
+                        [goal.id]: { ...prev[goal.id], name: text },
+                      }))
+                    }
+                    className="w-full"
+                  />
+                </View>
 
-              <View className="space-y-2">
-                <Label>Target Date</Label>
-                <DatePicker
-                  date={
-                    editedGoals[goal.id]?.targetDate ??
-                    (goal.targetDate ? new Date(goal.targetDate) : new Date())
-                  }
-                  onDateChange={(date) => {
-                    setEditedGoals((prev) => ({
-                      ...prev,
-                      [goal.id]: { ...prev[goal.id], targetDate: date },
-                    }));
-                  }}
-                  placeholder="Select target date"
-                  className="w-full"
-                />
-              </View>
+                <View className="space-y-2">
+                  <Label>Target Amount</Label>
+                  <Input
+                    value={
+                      editedGoals[goal.id]?.targetAmount ??
+                      goal.targetAmount.toString()
+                    }
+                    onChangeText={(text) =>
+                      setEditedGoals((prev) => ({
+                        ...prev,
+                        [goal.id]: { ...prev[goal.id], targetAmount: text },
+                      }))
+                    }
+                    keyboardType="decimal-pad"
+                    returnKeyType="done"
+                    blurOnSubmit={true}
+                    className="w-full"
+                  />
+                </View>
 
-              <Text className="text-sm text-gray-600">
-                Current amount: {formatCurrency(goal.currentAmount)}
-              </Text>
+                <View className="space-y-2">
+                  <Label>Current Amount</Label>
+                  <Input
+                    value={formatCurrency(goal.currentAmount)}
+                    editable={false}
+                    className="w-full bg-gray-100 text-gray-600"
+                  />
+                </View>
 
-              {/* Individual Save and Delete buttons */}
-              <View className="flex-row gap-4 pt-2">
-                <Button
-                  onPress={() => onSaveGoal(goal.id)}
-                  className="min-w-[130px]"
-                  size="sm"
-                >
-                  Save
-                </Button>
-                <Button
-                  variant="destructive"
-                  onPress={() => onDeleteGoal(goal.id, goal.name)}
-                  className="min-w-[130px]"
-                  size="sm"
-                >
-                  Delete
-                </Button>
+                <View className="space-y-2">
+                  <Label>Target Date</Label>
+                  <DatePicker
+                    date={
+                      editedGoals[goal.id]?.targetDate ??
+                      (goal.targetDate ? new Date(goal.targetDate) : new Date())
+                    }
+                    onDateChange={(date) => {
+                      setEditedGoals((prev) => ({
+                        ...prev,
+                        [goal.id]: { ...prev[goal.id], targetDate: date },
+                      }));
+                    }}
+                    placeholder="Select target date"
+                    className="w-full"
+                  />
+                </View>
+
+                <Text className="text-sm text-gray-600">
+                  Progress: {formatCurrency(goal.currentAmount)} of{" "}
+                  {formatCurrency(goal.targetAmount)} (
+                  {Math.round((goal.currentAmount / goal.targetAmount) * 100)}%)
+                </Text>
               </View>
-            </View>
-          ))}
+            ))}
         </View>
 
-        <DialogFooter>
-          <Button variant="outline" onPress={onClose} className="w-full">
-            Close
+        <DialogFooter className="flex-row gap-4">
+          <Button variant="outline" onPress={onClose} className="flex-1">
+            Cancel
+          </Button>
+          <Button onPress={onSaveAll} className="flex-1">
+            Save All Changes
           </Button>
         </DialogFooter>
       </DialogContent>

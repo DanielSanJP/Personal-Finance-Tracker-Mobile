@@ -1,5 +1,6 @@
+import { Feather } from "@expo/vector-icons";
 import React from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -27,8 +28,9 @@ interface EditBudgetsModalProps {
   setEditedBudgets: React.Dispatch<
     React.SetStateAction<{ [key: string]: string }>
   >;
-  onSaveBudget: (budgetId: string) => void;
-  onDeleteBudget: (budgetId: string, category: string) => void;
+  budgetsToDelete: string[];
+  setBudgetsToDelete: React.Dispatch<React.SetStateAction<string[]>>;
+  onSaveAll: () => void;
   onClose: () => void;
 }
 
@@ -38,10 +40,14 @@ export function EditBudgetsModal({
   budgets,
   editedBudgets,
   setEditedBudgets,
-  onSaveBudget,
-  onDeleteBudget,
+  budgetsToDelete,
+  setBudgetsToDelete,
+  onSaveAll,
   onClose,
 }: EditBudgetsModalProps) {
+  const handleDeleteBudget = (budgetId: string) => {
+    setBudgetsToDelete((prev) => [...prev, budgetId]);
+  };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent onClose={onClose}>
@@ -52,68 +58,63 @@ export function EditBudgetsModal({
           </DialogDescription>
         </DialogHeader>
 
-        <View className="space-y-6">
-          {budgets.map((budget, index) => (
-            <View
-              key={budget.id}
-              className={`space-y-3 p-4 border border-gray-200 rounded-lg bg-white ${
-                index > 0 ? "mt-4" : ""
-              }`}
-            >
-              <View className="flex-row items-center justify-between">
-                <Text className="text-base font-medium">{budget.category}</Text>
-              </View>
+        <View className="space-y-4">
+          {budgets
+            .filter((budget) => !budgetsToDelete.includes(budget.id))
+            .map((budget, index) => (
+              <View
+                key={budget.id}
+                className={`space-y-3 p-4 border border-gray-200 rounded-lg bg-white ${
+                  index > 0 ? "mt-2" : ""
+                }`}
+              >
+                {/* Budget Category with Delete Icon */}
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-base font-semibold">
+                    {budget.category}
+                  </Text>
+                  <Pressable
+                    onPress={() => handleDeleteBudget(budget.id)}
+                    className="p-2"
+                  >
+                    <Feather name="trash-2" size={20} color="#dc2626" />
+                  </Pressable>
+                </View>
 
-              <View className="space-y-2 py-2">
-                <Label>Budget Amount</Label>
-                <Input
-                  value={
-                    budget.id in editedBudgets
-                      ? editedBudgets[budget.id]
-                      : budget.budgetAmount.toString()
-                  }
-                  onChangeText={(text) =>
-                    setEditedBudgets((prev) => ({
-                      ...prev,
-                      [budget.id]: text,
-                    }))
-                  }
-                  keyboardType="decimal-pad"
-                  returnKeyType="done"
-                  blurOnSubmit={true}
-                  className="w-full"
-                />
-              </View>
+                <View className="space-y-2">
+                  <Label>Budget Amount</Label>
+                  <Input
+                    value={
+                      budget.id in editedBudgets
+                        ? editedBudgets[budget.id]
+                        : budget.budgetAmount.toString()
+                    }
+                    onChangeText={(text) =>
+                      setEditedBudgets((prev) => ({
+                        ...prev,
+                        [budget.id]: text,
+                      }))
+                    }
+                    keyboardType="decimal-pad"
+                    returnKeyType="done"
+                    blurOnSubmit={true}
+                    className="w-full"
+                  />
+                </View>
 
-              <Text className="text-sm text-gray-600 py-2">
-                Current spending: ${budget.spentAmount.toFixed(2)}
-              </Text>
-
-              {/* Individual Save and Delete buttons */}
-              <View className="flex-row gap-4 pt-2">
-                <Button
-                  onPress={() => onSaveBudget(budget.id)}
-                  className="min-w-[130px]"
-                  size="sm"
-                >
-                  Save
-                </Button>
-                <Button
-                  variant="destructive"
-                  onPress={() => onDeleteBudget(budget.id, budget.category)}
-                  className="min-w-[130px]"
-                  size="sm"
-                >
-                  Delete
-                </Button>
+                <Text className="text-sm text-gray-600">
+                  Current spending: ${budget.spentAmount.toFixed(2)}
+                </Text>
               </View>
-            </View>
-          ))}
+            ))}
         </View>
 
-        <DialogFooter>
-          <Button variant="outline" onPress={onClose} className="w-full">
-            Close
+        <DialogFooter className="flex-row gap-4">
+          <Button variant="outline" onPress={onClose} className="flex-1">
+            Cancel
+          </Button>
+          <Button onPress={onSaveAll} className="flex-1">
+            Save All Changes
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -184,11 +184,14 @@ export function AddTransactionModal({
     if (
       !formData.amount ||
       !formData.description ||
+      !formData.category ||
+      !formData.merchant ||
       !formData.account ||
       !formData.date
     ) {
       toast.toast({
-        message: "Error: Please fill in all required fields",
+        message:
+          "Error: Please fill in all required fields (amount, description, category, paid to, and account)",
         type: "error",
       });
       return;
@@ -349,13 +352,13 @@ export function AddTransactionModal({
                 required={true}
               />
 
-              {/* Merchant */}
+              {/* Paid To (Merchant) */}
               <View className="space-y-2 py-2">
                 <Label className="text-base font-medium">
-                  Merchant (Optional)
+                  Paid To <Text className="text-red-500">*</Text>
                 </Label>
                 <Input
-                  placeholder="Where was this transaction made?"
+                  placeholder="Who or where did you pay?"
                   value={formData.merchant}
                   onChangeText={(text) =>
                     setFormData({ ...formData, merchant: text })

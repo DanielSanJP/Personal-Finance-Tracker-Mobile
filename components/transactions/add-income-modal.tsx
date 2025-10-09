@@ -84,8 +84,8 @@ export function AddIncomeModal({
 
       await createIncomeMutation.mutateAsync({
         amount: Number(amount),
-        description: description,
-        source: incomeSource,
+        description: description, // This is the "Received From" field
+        source: incomeSource, // This is the income category (Salary, Freelance, etc.)
         accountId: accountId,
         date: date,
       });
@@ -146,11 +146,23 @@ export function AddIncomeModal({
               />
             </View>
 
-            {/* Description */}
+            {/* Income Category (Source Type) */}
+            <CategorySelect
+              value={incomeSource}
+              onValueChange={setIncomeSource}
+              type="income"
+              label="Income Category"
+              required
+              className="w-full"
+            />
+
+            {/* Received From (Source Name) */}
             <View className="space-y-2 py-2">
-              <Label>Description</Label>
+              <Label>
+                Received From <Text className="text-red-500">*</Text>
+              </Label>
               <Input
-                placeholder="Source of income..."
+                placeholder="Who sent you this payment?"
                 value={description}
                 onChangeText={setDescription}
                 maxLength={150}
@@ -158,17 +170,11 @@ export function AddIncomeModal({
                 blurOnSubmit={true}
                 className="px-4 py-3"
               />
+              <Text className="text-xs text-gray-500">
+                💡 Enter the specific source (e.g., employer name, client name,
+                etc.)
+              </Text>
             </View>
-
-            {/* Income Source */}
-            <CategorySelect
-              value={incomeSource}
-              onValueChange={setIncomeSource}
-              type="income"
-              label="Income Source"
-              required
-              className="w-full"
-            />
 
             {/* Deposit to Account */}
             <View className="space-y-2 py-2">
