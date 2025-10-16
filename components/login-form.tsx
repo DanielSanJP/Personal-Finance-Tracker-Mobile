@@ -1,8 +1,8 @@
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Text, TouchableOpacity, View } from "react-native";
+import { supabase } from "../lib/supabase";
 import { cn } from "../lib/utils";
-import { signInWithEmail, signInAsGuest } from "../lib/auth";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
@@ -26,15 +26,22 @@ export function LoginForm({ className }: LoginFormProps) {
 
     setLoading(true);
     try {
-      await signInWithEmail({ email: email.trim(), password });
-      router.push("/dashboard");
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) throw error;
+
+      // Success! Auth state will update via onAuthStateChange
+      // Login page will detect the user and redirect to dashboard
+      // Keep loading state to prevent flickering
     } catch (error) {
       Alert.alert(
         "Login Error",
         error instanceof Error ? error.message : "Failed to sign in"
       );
-    } finally {
-      setLoading(false);
+      setLoading(false); // Only reset loading on error
     }
   };
 
@@ -49,15 +56,19 @@ export function LoginForm({ className }: LoginFormProps) {
   const handleContinueAsGuest = async () => {
     setLoading(true);
     try {
-      await signInAsGuest();
-      router.push("/dashboard");
+      const { error } = await supabase.auth.signInAnonymously();
+
+      if (error) throw error;
+
+      // Success! Auth state will update via onAuthStateChange
+      // Login page will detect the user and redirect to dashboard
+      // Keep loading state to prevent flickering
     } catch (error) {
       Alert.alert(
         "Guest Login Error",
         error instanceof Error ? error.message : "Failed to sign in as guest"
       );
-    } finally {
-      setLoading(false);
+      setLoading(false); // Only reset loading on error
     }
   };
 

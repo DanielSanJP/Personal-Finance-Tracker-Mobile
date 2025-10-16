@@ -105,9 +105,9 @@ export default function Dashboard() {
                     </Button>
                     <Button
                       variant="outline"
-                      onPress={() => {
-                        /* TODO: Implement receipt scanning */
-                      }}
+                      onPress={() =>
+                        router.push("/addtransaction?openScanner=true")
+                      }
                       className="min-w-[120px] p-6"
                     >
                       Scan Receipt

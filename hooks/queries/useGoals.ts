@@ -1,9 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { checkGuestAndWarn } from "@/lib/guest-protection";
-import { supabase } from "@/lib/supabase";
-import { getCurrentUser } from "./useAuth";
 import { queryKeys } from "@/lib/query-keys";
+import { supabase } from "@/lib/supabase";
 import type { Goal } from "@/lib/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getCurrentUser } from "./useAuth";
 
 // Goal functions
 export const getCurrentUserGoals = async (): Promise<Goal[]> => {
@@ -62,18 +62,18 @@ export const createGoal = async (goalData: {
         user_id: user.id,
         name: goalData.name,
         target_amount: goalData.targetAmount,
-        current_amount: goalData.currentAmount || 0,
+        current_amount: goalData.currentAmount || 0, // Start at 0 or specified amount
         target_date: goalData.targetDate || null,
         category: null,
         priority: goalData.priority || 'medium',
-        status: goalData.status
+        status: goalData.status || 'active' // Default to active
       })
       .select()
       .single();
 
     if (error) {
       console.error('Error creating goal:', error);
-      throw new Error('Failed to create goal');
+      throw new Error(`Failed to create goal: ${error.message}`);
     }
 
     return {
@@ -154,15 +154,31 @@ export const deleteGoal = async (goalId: string) => {
   }
 
   try {
-    const { error } = await supabase
+    // 🔴 CRITICAL: Delete contribution transactions FIRST
+    // This allows the database trigger to automatically reverse the account balances
+    // and return funds to the source accounts
+    const { error: transactionError } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('destination_account_id', goalId)
+      .eq('user_id', user.id)
+      .eq('type', 'transfer');
+
+    if (transactionError) {
+      console.error('Error deleting goal contributions:', transactionError);
+      throw new Error(`Failed to delete goal contributions: ${transactionError.message}`);
+    }
+
+    // Now delete the goal itself
+    const { error: goalError } = await supabase
       .from('goals')
       .delete()
       .eq('id', goalId)
       .eq('user_id', user.id);
 
-    if (error) {
-      console.error('Error deleting goal:', error);
-      throw new Error('Failed to delete goal');
+    if (goalError) {
+      console.error('Error deleting goal:', goalError);
+      throw new Error(`Failed to delete goal: ${goalError.message}`);
     }
 
     return { success: true };
@@ -461,11 +477,16 @@ export function useDeleteGoal() {
       return deleteGoal(goalId);
     },
     onSuccess: () => {
-      // Invalidate goals and dashboard data
+      // Invalidate ALL related queries since we delete contribution transactions
+      // which reverses account balances via database trigger
       queryClient.invalidateQueries({ queryKey: queryKeys.goals.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.accounts.all }); // Balances restored
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all }); // Contributions deleted
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       // Legacy compatibility
       queryClient.invalidateQueries({ queryKey: GOAL_QUERY_KEYS.goals });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
     onError: (error: Error) => {
       if (error.message !== "Guest users cannot delete goals") {

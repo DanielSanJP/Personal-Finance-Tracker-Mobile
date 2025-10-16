@@ -1,10 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert } from 'react-native';
-import { queryKeys } from '@/lib/query-keys';
-import { useAuth, getCurrentUser } from './useAuth';
-import { supabase } from '@/lib/supabase';
 import { checkGuestAndWarn } from '@/lib/guest-protection';
+import { queryKeys } from '@/lib/query-keys';
+import { supabase } from '@/lib/supabase';
 import type { Account } from '@/lib/types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert } from 'react-native';
+import { getCurrentUser, useAuth } from './useAuth';
 
 // Data functions
 async function getCurrentUserAccounts(userId: string): Promise<Account[]> {
@@ -76,7 +76,7 @@ async function getTotalBalance(userId: string): Promise<number> {
 export async function createAccount(userId: string, accountData: {
   name: string;
   type: string;
-  balance: number;
+  balance?: number; // Optional - defaults to 0
   accountNumber?: string;
 }): Promise<Account> {
   if (!userId) {
@@ -93,7 +93,7 @@ export async function createAccount(userId: string, accountData: {
         id: accountId,
         user_id: userId,
         name: accountData.name,
-        balance: accountData.balance,
+        balance: accountData.balance ?? 0, // Default to 0 if not provided
         type: accountData.type,
         account_number: accountData.accountNumber || null,
         is_active: true
@@ -293,7 +293,7 @@ export function useCreateAccount() {
     mutationFn: async (accountData: {
       name: string;
       type: string;
-      balance: number;
+      balance?: number; // Optional - defaults to 0
       accountNumber?: string;
       isActive?: boolean;
     }) => {
@@ -386,6 +386,26 @@ export function useDeleteAccount() {
       const user = await getCurrentUser();
       if (!user) {
         throw new Error("User not authenticated");
+      }
+      
+      // 🔴 CRITICAL: Check balance before deletion
+      // Prevent deletion of accounts with non-zero balance to avoid data loss
+      const { data: account, error: fetchError } = await supabase
+        .from('accounts')
+        .select('balance, name')
+        .eq('id', accountId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError) {
+        throw new Error(`Failed to fetch account: ${fetchError.message}`);
+      }
+
+      if (account.balance !== 0) {
+        throw new Error(
+          `Cannot delete account "${account.name}" with a balance of $${Math.abs(account.balance).toFixed(2)}. ` +
+          'Please transfer the funds to another account first.'
+        );
       }
       
       return updateAccount(user.id, accountId, { isActive: false });

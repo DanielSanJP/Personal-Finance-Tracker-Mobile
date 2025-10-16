@@ -1,8 +1,8 @@
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Text, TouchableOpacity, View } from "react-native";
+import { supabase } from "../lib/supabase";
 import { cn } from "../lib/utils";
-import { signUpWithEmail } from "../lib/auth";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
@@ -45,18 +45,27 @@ export function RegisterForm({ className }: RegisterFormProps) {
 
     setLoading(true);
     try {
-      const result = await signUpWithEmail({
+      const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        options: {
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+          },
+        },
       });
 
-      if (result.session) {
+      if (error) throw error;
+
+      if (data.session) {
         // User is signed in immediately
-        router.push("/dashboard");
+        // Supabase will trigger onAuthStateChange -> auth context updates user state
+        // -> index.tsx useEffect detects user and navigates to /dashboard
+        // No manual navigation needed here!
       } else {
         // Email confirmation is required
+        setLoading(false);
         Alert.alert(
           "Registration Successful",
           "Please check your email for verification before signing in.",

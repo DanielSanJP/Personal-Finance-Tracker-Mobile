@@ -1,7 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import { Button } from "../ui/button";
-import { DatePicker } from "../ui/date-picker";
+import { DateTimePicker } from "../ui/date-time-picker";
 import {
   Dialog,
   DialogContent,
@@ -102,13 +102,14 @@ export function AddGoalModal({
           </View>
 
           <View className="space-y-2 py-2">
-            <Label>Target Date</Label>
-            <DatePicker
+            <DateTimePicker
               date={targetDate}
-              onDateChange={setTargetDate}
+              onDateTimeChange={setTargetDate}
               placeholder="Select target date"
               className="w-full"
               minimumDate={new Date(Date.now() + 24 * 60 * 60 * 1000)} // Tomorrow
+              showLabel={true}
+              required={true}
             />
           </View>
 

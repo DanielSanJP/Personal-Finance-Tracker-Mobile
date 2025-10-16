@@ -1,8 +1,9 @@
-import { Link, usePathname, useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Linking, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuth } from "../lib/auth-context";
+import { useAuth } from "../hooks/queries/useAuth";
+import { supabase } from "../lib/supabase";
 import Breadcrumbs from "./breadcrumbs";
 import { Button } from "./ui/button";
 import Logo from "./ui/logo";
@@ -18,13 +19,32 @@ import {
 export default function Nav() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [isNavigating, setIsNavigating] = React.useState(false);
+
+  // Get user metadata for display
+  const userMetadata = user?.user_metadata || {};
+  const displayName = userMetadata.display_name || user?.email || "User";
+
+  // Generate initials from display_name or email
+  const getInitials = () => {
+    if (userMetadata.display_name) {
+      const nameParts = userMetadata.display_name.trim().split(/\s+/);
+      if (nameParts.length >= 2) {
+        return `${nameParts[0][0]}${
+          nameParts[nameParts.length - 1][0]
+        }`.toUpperCase();
+      }
+      return userMetadata.display_name.substring(0, 2).toUpperCase();
+    }
+    return user?.email?.[0].toUpperCase() || "U";
+  };
+  const initials = getInitials();
 
   // Handle sign out with navigation
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await supabase.auth.signOut();
       // Navigate to login page after signing out
       router.replace("/login");
     } catch (error) {
@@ -82,15 +102,26 @@ export default function Nav() {
             {/* Navigation Actions */}
             {!showDashboardTabs && (
               <View className="flex-row flex-wrap items-center gap-2">
-                <Link href="/login" asChild>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="sm:size-default"
-                  >
-                    Login
-                  </Button>
-                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="sm:size-default"
+                  onPress={() =>
+                    Linking.openURL(
+                      "https://personal-finance-tracker-ashy-tau.vercel.app/guides"
+                    )
+                  }
+                >
+                  User Guide
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="sm:size-default"
+                  onPress={() => router.push("/login")}
+                >
+                  Login
+                </Button>
               </View>
             )}
 
@@ -98,14 +129,17 @@ export default function Nav() {
               <View className="flex-row items-center gap-2 sm:gap-3">
                 <NavDropdown>
                   <NavDropdownTrigger asChild>
-                    <TouchableOpacity className="flex-row items-center gap-2 hover:bg-gray-100 rounded-lg p-2">
+                    <TouchableOpacity
+                      className="flex-row items-center gap-2 hover:bg-gray-100 rounded-lg p-2"
+                      activeOpacity={1}
+                    >
                       <View className="w-8 h-8 rounded-full bg-gray-300 items-center justify-center">
                         <Text className="text-sm font-medium text-gray-600">
-                          {user.initials}
+                          {initials}
                         </Text>
                       </View>
                       <Text className="text-xs sm:text-sm text-gray-600">
-                        {user.display_name}
+                        {displayName}
                       </Text>
                     </TouchableOpacity>
                   </NavDropdownTrigger>
@@ -130,6 +164,15 @@ export default function Nav() {
                       <Text>Preferences</Text>
                     </NavDropdownItem>
                     <NavDropdownSeparator />
+                    <NavDropdownItem
+                      onPress={() =>
+                        Linking.openURL(
+                          "https://personal-finance-tracker-ashy-tau.vercel.app/guides"
+                        )
+                      }
+                    >
+                      <Text>User Guides</Text>
+                    </NavDropdownItem>
                     <NavDropdownItem onPress={() => router.push("/help")}>
                       <Text>Help & Support</Text>
                     </NavDropdownItem>

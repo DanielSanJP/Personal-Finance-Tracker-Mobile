@@ -9,7 +9,6 @@ import React from "react";
 // } from "react-native-reanimated";
 import { ToastProvider } from "../components/ui/sonner";
 import "../global.css";
-import { AuthProvider } from "../lib/auth-context";
 import { QueryProvider } from "../lib/query-provider";
 
 // Disable Reanimated strict mode warnings
@@ -21,23 +20,21 @@ import { QueryProvider } from "../lib/query-provider";
 export default function RootLayout() {
   return (
     <QueryProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <StatusBar style="auto" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: "none",
-              animationDuration: 0,
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="login" />
-            <Stack.Screen name="register" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
-        </ToastProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <StatusBar style="auto" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: "none",
+            animationDuration: 0,
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="register" />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+      </ToastProvider>
     </QueryProvider>
   );
 }

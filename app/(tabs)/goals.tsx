@@ -126,16 +126,16 @@ export default function Goals() {
         }
       }
 
-      // Validate target date is in the future
+      // Validate target date is not in the past (today or future is OK)
       if (targetDate) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const selectedDate = new Date(targetDate);
         selectedDate.setHours(0, 0, 0, 0);
 
-        if (selectedDate <= today) {
+        if (selectedDate < today) {
           toast({
-            message: "Target date must be in the future",
+            message: "Target date cannot be in the past",
             type: "error",
           });
           return;
@@ -162,9 +162,12 @@ export default function Goals() {
         type: "success",
       });
     } catch (err) {
-      console.error("Error creating goal:", err);
+      console.error("=== Error creating goal ===", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to create goal";
+      console.log("Error message:", errorMessage);
       toast({
-        message: "Failed to create goal",
+        message: errorMessage,
         type: "error",
       });
     }

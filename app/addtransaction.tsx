@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -33,6 +33,7 @@ import { useVoiceInput } from "../hooks/useVoiceInput";
 
 export default function AddTransactionPage() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { user, isLoading: loading } = useAuth();
   const toast = useToast();
   const { data: accounts = [] } = useAccounts();
@@ -57,6 +58,13 @@ export default function AddTransactionPage() {
 
   // Receipt scanner state
   const [showReceiptScanner, setShowReceiptScanner] = useState(false);
+
+  // Auto-open receipt scanner if openScanner param is true
+  useEffect(() => {
+    if (params.openScanner === "true") {
+      setShowReceiptScanner(true);
+    }
+  }, [params.openScanner]);
 
   // Receipt scanning hook
   const {
@@ -406,16 +414,14 @@ export default function AddTransactionPage() {
                 </Select>
               </View>
 
-              {/* Date & Time */}
-              <View className="space-y-2 py-2">
-                <Label className="text-base font-medium">
-                  Date & Time <Text className="text-red-500">*</Text>
-                </Label>
+              <View className="py-2">
                 <DateTimePicker
                   date={formData.date || new Date()}
                   onDateTimeChange={(date) =>
                     setFormData({ ...formData, date })
                   }
+                  showLabel={true}
+                  required={true}
                 />
               </View>
 

@@ -4,7 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import type { Goal } from "../../lib/types";
 import { formatCurrency } from "../../lib/utils";
 import { Button } from "../ui/button";
-import { DatePicker } from "../ui/date-picker";
+import { DateTimePicker } from "../ui/date-time-picker";
 import {
   Dialog,
   DialogContent,
@@ -129,13 +129,12 @@ export function EditGoalsModal({
                 </View>
 
                 <View className="space-y-2">
-                  <Label>Target Date</Label>
-                  <DatePicker
+                  <DateTimePicker
                     date={
                       editedGoals[goal.id]?.targetDate ??
                       (goal.targetDate ? new Date(goal.targetDate) : new Date())
                     }
-                    onDateChange={(date) => {
+                    onDateTimeChange={(date) => {
                       setEditedGoals((prev) => ({
                         ...prev,
                         [goal.id]: { ...prev[goal.id], targetDate: date },
@@ -143,6 +142,8 @@ export function EditGoalsModal({
                     }}
                     placeholder="Select target date"
                     className="w-full"
+                    showLabel={true}
+                    required={true}
                   />
                 </View>
 

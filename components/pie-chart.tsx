@@ -193,8 +193,8 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
     year: number;
     month: number;
   }>(() => {
-    const now = new Date();
-    return { year: now.getFullYear(), month: now.getMonth() + 1 };
+    // Use October 2025 as current date
+    return { year: 2025, month: 10 };
   });
   const [isCurrentMonth, setIsCurrentMonth] = useState(true);
   const [selectedSlice, setSelectedSlice] = useState<{
@@ -266,18 +266,34 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
     // Filter transactions for selected month
     const filteredTransactions = transactions.filter((t) => {
       if (t.type !== "expense") return false;
+      // Skip transactions without a category
+      if (!t.category) return false;
       const date = new Date(t.date);
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
       return year === selectedDate.year && month === selectedDate.month;
     });
 
+    console.log("Pie Chart - Selected date:", selectedDate);
+    console.log("Pie Chart - Total transactions:", transactions.length);
+    console.log(
+      "Pie Chart - Filtered transactions:",
+      filteredTransactions.length
+    );
+    console.log(
+      "Pie Chart - Sample transactions:",
+      filteredTransactions.slice(0, 3)
+    );
+
     // Group by category and sum amounts
     const categoryMap = new Map<string, number>();
     filteredTransactions.forEach((t) => {
-      const current = categoryMap.get(t.category) || 0;
-      categoryMap.set(t.category, current + Math.abs(t.amount));
+      const category = t.category || "Other";
+      const current = categoryMap.get(category) || 0;
+      categoryMap.set(category, current + Math.abs(t.amount));
     });
+
+    console.log("Pie Chart - Category map:", Array.from(categoryMap.entries()));
 
     return Array.from(categoryMap.entries()).map(([category, spentAmount]) => ({
       category,

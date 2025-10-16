@@ -2,12 +2,13 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AddAccountModal } from "../components/accounts";
+import { AddAccountModal, TransferModal } from "../components/accounts";
 import { EditAccountModal } from "../components/edit-account-modal";
 import { AccountsListSkeleton } from "../components/loading-states";
 import Nav from "../components/nav";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
+import { useToast } from "../components/ui/sonner";
 import { useAccounts } from "../hooks/queries/useAccounts";
 import { useAuth } from "../hooks/queries/useAuth";
 import type { Account } from "../lib/types";
@@ -24,7 +25,9 @@ export default function Accounts() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const toast = useToast();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -102,14 +105,28 @@ export default function Accounts() {
 
       <ScrollView ref={scrollViewRef} className="flex-1">
         <View className="max-w-7xl mx-auto px-6 py-8">
-          {/* Header with title and add button */}
-          <View className="flex-row justify-between items-center mb-6">
-            <Text className="text-3xl font-bold text-gray-900">
+          {/* Header with title */}
+          <View className="mb-6">
+            <Text className="text-3xl font-bold text-gray-900 mb-4">
               My Accounts
             </Text>
-            <Button variant="default" onPress={handleAddAccount}>
-              Add Account
-            </Button>
+            {/* Action Buttons */}
+            <View className="flex-row gap-3">
+              <Button
+                variant="default"
+                onPress={handleAddAccount}
+                className="flex-1"
+              >
+                Add Account
+              </Button>
+              <Button
+                variant="outline"
+                onPress={() => setIsTransferModalOpen(true)}
+                className="flex-1"
+              >
+                Transfer Funds
+              </Button>
+            </View>
           </View>
 
           {/* Content */}
@@ -218,6 +235,18 @@ export default function Accounts() {
         open={isAddModalOpen}
         onOpenChange={setIsAddModalOpen}
         onClose={handleCloseAddModal}
+      />
+
+      {/* Transfer Funds Modal */}
+      <TransferModal
+        open={isTransferModalOpen}
+        onOpenChange={setIsTransferModalOpen}
+        onSuccess={() => {
+          toast.toast({
+            message: "Transfer completed successfully",
+            type: "success",
+          });
+        }}
       />
     </SafeAreaView>
   );

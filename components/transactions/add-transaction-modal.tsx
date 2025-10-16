@@ -425,7 +425,6 @@ export function AddTransactionModal({
                 </Select>
               </View>
 
-              {/* Date & Time */}
               <View className="py-2">
                 <DateTimePicker
                   date={formData.date}

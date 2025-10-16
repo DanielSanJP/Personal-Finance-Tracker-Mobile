@@ -3,20 +3,20 @@ import React, { useEffect } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Nav from "../components/nav";
-import { useAuth } from "../lib/auth-context";
+import { useAuth } from "../hooks/queries/useAuth";
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     // If user is authenticated, redirect to dashboard
-    if (!loading && user) {
+    if (!isLoading && user) {
       router.replace("/dashboard");
     }
-  }, [user, loading]);
+  }, [user, isLoading]);
 
   // Show loading while checking auth state
-  if (loading) {
+  if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-white">
         <View className="flex-1 items-center justify-center">

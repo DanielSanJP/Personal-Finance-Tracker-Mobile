@@ -254,12 +254,12 @@ export default function AddIncomePage() {
                   </Select>
                 </View>
 
-                {/* Date & Time */}
-                <View className="space-y-2 py-2">
-                  <Label>Date & Time</Label>
+                <View className="py-2">
                   <DateTimePicker
                     date={date || new Date()}
                     onDateTimeChange={setDate}
+                    showLabel={true}
+                    required={true}
                   />
                 </View>
 

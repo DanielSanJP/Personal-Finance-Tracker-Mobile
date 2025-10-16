@@ -117,7 +117,7 @@ export function NavDropdownContent({
         <View
           style={{
             position: "absolute",
-            top: 48,
+            top: 90,
             right: 10,
             zIndex: 1000,
           }}

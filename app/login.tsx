@@ -1,12 +1,21 @@
-import { useFocusEffect } from "expo-router";
-import React, { useRef } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useEffect, useRef } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LoginForm } from "../components/login-form";
 import Nav from "../components/nav";
+import { useAuth } from "../hooks/queries/useAuth";
 
 export default function Login() {
   const scrollViewRef = useRef<ScrollView>(null);
+  const { user, isLoading } = useAuth();
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, isLoading]);
 
   // Scroll to top when the page is focused
   useFocusEffect(

@@ -196,7 +196,6 @@ export function AddIncomeModal({
               </Select>
             </View>
 
-            {/* Date & Time */}
             <View className="py-2">
               <DateTimePicker
                 date={date}

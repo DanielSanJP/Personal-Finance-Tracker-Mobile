@@ -1,7 +1,9 @@
 import * as React from "react";
 import {
   Dimensions,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -60,52 +62,59 @@ function DialogContent({
   ...props
 }: DialogContentProps) {
   return (
-    <View
-      className="flex-1 bg-black/50 justify-center px-4"
-      style={{ paddingTop: 0 }}
-      pointerEvents="box-none"
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
-      <TouchableOpacity
-        className="absolute inset-0"
-        activeOpacity={1}
-        onPress={onClose}
-      />
       <View
-        className={cn(
-          "bg-white rounded-2xl shadow-2xl border border-gray-200",
-          className
-        )}
-        style={{
-          maxHeight: screenHeight * 0.85,
-          minHeight: screenHeight * 0.3,
-        }}
-        pointerEvents="auto"
+        className="flex-1 bg-black/50 justify-center px-4"
+        style={{ paddingTop: 0 }}
+        pointerEvents="box-none"
       >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            padding: 20,
-            paddingBottom: 20,
-          }}
-          {...props}
-        >
-          {/* Drag indicator */}
-          <View className="w-10 h-1 bg-gray-300 rounded-full self-center mb-4" />
-
-          {children}
-
-          {showCloseButton && (
-            <TouchableOpacity
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 items-center justify-center z-10"
-              onPress={onClose}
-              activeOpacity={0.7}
-            >
-              <Text className="text-gray-600 text-lg font-medium">×</Text>
-            </TouchableOpacity>
+        <TouchableOpacity
+          className="absolute inset-0"
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View
+          className={cn(
+            "bg-white rounded-2xl shadow-2xl border border-gray-200",
+            className
           )}
-        </ScrollView>
+          style={{
+            maxHeight: screenHeight * 0.7,
+            minHeight: screenHeight * 0.2,
+          }}
+          pointerEvents="auto"
+        >
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              padding: 16,
+              paddingBottom: 16,
+            }}
+            keyboardShouldPersistTaps="handled"
+            {...props}
+          >
+            {/* Drag indicator */}
+            <View className="w-10 h-1 bg-gray-300 rounded-full self-center mb-4" />
+
+            {children}
+
+            {showCloseButton && (
+              <TouchableOpacity
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 items-center justify-center z-10"
+                onPress={onClose}
+                activeOpacity={0.7}
+              >
+                <Text className="text-gray-600 text-lg font-medium">×</Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+        </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -1,6 +1,7 @@
+import { Feather } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import React, { useRef, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TransactionsListSkeleton } from "../../components/loading-states";
 import Nav from "../../components/nav";
@@ -33,6 +34,7 @@ import {
 } from "../../components/ui/table";
 import { useAuth } from "../../hooks/queries/useAuth";
 import {
+  useDeleteTransaction,
   useTransactionFilterOptions,
   useTransactions,
 } from "../../hooks/queries/useTransactions";
@@ -49,6 +51,7 @@ export default function Transactions() {
   // Use React Query hooks for transactions and filter options
   const { data: transactions = [], isLoading, refetch } = useTransactions();
   const { data: filterOptions } = useTransactionFilterOptions();
+  const deleteTransactionMutation = useDeleteTransaction();
 
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedPeriod, setSelectedPeriod] = useState("This Month");
@@ -65,6 +68,10 @@ export default function Transactions() {
   const [editSingleTransactionOpen, setEditSingleTransactionOpen] =
     useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   // Scroll to top and refresh data when the tab is focused
   useFocusEffect(
@@ -108,143 +115,235 @@ export default function Transactions() {
         ),
       ];
 
-  // Filter transactions FIRST (without party filter)
-  const preFilteredTransactions = transactions.filter((transaction) => {
-    // Category filter
-    if (
-      selectedCategory !== "All Categories" &&
-      transaction.category !== selectedCategory
-    ) {
-      return false;
-    }
+  // Filter transactions FIRST (without party filter) - MEMOIZED for performance
+  const preFilteredTransactions = useMemo(() => {
+    return transactions.filter((transaction) => {
+      // Category filter
+      if (
+        selectedCategory !== "All Categories" &&
+        transaction.category !== selectedCategory
+      ) {
+        return false;
+      }
 
-    // Type filter
-    if (
-      selectedType !== "All Types" &&
-      formatTransactionType(transaction.type) !== selectedType
-    ) {
-      return false;
-    }
+      // Type filter
+      if (
+        selectedType !== "All Types" &&
+        formatTransactionType(transaction.type) !== selectedType
+      ) {
+        return false;
+      }
 
-    // Period filter
-    return isDateInPeriod(transaction.date, selectedPeriod);
-  });
+      // Period filter
+      return isDateInPeriod(transaction.date, selectedPeriod);
+    });
+  }, [transactions, selectedCategory, selectedType, selectedPeriod]);
 
-  // Calculate party spending/earnings from pre-filtered transactions
-  const partyAmounts = new Map<string, { amount: number; type: string }>();
-  preFilteredTransactions.forEach((t) => {
-    const parties = [t.from_party, t.to_party].filter(Boolean);
-    parties.forEach((party) => {
-      if (party) {
-        const current = partyAmounts.get(party) || { amount: 0, type: "" };
-        // For expenses, to_party gets negative (money out)
-        // For income, from_party gets positive (money in)
-        // For transfers, track separately with special symbol
-        if (t.type === "expense" && party === t.to_party) {
-          partyAmounts.set(party, {
-            amount: current.amount + Number(t.amount), // Store as positive, will negate in display
-            type: "expense",
-          });
-        } else if (t.type === "income" && party === t.from_party) {
-          partyAmounts.set(party, {
-            amount: current.amount + Number(t.amount),
-            type: "income",
-          });
-        } else if (t.type === "transfer" && party === t.to_party) {
-          partyAmounts.set(party, {
-            amount: current.amount + Number(t.amount),
-            type: "transfer",
-          });
+  // Calculate party spending/earnings from pre-filtered transactions - MEMOIZED
+  const parties = useMemo(() => {
+    const partyAmounts = new Map<string, { amount: number; type: string }>();
+
+    preFilteredTransactions.forEach((t) => {
+      const transactionParties = [t.from_party, t.to_party].filter(Boolean);
+      transactionParties.forEach((party) => {
+        if (party) {
+          const current = partyAmounts.get(party) || { amount: 0, type: "" };
+          // For expenses, to_party gets negative (money out)
+          // For income, from_party gets positive (money in)
+          // For transfers, track separately with special symbol
+          if (t.type === "expense" && party === t.to_party) {
+            partyAmounts.set(party, {
+              amount: current.amount + Number(t.amount), // Store as positive, will negate in display
+              type: "expense",
+            });
+          } else if (t.type === "income" && party === t.from_party) {
+            partyAmounts.set(party, {
+              amount: current.amount + Number(t.amount),
+              type: "income",
+            });
+          } else if (t.type === "transfer" && party === t.to_party) {
+            partyAmounts.set(party, {
+              amount: current.amount + Number(t.amount),
+              type: "transfer",
+            });
+          }
+        }
+      });
+    });
+
+    // Sort parties based on user selection (only for amount/name, date doesn't apply to parties)
+    const sortedPartyEntries = Array.from(partyAmounts.entries()).sort(
+      (a, b) => {
+        if (sortBy === "amount") {
+          const comparison = b[1].amount - a[1].amount;
+          return sortDirection === "desc" ? comparison : -comparison;
+        } else {
+          // Trim whitespace for proper alphabetical sorting
+          const nameA = a[0].trim().toLowerCase();
+          const nameB = b[0].trim().toLowerCase();
+          const comparison = nameA.localeCompare(nameB);
+          return sortDirection === "desc" ? comparison : -comparison;
         }
       }
+    );
+
+    // Format party list with amounts
+    const parties = [
+      "All Parties",
+      ...sortedPartyEntries.map(([party, { amount, type }]) => {
+        // Use absolute value to avoid doubling minus signs
+        const formattedAmount = formatCurrency(Math.abs(amount));
+        // Use different symbols based on transaction type
+        let displayAmount = "";
+        if (type === "expense") {
+          displayAmount = `-${formattedAmount}`; // Expenses are money out
+        } else if (type === "income") {
+          displayAmount = `+${formattedAmount}`; // Income is money in
+        } else if (type === "transfer") {
+          displayAmount = `→${formattedAmount}`; // Transfers use arrow symbol
+        }
+        return `${party} (${displayAmount})`;
+      }),
+    ];
+
+    return parties;
+  }, [preFilteredTransactions, sortBy, sortDirection]);
+
+  // Apply party filter and sort transactions - MEMOIZED for performance
+  const filteredTransactions = useMemo(() => {
+    const filteredTransactionsBase = preFilteredTransactions.filter(
+      (transaction) => {
+        // Party filter (check both from_party and to_party)
+        if (selectedParty !== "All Parties") {
+          // Extract party name from formatted string like "BP (-$100.00)"
+          const partyName = selectedParty.includes(" (")
+            ? selectedParty.substring(0, selectedParty.indexOf(" ("))
+            : selectedParty;
+          return (
+            transaction.from_party === partyName ||
+            transaction.to_party === partyName
+          );
+        }
+        return true;
+      }
+    );
+
+    if (sortBy === "none") {
+      return filteredTransactionsBase;
+    }
+
+    // Create a copy before sorting to avoid mutating original array
+    return [...filteredTransactionsBase].sort((a, b) => {
+      // Sort transactions based on user selection
+      if (sortBy === "date") {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        const comparison = dateB - dateA; // Default newest first
+        return sortDirection === "desc" ? comparison : -comparison;
+      } else if (sortBy === "amount") {
+        const comparison =
+          Math.abs(Number(b.amount)) - Math.abs(Number(a.amount));
+        return sortDirection === "desc" ? comparison : -comparison;
+      } else {
+        // Sort by party name
+        const partyA = (a.to_party || a.from_party || "").trim().toLowerCase();
+        const partyB = (b.to_party || b.from_party || "").trim().toLowerCase();
+        const comparison = partyA.localeCompare(partyB);
+        return sortDirection === "desc" ? comparison : -comparison;
+      }
     });
-  });
+  }, [preFilteredTransactions, selectedParty, sortBy, sortDirection]);
 
-  // Sort parties based on user selection (only for amount/name, date doesn't apply to parties)
-  const sortedPartyEntries = Array.from(partyAmounts.entries()).sort((a, b) => {
-    if (sortBy === "amount") {
-      const comparison = b[1].amount - a[1].amount;
-      return sortDirection === "desc" ? comparison : -comparison;
-    } else {
-      // Trim whitespace for proper alphabetical sorting
-      const nameA = a[0].trim().toLowerCase();
-      const nameB = b[0].trim().toLowerCase();
-      const comparison = nameA.localeCompare(nameB);
-      return sortDirection === "desc" ? comparison : -comparison;
-    }
-  });
+  // Pagination calculations - MEMOIZED for performance
+  const {
+    totalTransactions,
+    totalPages,
+    startIndex,
+    endIndex,
+    paginatedTransactions,
+  } = useMemo(() => {
+    const totalTransactions = filteredTransactions.length;
+    const totalPages = Math.ceil(totalTransactions / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedTransactions = filteredTransactions.slice(
+      startIndex,
+      endIndex
+    );
 
-  // Format party list with amounts
-  const parties = [
-    "All Parties",
-    ...sortedPartyEntries.map(([party, { amount, type }]) => {
-      // Use absolute value to avoid doubling minus signs
-      const formattedAmount = formatCurrency(Math.abs(amount));
-      // Use different symbols based on transaction type
-      let displayAmount = "";
-      if (type === "expense") {
-        displayAmount = `-${formattedAmount}`; // Expenses are money out
-      } else if (type === "income") {
-        displayAmount = `+${formattedAmount}`; // Income is money in
-      } else if (type === "transfer") {
-        displayAmount = `→${formattedAmount}`; // Transfers use arrow symbol
-      }
-      return `${party} (${displayAmount})`;
-    }),
-  ];
+    return {
+      totalTransactions,
+      totalPages,
+      startIndex,
+      endIndex,
+      paginatedTransactions,
+    };
+  }, [filteredTransactions, currentPage, itemsPerPage]);
 
-  // Apply party filter and sort transactions
-  const filteredTransactionsBase = preFilteredTransactions.filter(
-    (transaction) => {
-      // Party filter (check both from_party and to_party)
-      if (selectedParty !== "All Parties") {
-        // Extract party name from formatted string like "BP (-$100.00)"
-        const partyName = selectedParty.includes(" (")
-          ? selectedParty.substring(0, selectedParty.indexOf(" ("))
-          : selectedParty;
-        return (
-          transaction.from_party === partyName ||
-          transaction.to_party === partyName
-        );
-      }
-      return true;
-    }
-  );
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    selectedCategory,
+    selectedPeriod,
+    selectedParty,
+    selectedType,
+    sortBy,
+    sortDirection,
+  ]);
 
-  const filteredTransactions =
-    sortBy === "none"
-      ? filteredTransactionsBase
-      : filteredTransactionsBase.sort((a, b) => {
-          // Sort transactions based on user selection
-          if (sortBy === "date") {
-            const dateA = new Date(a.date).getTime();
-            const dateB = new Date(b.date).getTime();
-            const comparison = dateB - dateA; // Default newest first
-            return sortDirection === "desc" ? comparison : -comparison;
-          } else if (sortBy === "amount") {
-            const comparison =
-              Math.abs(Number(b.amount)) - Math.abs(Number(a.amount));
-            return sortDirection === "desc" ? comparison : -comparison;
-          } else {
-            // Sort by party name
-            const partyA = (a.to_party || a.from_party || "")
-              .trim()
-              .toLowerCase();
-            const partyB = (b.to_party || b.from_party || "")
-              .trim()
-              .toLowerCase();
-            const comparison = partyA.localeCompare(partyB);
-            return sortDirection === "desc" ? comparison : -comparison;
-          }
-        });
-
-  const handleTransactionClick = (transaction: Transaction) => {
+  // Memoize event handlers to prevent unnecessary re-renders
+  const handleTransactionClick = useCallback((transaction: Transaction) => {
     setSelectedTransaction(transaction);
     setDetailModalOpen(true);
-  };
+  }, []);
+
+  const handlePreviousPage = useCallback(() => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  }, []);
+
+  const handleNextPage = useCallback(() => {
+    setCurrentPage((prev) => prev + 1);
+  }, []);
+
+  const handleDeleteTransaction = useCallback(
+    (transaction: Transaction) => {
+      Alert.alert(
+        "Delete Transaction",
+        `Are you sure you want to delete this ${
+          transaction.type
+        } of ${formatCurrency(transaction.amount)}?`,
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await deleteTransactionMutation.mutateAsync(transaction.id);
+                Alert.alert("Success", "Transaction deleted successfully");
+              } catch (error) {
+                console.error("Error deleting transaction:", error);
+                Alert.alert(
+                  "Error",
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to delete transaction"
+                );
+              }
+            },
+          },
+        ]
+      );
+    },
+    [deleteTransactionMutation]
+  );
 
   // Helper function to get the relevant party to display
-  const getDisplayParty = (transaction: Transaction): string => {
+  const getDisplayParty = useCallback((transaction: Transaction): string => {
     if (transaction.type === "expense") {
       return transaction.to_party || "N/A"; // Show merchant
     } else if (transaction.type === "income") {
@@ -253,7 +352,7 @@ export default function Transactions() {
       return `To: ${transaction.to_party || "N/A"}`; // Show destination
     }
     return "N/A";
-  };
+  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -315,6 +414,86 @@ export default function Transactions() {
                     >
                       Export to PDF
                     </Button>
+                  </View>
+                </CardContent>
+              </Card>
+
+              {/* Transaction Summary */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Transaction Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <View className="flex-row flex-wrap justify-center gap-4">
+                    <View className="items-center flex-1 min-w-[120px]">
+                      <Text className="text-sm text-gray-600 font-medium mb-2">
+                        Total Income
+                      </Text>
+                      <Badge
+                        variant="default"
+                        className="text-base font-bold px-4 py-2 bg-green-600"
+                      >
+                        <Text>
+                          +
+                          {formatCurrency(
+                            filteredTransactions
+                              .filter((t) => t.type === "income")
+                              .reduce((sum, t) => sum + t.amount, 0)
+                          )}
+                        </Text>
+                      </Badge>
+                    </View>
+
+                    <View className="items-center flex-1 min-w-[120px]">
+                      <Text className="text-sm text-gray-600 font-medium mb-2">
+                        Total Expenses
+                      </Text>
+                      <Badge
+                        variant="destructive"
+                        className="text-base font-bold px-4 py-2"
+                      >
+                        <Text>
+                          {formatCurrency(
+                            filteredTransactions
+                              .filter((t) => t.type === "expense")
+                              .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+                          )}
+                        </Text>
+                      </Badge>
+                    </View>
+
+                    <View className="items-center flex-1 min-w-[120px]">
+                      <Text className="text-sm text-gray-600 font-medium mb-2">
+                        Net Total
+                      </Text>
+                      <Badge
+                        variant={
+                          filteredTransactions.reduce(
+                            (sum, t) => sum + t.amount,
+                            0
+                          ) >= 0
+                            ? "default"
+                            : "destructive"
+                        }
+                        className={`text-base font-bold px-4 py-2 ${
+                          filteredTransactions.reduce(
+                            (sum, t) => sum + t.amount,
+                            0
+                          ) >= 0
+                            ? "bg-green-600"
+                            : ""
+                        }`}
+                      >
+                        <Text>
+                          {formatCurrency(
+                            filteredTransactions.reduce(
+                              (sum, t) => sum + t.amount,
+                              0
+                            )
+                          )}
+                        </Text>
+                      </Badge>
+                    </View>
                   </View>
                 </CardContent>
               </Card>
@@ -462,8 +641,8 @@ export default function Transactions() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredTransactions.length ? (
-                          filteredTransactions.map((transaction) => (
+                        {paginatedTransactions.length ? (
+                          paginatedTransactions.map((transaction) => (
                             <TableRow
                               key={transaction.id}
                               className="cursor-pointer"
@@ -557,13 +736,9 @@ export default function Transactions() {
                                     setSelectedTransaction(transaction);
                                     setEditSingleTransactionOpen(true);
                                   }}
-                                  onDelete={() => {
-                                    // TODO: Implement delete functionality
-                                    console.log(
-                                      "Delete transaction:",
-                                      transaction.id
-                                    );
-                                  }}
+                                  onDelete={() =>
+                                    handleDeleteTransaction(transaction)
+                                  }
                                 />
                               </TableCell>
                             </TableRow>
@@ -587,86 +762,58 @@ export default function Transactions() {
                       </TableBody>
                     </Table>
                   </View>
-                </CardContent>
-              </Card>
 
-              {/* Transaction Summary */}
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle>Transaction Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <View className="flex-row flex-wrap justify-center gap-4">
-                    <View className="items-center flex-1 min-w-[120px]">
-                      <Text className="text-sm text-gray-600 font-medium mb-2">
-                        Total Income
-                      </Text>
-                      <Badge
-                        variant="default"
-                        className="text-base font-bold px-4 py-2 bg-green-600"
-                      >
-                        <Text>
-                          +
-                          {formatCurrency(
-                            filteredTransactions
-                              .filter((t) => t.type === "income")
-                              .reduce((sum, t) => sum + t.amount, 0)
-                          )}
+                  {/* Pagination Controls */}
+                  {totalTransactions > 0 && (
+                    <View className="mt-6 space-y-4">
+                      {/* Transaction Counter */}
+                      <View className="items-center">
+                        <Text className="text-sm text-gray-600">
+                          Showing {startIndex + 1}-
+                          {Math.min(endIndex, totalTransactions)} of{" "}
+                          {totalTransactions} transactions
                         </Text>
-                      </Badge>
-                    </View>
+                      </View>
 
-                    <View className="items-center flex-1 min-w-[120px]">
-                      <Text className="text-sm text-gray-600 font-medium mb-2">
-                        Total Expenses
-                      </Text>
-                      <Badge
-                        variant="destructive"
-                        className="text-base font-bold px-4 py-2"
-                      >
-                        <Text>
-                          {formatCurrency(
-                            filteredTransactions
-                              .filter((t) => t.type === "expense")
-                              .reduce((sum, t) => sum + Math.abs(t.amount), 0)
-                          )}
-                        </Text>
-                      </Badge>
-                    </View>
+                      {/* Pagination Buttons */}
+                      {totalPages > 1 && (
+                        <View className="flex-row justify-center items-center gap-4">
+                          {/* Previous Button */}
+                          <Pressable
+                            onPress={handlePreviousPage}
+                            disabled={currentPage === 1}
+                            className="w-12 h-12 border border-gray-300 rounded-lg items-center justify-center bg-white"
+                          >
+                            <Feather
+                              name="chevron-left"
+                              size={24}
+                              color="#374151"
+                            />
+                          </Pressable>
 
-                    <View className="items-center flex-1 min-w-[120px]">
-                      <Text className="text-sm text-gray-600 font-medium mb-2">
-                        Net Total
-                      </Text>
-                      <Badge
-                        variant={
-                          filteredTransactions.reduce(
-                            (sum, t) => sum + t.amount,
-                            0
-                          ) >= 0
-                            ? "default"
-                            : "destructive"
-                        }
-                        className={`text-base font-bold px-4 py-2 ${
-                          filteredTransactions.reduce(
-                            (sum, t) => sum + t.amount,
-                            0
-                          ) >= 0
-                            ? "bg-green-600"
-                            : ""
-                        }`}
-                      >
-                        <Text>
-                          {formatCurrency(
-                            filteredTransactions.reduce(
-                              (sum, t) => sum + t.amount,
-                              0
-                            )
-                          )}
-                        </Text>
-                      </Badge>
+                          {/* Page Indicator */}
+                          <View className="px-3">
+                            <Text className="text-sm font-medium text-gray-700">
+                              {currentPage} / {totalPages}
+                            </Text>
+                          </View>
+
+                          {/* Next Button */}
+                          <Pressable
+                            onPress={handleNextPage}
+                            disabled={currentPage === totalPages}
+                            className="w-12 h-12 border border-gray-300 rounded-lg items-center justify-center bg-white"
+                          >
+                            <Feather
+                              name="chevron-right"
+                              size={24}
+                              color="#374151"
+                            />
+                          </Pressable>
+                        </View>
+                      )}
                     </View>
-                  </View>
+                  )}
                 </CardContent>
               </Card>
 

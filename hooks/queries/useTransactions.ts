@@ -50,19 +50,23 @@ interface DatabaseTransaction {
  */
 async function getFilteredTransactions(
   filters: TransactionFilters = {},
-  limit: number = 1000
+  limit: number = 500 // CHANGED: Default to 500 instead of 1000 for Android stability
 ): Promise<Transaction[]> {
   const user = await getCurrentUser();
   if (!user) {
     return [];
   }
 
-  // Fetch all transactions for the user (client-side filtering approach)
+  // SAFETY: Cap limit at 1000 max to prevent memory issues on Android
+  const safeLimit = Math.min(limit, 1000);
+
+  // Fetch transactions for the user with limit
   const { data, error } = await supabase
     .from('transactions')
     .select('*')
     .eq('user_id', user.id)
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .limit(safeLimit);
 
   if (error) {
     console.error('Error fetching transactions:', error);
@@ -285,8 +289,10 @@ async function getTransactionSummary(
  * Get all transactions for a user (fallback function)
  */
 async function getCurrentUserTransactions(): Promise<Transaction[]> {
-  // Use the RPC with no filters to get all transactions
-  return getFilteredTransactions({}, 10000);
+  // CRITICAL: Limit to 500 transactions to prevent Android crashes
+  // Loading 10,000 transactions causes memory issues on Android devices
+  // 500 transactions = ~1-2 years of data for most users
+  return getFilteredTransactions({}, 500);
 }
 
 /**
@@ -413,42 +419,8 @@ export async function createExpenseTransaction(expenseData: {
     throw new Error(`Failed to create expense transaction: ${error.message}`);
   }
 
-  // Update account balance (subtract expense amount)
-  const { error: accountError } = await supabase.rpc('update_account_balance', {
-    account_id_param: expenseData.accountId,
-    amount_change: -Math.abs(expenseData.amount)
-  });
-
-  if (accountError) {
-    // Try direct update if RPC doesn't exist
-    const { data: accountData, error: fetchError } = await supabase
-      .from('accounts')
-      .select('balance')
-      .eq('id', expenseData.accountId)
-      .eq('user_id', user.id)
-      .single();
-
-    if (fetchError) {
-      console.error('Error fetching account for balance update:', fetchError);
-      throw new Error(`Failed to fetch account for balance update: ${fetchError.message}`);
-    }
-
-    const newBalance = Number(accountData.balance) - Math.abs(expenseData.amount);
-    
-    const { error: updateError } = await supabase
-      .from('accounts')
-      .update({
-        balance: newBalance,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', expenseData.accountId)
-      .eq('user_id', user.id);
-
-    if (updateError) {
-      console.error('Error updating account balance:', updateError);
-      throw new Error(`Failed to update account balance: ${updateError.message}`);
-    }
-  }
+  // ✅ Account balance automatically updated by database trigger
+  // No manual balance update needed!
 
   // Transform the data to match our interface
   return {
@@ -508,42 +480,102 @@ export async function createIncomeTransaction(incomeData: {
     throw new Error(`Failed to create income transaction: ${error.message}`);
   }
 
-  // Update account balance (add income amount)
-  const { error: accountError } = await supabase.rpc('update_account_balance', {
-    account_id_param: incomeData.accountId,
-    amount_change: Math.abs(incomeData.amount)
-  });
+  // ✅ Account balance automatically updated by database trigger
+  // No manual balance update needed!
 
-  if (accountError) {
-    // Try direct update if RPC doesn't exist
-    const { data: accountData, error: fetchError } = await supabase
-      .from('accounts')
-      .select('balance')
-      .eq('id', incomeData.accountId)
-      .eq('user_id', user.id)
-      .single();
+  // Transform the data to match our interface
+  return {
+    ...data,
+    user_id: data.user_id?.toString() || '',
+    date: data.date?.toString() || '',
+    created_at: data.created_at?.toString() || '',
+    updated_at: data.updated_at?.toString() || ''
+  } as Transaction;
+}
 
-    if (fetchError) {
-      console.error('Error fetching account for balance update:', fetchError);
-      throw new Error(`Failed to fetch account for balance update: ${fetchError.message}`);
-    }
+/**
+ * Create an account-to-account transfer transaction
+ */
+export async function createAccountTransfer(transferData: {
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  description?: string;
+  date: Date;
+}): Promise<Transaction> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('User not authenticated');
 
-    const newBalance = Number(accountData.balance) + Math.abs(incomeData.amount);
-    
-    const { error: updateError } = await supabase
-      .from('accounts')
-      .update({
-        balance: newBalance,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', incomeData.accountId)
-      .eq('user_id', user.id);
-
-    if (updateError) {
-      console.error('Error updating account balance:', updateError);
-      throw new Error(`Failed to update account balance: ${updateError.message}`);
-    }
+  // Validation: Cannot transfer to same account
+  if (transferData.fromAccountId === transferData.toAccountId) {
+    throw new Error('Cannot transfer to the same account');
   }
+
+  // Validation: Amount must be positive
+  if (transferData.amount <= 0) {
+    throw new Error('Transfer amount must be greater than zero');
+  }
+
+  // Check sufficient funds in source account
+  const { data: fromAccount, error: fromError } = await supabase
+    .from('accounts')
+    .select('balance, name')
+    .eq('id', transferData.fromAccountId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (fromError) {
+    throw new Error(`Failed to fetch source account: ${fromError.message}`);
+  }
+
+  if (fromAccount.balance < transferData.amount) {
+    throw new Error(
+      `Insufficient funds. Available: $${fromAccount.balance.toFixed(2)}, Required: $${transferData.amount.toFixed(2)}`
+    );
+  }
+
+  // Get destination account name
+  const { data: toAccount, error: toError } = await supabase
+    .from('accounts')
+    .select('name')
+    .eq('id', transferData.toAccountId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (toError) {
+    throw new Error(`Failed to fetch destination account: ${toError.message}`);
+  }
+
+  // Generate unique transaction ID
+  const transactionId = `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // Create transfer transaction - trigger handles both balance updates
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert({
+      id: transactionId,
+      user_id: user.id,
+      account_id: transferData.fromAccountId,
+      destination_account_id: transferData.toAccountId,
+      type: 'transfer',
+      amount: -Math.abs(transferData.amount), // Negative: leaving source account
+      description: transferData.description || 'Account transfer',
+      category: 'Transfer',
+      from_party: fromAccount.name,
+      to_party: toAccount.name,
+      date: transferData.date.toISOString(),
+      status: 'completed',
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating transfer transaction:', error);
+    throw new Error(`Failed to create transfer: ${error.message}`);
+  }
+
+  // ✅ Both account balances automatically updated by database trigger
+  // Source account balance decreases, destination account balance increases
 
   // Transform the data to match our interface
   return {
@@ -833,6 +865,30 @@ export function useCreateIncomeTransaction() {
       queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['transaction-filter-options'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    },
+  });
+}
+
+/**
+ * Mutation hook to create an account-to-account transfer
+ */
+export function useCreateAccountTransfer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createAccountTransfer,
+    onSuccess: () => {
+      // Invalidate ALL related queries - both accounts affected
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.accounts.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      
+      // Legacy key invalidations for backwards compatibility
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transaction-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['recent-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['all-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
     },
   });

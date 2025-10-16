@@ -54,17 +54,18 @@ export function AddAccountModal({
   };
 
   const handleSave = async () => {
-    // Validate form data
-    if (!formData.name || !formData.type || !formData.balance) {
+    // Validate form data - only name and type are required
+    if (!formData.name || !formData.type) {
       toast.toast({
         message:
-          "Missing Information: Please fill in all required fields. Name, type, and balance are required.",
+          "Missing Information: Please fill in all required fields. Name and type are required.",
         type: "error",
       });
       return;
     }
 
-    if (isNaN(Number(formData.balance))) {
+    // Validate balance only if provided
+    if (formData.balance && isNaN(Number(formData.balance))) {
       toast.toast({
         message:
           "Invalid Balance: Please enter a valid number for the balance.",
@@ -77,7 +78,7 @@ export function AddAccountModal({
       const result = await createAccountMutation.mutateAsync({
         name: formData.name,
         type: formData.type,
-        balance: Number(formData.balance),
+        balance: formData.balance ? Number(formData.balance) : undefined, // Undefined will default to 0
         accountNumber: formData.accountNumber || "",
         isActive: true,
       });
@@ -156,10 +157,10 @@ export function AddAccountModal({
               </Select>
             </View>
 
-            {/* Initial Balance */}
+            {/* Initial Balance - Optional, defaults to 0 */}
             <View className="space-y-2">
               <Label className="text-base font-medium">
-                Initial Balance <Text className="text-red-500">*</Text>
+                Initial Balance (Optional)
               </Label>
               <Input
                 placeholder="0.00"
@@ -172,6 +173,9 @@ export function AddAccountModal({
                 blurOnSubmit={true}
                 className="px-4 py-3 border-gray-300 rounded-lg bg-white text-gray-600"
               />
+              <Text className="text-sm text-gray-500">
+                Leave blank to start with $0.00
+              </Text>
             </View>
 
             {/* Account Number (Optional) */}
