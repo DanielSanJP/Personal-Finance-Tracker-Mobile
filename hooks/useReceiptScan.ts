@@ -1,5 +1,7 @@
-import { useState, useCallback } from 'react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import { useCallback, useState } from 'react';
 
 interface ReceiptData {
   merchant?: string;
@@ -14,6 +16,20 @@ interface UseReceiptScanOptions {
   onError?: (error: string) => void;
 }
 
+// Category options
+const EXPENSE_CATEGORIES = [
+  'Food & Dining',
+  'Transportation',
+  'Shopping',
+  'Entertainment',
+  'Healthcare',
+  'Bills & Utilities',
+  'Personal Care',
+  'Travel',
+  'Education',
+  'Other'
+];
+
 export const useReceiptScan = ({ onReceiptData, onError }: UseReceiptScanOptions) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -24,42 +40,105 @@ export const useReceiptScan = ({ onReceiptData, onError }: UseReceiptScanOptions
     try {
       setIsProcessing(true);
 
-      // Create form data
-      const formData = new FormData();
-      
-      // Get the file from URI
-      const filename = imageUri.split('/').pop() || 'receipt.jpg';
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : 'image/jpeg';
+      // Get API key
+      const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('Gemini API key not configured. Please check your environment variables.');
+      }
 
-      // Important: For React Native, append the image with proper format
-      formData.append('image', {
-        uri: imageUri,
-        name: filename,
-        type,
-      } as any);
+      // Initialize Gemini AI
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-      // Use the Expo API route (local to the app)
-      // Send to API - React Native automatically handles multipart/form-data
-      const response = await fetch('/api/receipt-scan', {
-        method: 'POST',
-        body: formData,
+      // Read image as base64
+      const base64Image = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: 'base64',
       });
 
-      const data = await response.json();
+      // Get file type
+      const filename = imageUri.split('/').pop() || 'receipt.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const fileType = match ? `image/${match[1]}` : 'image/jpeg';
 
-      if (!response.ok) {
-        throw new Error(data.error || data.details || 'Failed to process receipt');
+      // Create the prompt for Gemini
+      const categoryOptions = EXPENSE_CATEGORIES.join(', ');
+      const prompt = `
+      Analyze this receipt image and extract the following information in JSON format. Be very accurate and look for the most likely total amount (not individual items, taxes, or discounts):
+
+      {
+        "merchant": "business name (clean, no extra numbers or text)",
+        "amount": "final total amount as decimal number (e.g., 25.50)",
+        "date": "date in YYYY-MM-DD format if found",
+        "time": "time in HH:MM format if found on receipt (24-hour format)",
+        "items": ["list of main purchased items if clearly visible"],
+        "category": "best matching category from: ${categoryOptions}"
       }
 
-      // The API returns data in parsedData field (matching Next.js format)
-      if (data.parsedData) {
-        setParsedData(data.parsedData);
-        setConfidence((data.confidence || 0.85) * 100); // Convert 0-1 to 0-100
-        onReceiptData(data.parsedData);
-      } else {
-        throw new Error('No data returned from receipt scan');
+      Important rules:
+      - For amount: Look for "Total", "Amount Due", "Balance", or final payment amount
+      - Ignore individual item prices, taxes, discounts, change amounts, or "why pay" comparison prices
+      - If multiple amounts, choose the one most likely to be the final total the customer paid
+      - For merchant: Use the main business name, clean up any store numbers or extra text
+      - For date: Use the transaction date, not printed date
+      - For time: Extract the transaction time if visible on receipt (look for time stamps near date/total)
+      - For category: Choose the most appropriate category based on the merchant and items. Use ONLY the exact category names from the list above.
+
+      IMPORTANT SYSTEM CONTEXT:
+      - Our app uses a universal party system: transactions have "from_party" (source) and "to_party" (destination)
+      - For expenses: from_party = account name, to_party = merchant name
+      - Date field stores full timestamp including time (YYYY-MM-DDTHH:MM:SS format)
+      - If time is found, it will be combined with the date; if not, current time will be used
+
+      Return only valid JSON, no additional text.
+      `;
+
+      // Prepare the image data for Gemini
+      const imagePart = {
+        inlineData: {
+          data: base64Image,
+          mimeType: fileType
+        }
+      };
+
+      // Call Gemini to analyze the receipt
+      const result = await model.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      const text = response.text();
+
+      // Parse the JSON response
+      let parsedResult;
+      try {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsedResult = JSON.parse(jsonMatch[0]);
+        } else {
+          parsedResult = JSON.parse(text);
+        }
+      } catch {
+        throw new Error('Failed to parse AI response. Please try again.');
       }
+
+      // Combine date and time if both are available
+      let dateValue = null;
+      if (parsedResult.date) {
+        if (parsedResult.time) {
+          dateValue = `${parsedResult.date}T${parsedResult.time}:00`;
+        } else {
+          dateValue = `${parsedResult.date}T${new Date().toTimeString().split(' ')[0]}`;
+        }
+      }
+
+      const receiptData: ReceiptData = {
+        merchant: parsedResult.merchant || '',
+        amount: parsedResult.amount ? String(parsedResult.amount) : '',
+        date: dateValue ? new Date(dateValue) : undefined,
+        items: Array.isArray(parsedResult.items) ? parsedResult.items : [],
+        category: parsedResult.category || 'Other'
+      };
+
+      setParsedData(receiptData);
+      setConfidence(90); // High confidence for successful parse
+      onReceiptData(receiptData);
 
     } catch (error) {
       console.error('Error processing receipt:', error);

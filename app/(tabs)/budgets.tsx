@@ -32,8 +32,8 @@ export default function Budgets() {
   const { toast } = useToast();
   const { data: budgets = [], isLoading, refetch } = useBudgets();
   const createBudgetMutation = useCreateBudget();
-  const updateBudgetMutation = useUpdateBudget();
-  const deleteBudgetMutation = useDeleteBudget();
+  const updateBudgetMutation = useUpdateBudget({ silent: true });
+  const deleteBudgetMutation = useDeleteBudget({ silent: true });
 
   const [addBudgetOpen, setAddBudgetOpen] = useState(false);
   const [editBudgetsOpen, setEditBudgetsOpen] = useState(false);

@@ -1,9 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Alert } from "react-native";
 import { checkGuestAndWarn } from "@/lib/guest-protection";
-import { supabase } from "@/lib/supabase";
-import { getCurrentUser } from "./useAuth";
 import { queryKeys } from "@/lib/query-keys";
+import { supabase } from "@/lib/supabase";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Alert } from "react-native";
+import { getCurrentUser } from "./useAuth";
 
 // Interface for RPC function response
 interface BudgetWithSpendingResponse {
@@ -380,7 +380,7 @@ export function useCreateBudget() {
 /**
  * Mutation hook to update a budget
  */
-export function useUpdateBudget() {
+export function useUpdateBudget(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -398,7 +398,10 @@ export function useUpdateBudget() {
       return updateBudget(id, budgetData);
     },
     onSuccess: () => {
-      Alert.alert("Success", "Budget updated successfully!");
+      // Only show success alert if not silent (default behavior)
+      if (!options?.silent) {
+        Alert.alert("Success", "Budget updated successfully!");
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.budgets.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       // Legacy key
@@ -407,7 +410,10 @@ export function useUpdateBudget() {
     onError: (error: Error) => {
       if (error.message !== "Guest users cannot update budgets") {
         console.error("Error updating budget:", error);
-        Alert.alert("Error", "Failed to update budget");
+        // Only show error alert if not silent
+        if (!options?.silent) {
+          Alert.alert("Error", "Failed to update budget");
+        }
       }
     },
   });
@@ -416,7 +422,7 @@ export function useUpdateBudget() {
 /**
  * Mutation hook to delete a budget
  */
-export function useDeleteBudget() {
+export function useDeleteBudget(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -428,7 +434,10 @@ export function useDeleteBudget() {
       return deleteBudget(budgetId);
     },
     onSuccess: () => {
-      Alert.alert("Success", "Budget deleted successfully!");
+      // Only show success alert if not silent (default behavior)
+      if (!options?.silent) {
+        Alert.alert("Success", "Budget deleted successfully!");
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.budgets.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       // Legacy key
@@ -437,7 +446,10 @@ export function useDeleteBudget() {
     onError: (error: Error) => {
       if (error.message !== "Guest users cannot delete budgets") {
         console.error("Error deleting budget:", error);
-        Alert.alert("Error", "Failed to delete budget");
+        // Only show error alert if not silent
+        if (!options?.silent) {
+          Alert.alert("Error", "Failed to delete budget");
+        }
       }
     },
   });
