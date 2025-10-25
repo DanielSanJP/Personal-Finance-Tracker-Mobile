@@ -1,18 +1,18 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { Text, View } from "react-native";
+import {
+  EXPENSE_CATEGORIES,
+  INCOME_CATEGORIES,
+  type Category,
+} from "../constants/categories";
+import { Label } from "./ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
-import { Label } from "./ui/label";
-import {
-  EXPENSE_CATEGORIES,
-  INCOME_CATEGORIES,
-  type Category,
-} from "../constants/categories";
+} from "./ui/select-mobile";
 
 interface CategorySelectProps {
   /**

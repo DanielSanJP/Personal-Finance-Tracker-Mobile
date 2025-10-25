@@ -96,7 +96,7 @@ export function LoginForm({ className }: LoginFormProps) {
               <View className="flex-row items-center justify-between">
                 <Label htmlFor="password">Password</Label>
                 <TouchableOpacity onPress={handleForgotPassword}>
-                  <Text className="ml-auto text-sm underline">
+                  <Text className="ml-auto text-sm underline text-foreground-light dark:text-foreground-dark">
                     Forgot your password?
                   </Text>
                 </TouchableOpacity>
@@ -121,7 +121,7 @@ export function LoginForm({ className }: LoginFormProps) {
                 {loading ? "Signing in..." : "Login"}
               </Button>
               <View className="mt-4 text-center">
-                <Text className="text-center text-sm text-gray-600">
+                <Text className="text-center text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                   Don&apos;t have an account?
                 </Text>
               </View>
@@ -138,7 +138,9 @@ export function LoginForm({ className }: LoginFormProps) {
           </View>
           <View className="mt-4 text-center">
             <TouchableOpacity onPress={handleSignUp}>
-              <Text className="text-center text-sm underline">Sign up</Text>
+              <Text className="text-center text-sm underline text-foreground-light dark:text-foreground-dark">
+                Sign up
+              </Text>
             </TouchableOpacity>
           </View>
         </CardContent>

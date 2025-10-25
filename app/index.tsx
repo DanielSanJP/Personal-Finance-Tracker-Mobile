@@ -18,10 +18,12 @@ export default function Home() {
   // Show loading while checking auth state
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
+      <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" />
-          <Text className="mt-4 text-gray-600">Loading...</Text>
+          <Text className="mt-4 text-muted-foreground-light dark:text-muted-foreground-dark">
+            Loading...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -29,14 +31,14 @@ export default function Home() {
 
   // Show welcome page for non-authenticated users
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <Nav />
 
       {/* Main Content */}
       <View className="flex-1 items-center justify-center px-8">
         <View className="flex items-center">
           <View className="items-center gap-4">
-            <Text className="text-2xl font-bold text-center text-gray-900 mb-4">
+            <Text className="text-2xl font-bold text-center text-foreground-light dark:text-foreground-dark mb-4">
               Welcome to your personal finance tracker
             </Text>
           </View>

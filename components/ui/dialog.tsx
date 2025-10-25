@@ -20,12 +20,25 @@ interface DialogProps {
 }
 
 function Dialog({ open, onOpenChange, children }: DialogProps) {
+  // Best practice: onRequestClose should only be called for system events (Android back button)
+  // For controlled modals, this should trigger the parent's state update
+
   return (
     <Modal
       visible={open}
       transparent={true}
       animationType="fade"
-      onRequestClose={() => onOpenChange?.(false)}
+      onRequestClose={() => {
+        console.log(
+          "🔔 Dialog onRequestClose fired - calling onOpenChange(false)"
+        );
+        console.trace("Stack trace for onRequestClose");
+        // Only close if onOpenChange is provided and not a no-op
+        // This respects parents that want to prevent system-level closes
+        if (onOpenChange) {
+          onOpenChange(false);
+        }
+      }}
       supportedOrientations={["portrait", "landscape"]}
     >
       {children}
@@ -72,14 +85,11 @@ function DialogContent({
         style={{ paddingTop: 0 }}
         pointerEvents="box-none"
       >
-        <TouchableOpacity
-          className="absolute inset-0"
-          activeOpacity={1}
-          onPress={onClose}
-        />
+        {/* Backdrop - removed onPress={onClose} to prevent accidental closes */}
+        <View className="absolute inset-0" />
         <View
           className={cn(
-            "bg-white rounded-2xl shadow-2xl border border-gray-200",
+            "bg-card-light dark:bg-card-dark rounded-2xl shadow-2xl border border-border-light dark:border-border-dark",
             className
           )}
           style={{
@@ -98,17 +108,19 @@ function DialogContent({
             {...props}
           >
             {/* Drag indicator */}
-            <View className="w-10 h-1 bg-gray-300 rounded-full self-center mb-4" />
+            <View className="w-10 h-1 bg-muted-light dark:bg-muted-dark rounded-full self-center mb-4" />
 
             {children}
 
             {showCloseButton && (
               <TouchableOpacity
-                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 items-center justify-center z-10"
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-secondary-light dark:bg-secondary-dark items-center justify-center z-10"
                 onPress={onClose}
                 activeOpacity={0.7}
               >
-                <Text className="text-gray-600 text-lg font-medium">×</Text>
+                <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-lg font-medium">
+                  ×
+                </Text>
               </TouchableOpacity>
             )}
           </ScrollView>
@@ -143,7 +155,7 @@ function DialogFooter({ className, children, ...props }: DialogFooterProps) {
   return (
     <View
       className={cn(
-        "flex flex-col gap-3 mt-6 pt-4 border-t border-gray-100",
+        "flex flex-col gap-3 mt-6 pt-4 border-t border-border-light dark:border-border-dark",
         className
       )}
       {...props}
@@ -162,7 +174,7 @@ function DialogTitle({ className, children, ...props }: DialogTitleProps) {
   return (
     <Text
       className={cn(
-        "text-xl font-bold text-foreground leading-tight",
+        "text-xl font-bold text-foreground-light dark:text-foreground-dark leading-tight",
         className
       )}
       {...props}
@@ -183,7 +195,13 @@ function DialogDescription({
   ...props
 }: DialogDescriptionProps) {
   return (
-    <Text className={cn("text-muted-foreground text-sm", className)} {...props}>
+    <Text
+      className={cn(
+        "text-muted-foreground-light dark:text-muted-foreground-dark text-sm",
+        className
+      )}
+      {...props}
+    >
       {children}
     </Text>
   );

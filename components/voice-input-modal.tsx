@@ -1,6 +1,6 @@
-import React from "react";
-import { View, Text, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import React from "react";
+import { ActivityIndicator, Text, useColorScheme, View } from "react-native";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -19,6 +19,7 @@ interface VoiceInputModalProps {
   onClose: () => void;
   onStartListening: () => void;
   onStopListening: () => void;
+  onRetry?: () => void;
   isRecording: boolean;
   isProcessing: boolean;
   parsedData?: ParsedTransaction;
@@ -32,6 +33,7 @@ export function VoiceInputModal({
   onClose,
   onStartListening,
   onStopListening,
+  onRetry,
   isRecording,
   isProcessing,
   parsedData,
@@ -40,9 +42,35 @@ export function VoiceInputModal({
   type = "expense",
 }: VoiceInputModalProps) {
   const hasData = parsedData && Object.keys(parsedData).length > 0;
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  if (__DEV__) {
+    console.log("🎤 VoiceInputModal render:", {
+      visible,
+      isRecording,
+      isProcessing,
+      hasData,
+      parsedDataKeys: parsedData ? Object.keys(parsedData) : [],
+    });
+  }
 
   return (
-    <Dialog open={visible} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={visible}
+      onOpenChange={(open) => {
+        console.log("🎤 VoiceInputModal onOpenChange called:", {
+          open,
+          wasVisible: visible,
+        });
+        console.trace("Stack trace for VoiceInputModal onOpenChange");
+        // When Dialog requests to close (Android back button), call onClose
+        if (!open) {
+          console.log("🎤 Calling onClose because open=false");
+          onClose();
+        }
+      }}
+    >
       <DialogContent onClose={onClose} showCloseButton={true}>
         <DialogHeader>
           <DialogTitle>Voice Input Entry</DialogTitle>
@@ -65,7 +93,11 @@ export function VoiceInputModal({
                     </View>
                   ) : (
                     <View className="flex-row items-center">
-                      <Feather name="mic-off" size={16} color="#374151" />
+                      <Feather
+                        name="mic-off"
+                        size={16}
+                        color={isDark ? "#fcfcfc" : "#0a0a0a"}
+                      />
                       <Text className="ml-2 text-sm font-semibold">
                         Ready to listen
                       </Text>
@@ -82,7 +114,7 @@ export function VoiceInputModal({
               {isProcessing && (
                 <View className="items-center py-2">
                   <ActivityIndicator size="large" color="#3b82f6" />
-                  <Text className="text-xs text-gray-600 mt-2">
+                  <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark mt-2">
                     Processing...
                   </Text>
                 </View>
@@ -91,33 +123,33 @@ export function VoiceInputModal({
               {/* Parsed Data Preview */}
               {hasData && !isProcessing && (
                 <View className="space-y-2">
-                  <Text className="text-xs font-medium text-gray-700">
+                  <Text className="text-xs font-medium text-foreground-light dark:text-foreground-dark">
                     Detected:
                   </Text>
                   <View className="flex-row flex-wrap gap-2">
                     {parsedData.amount && (
-                      <View className="bg-gray-100 px-3 py-1 rounded-full">
+                      <View className="bg-muted-light dark:bg-muted-dark px-3 py-1 rounded-full">
                         <Text className="text-xs font-medium">
                           ${parsedData.amount}
                         </Text>
                       </View>
                     )}
                     {parsedData.description && (
-                      <View className="bg-gray-100 px-3 py-1 rounded-full">
+                      <View className="bg-muted-light dark:bg-muted-dark px-3 py-1 rounded-full">
                         <Text className="text-xs font-medium">
                           {parsedData.description}
                         </Text>
                       </View>
                     )}
                     {parsedData.merchant && (
-                      <View className="bg-gray-100 px-3 py-1 rounded-full">
+                      <View className="bg-muted-light dark:bg-muted-dark px-3 py-1 rounded-full">
                         <Text className="text-xs font-medium">
                           @{parsedData.merchant}
                         </Text>
                       </View>
                     )}
                     {parsedData.category && (
-                      <View className="bg-gray-100 px-3 py-1 rounded-full">
+                      <View className="bg-muted-light dark:bg-muted-dark px-3 py-1 rounded-full">
                         <Text className="text-xs font-medium">
                           {parsedData.category}
                         </Text>
@@ -127,34 +159,43 @@ export function VoiceInputModal({
                 </View>
               )}
 
-              {/* Control Button */}
+              {/* Main Action Button - Always visible except when processing */}
               {!isProcessing && (
                 <Button
                   onPress={() => {
-                    console.log("🔘 Button pressed, isRecording:", isRecording);
                     if (isRecording) {
-                      console.log("📵 Calling onStopListening");
                       onStopListening();
                     } else {
-                      console.log("🎤 Calling onStartListening");
+                      if (hasData && onRetry) {
+                        // Clear existing data before starting new recording
+                        onRetry();
+                      }
                       onStartListening();
                     }
                   }}
                   variant={isRecording ? "destructive" : "default"}
-                  className="w-full"
+                  className="w-full mt-4"
                 >
                   <View className="flex-row items-center justify-center gap-2">
                     {isRecording ? (
                       <>
-                        <Feather name="mic-off" size={18} color="white" />
-                        <Text className="text-white font-semibold">
+                        <Feather
+                          name="mic-off"
+                          size={18}
+                          color={isDark ? "#fcfcfc" : "#fcfcfc"}
+                        />
+                        <Text className="text-destructive-foreground-light dark:text-destructive-foreground-dark font-semibold">
                           Stop Recording
                         </Text>
                       </>
                     ) : (
                       <>
-                        <Feather name="mic" size={18} color="white" />
-                        <Text className="text-white font-semibold">
+                        <Feather
+                          name="mic"
+                          size={18}
+                          color={isDark ? "#1a1a1a" : "#fcfcfc"}
+                        />
+                        <Text className="text-primary-foreground-light dark:text-primary-foreground-dark font-semibold">
                           Start Speaking
                         </Text>
                       </>
@@ -163,45 +204,43 @@ export function VoiceInputModal({
                 </Button>
               )}
 
-              {/* Done Button - Show when we have parsed data */}
-              {hasData && (
-                <Button
-                  onPress={onClose}
-                  variant="outline"
-                  className="w-full mt-2"
-                >
-                  <Text className="font-semibold">Done</Text>
-                </Button>
-              )}
+              {/* Done Button - Always visible */}
+              <Button
+                onPress={onClose}
+                variant="outline"
+                className="w-full mt-2"
+              >
+                Done
+              </Button>
             </CardContent>
           </Card>
 
           {/* Examples */}
-          <View className="bg-gray-50 rounded-lg p-4 space-y-2">
-            <Text className="text-xs font-semibold text-gray-700">
+          <View className="bg-background-light dark:bg-background-dark rounded-lg p-4 space-y-2 border border-border-light dark:border-border-dark">
+            <Text className="text-xs font-semibold text-foreground-light dark:text-foreground-dark">
               Examples:
             </Text>
             {type === "income" ? (
               <>
-                <Text className="text-xs text-gray-600">
+                <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
                   • &quot;50 dollars for salary&quot;
                 </Text>
-                <Text className="text-xs text-gray-600">
+                <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
                   • &quot;1500 freelance payment&quot;
                 </Text>
-                <Text className="text-xs text-gray-600">
+                <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
                   • &quot;200 gift from family&quot;
                 </Text>
               </>
             ) : (
               <>
-                <Text className="text-xs text-gray-600">
+                <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
                   • &quot;25 dollars for lunch at Chipotle&quot;
                 </Text>
-                <Text className="text-xs text-gray-600">
+                <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
                   • &quot;50 dollars petrol at BP&quot;
                 </Text>
-                <Text className="text-xs text-gray-600">
+                <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
                   • &quot;15 coffee&quot;
                 </Text>
               </>

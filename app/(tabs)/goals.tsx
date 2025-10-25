@@ -30,11 +30,13 @@ import {
   useMakeGoalContribution,
   useUpdateGoal,
 } from "../../hooks/queries/useGoals";
+import { useUserPreferences } from "../../hooks/useUserPreferences";
 import type { Goal } from "../../lib/types";
 import { formatCurrency } from "../../lib/utils";
 
 export default function Goals() {
   useAuth();
+  const { currency, showCents, compactView } = useUserPreferences();
   const { toast } = useToast();
   const { data: goals = [], isLoading, refetch: refetchGoals } = useGoals();
   const { data: accounts = [], refetch: refetchAccounts } = useAccounts();
@@ -329,15 +331,15 @@ export default function Goals() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <Nav />
 
       <ScrollView ref={scrollViewRef} className="flex-1">
         <View className="px-6 py-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-1">
+          <Text className="text-2xl font-bold text-foreground-light dark:text-foreground-dark mb-1">
             Financial Goals
           </Text>
-          <Text className="text-gray-600 mb-6">
+          <Text className="text-muted-foreground-light dark:text-muted-foreground-dark mb-6">
             {goals.length} active goals
           </Text>
 
@@ -390,7 +392,9 @@ export default function Goals() {
                   </CardTitle>
                 </CardHeader>
 
-                <CardContent className="space-y-8 p-4">
+                <CardContent
+                  className={compactView ? "space-y-4 p-2" : "space-y-8 p-4"}
+                >
                   {goals.map((goal, index) => {
                     const progressWidth = getProgressWidth(
                       goal.currentAmount,
@@ -401,38 +405,75 @@ export default function Goals() {
 
                     return (
                       <View key={goal.id}>
-                        <View className="space-y-4 py-4">
-                          <Text className="text-base font-medium">
+                        <View
+                          className={
+                            compactView ? "space-y-2 py-2" : "space-y-4 py-4"
+                          }
+                        >
+                          <Text
+                            className={`font-medium text-foreground-light dark:text-foreground-dark ${
+                              compactView ? "text-sm" : "text-base"
+                            }`}
+                          >
                             {goal.name}
                           </Text>
 
-                          <Text className="text-base text-gray-600 py-2">
-                            {formatCurrency(goal.currentAmount)} /{" "}
-                            {formatCurrency(goal.targetAmount)}
+                          <Text
+                            className={`text-muted-foreground-light dark:text-muted-foreground-dark ${
+                              compactView ? "text-sm py-1" : "text-base py-2"
+                            }`}
+                          >
+                            {formatCurrency(
+                              goal.currentAmount,
+                              currency,
+                              showCents
+                            )}{" "}
+                            /{" "}
+                            {formatCurrency(
+                              goal.targetAmount,
+                              currency,
+                              showCents
+                            )}
                           </Text>
 
-                          <View className="w-full bg-gray-200 rounded-full h-2 overflow-hidden ">
+                          <View
+                            className={`w-full bg-muted-light dark:bg-muted-dark rounded-full overflow-hidden ${
+                              compactView ? "h-1.5" : "h-2"
+                            }`}
+                          >
                             <View
-                              className={`h-2 rounded-full ${
-                                goalAchieved ? "bg-green-500" : "bg-gray-900"
+                              className={`rounded-full ${
+                                compactView ? "h-1.5" : "h-2"
+                              } ${
+                                goalAchieved
+                                  ? "bg-green-500"
+                                  : "bg-primary-light dark:bg-primary-dark"
                               }`}
                               style={{ width: `${progressWidth}%` }}
                             />
                           </View>
 
-                          <Text className="text-sm text-gray-600 py-2">
+                          <Text
+                            className={`text-muted-foreground-light dark:text-muted-foreground-dark ${
+                              compactView ? "text-xs py-1" : "text-sm py-2"
+                            }`}
+                          >
                             Target: {formatTargetDate(goal.targetDate)}
                           </Text>
 
                           {goalAchieved && (
-                            <Text className="text-sm text-green-600 font-medium py-2">
+                            <Text
+                              className={`text-green-600 dark:text-green-400 font-medium ${
+                                compactView ? "text-xs py-1" : "text-sm py-2"
+                              }`}
+                            >
                               🎉 Goal achieved!
                             </Text>
                           )}
                         </View>
 
                         {index < goals.length - 1 && (
-                          <View className="mt-2 border-b border-gray-200" />
+                          <View className="mt-2 border-b border-border-light dark:border-border-dark" />
                         )}
                       </View>
                     );

@@ -21,10 +21,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../components/ui/select";
+} from "../components/ui/select-mobile";
 import { useToast } from "../components/ui/sonner";
 import { VoiceInputModal } from "../components/voice-input-modal";
-import { getIncomeCategoryNames } from "../constants/categories";
 import { useAccounts } from "../hooks/queries/useAccounts";
 import { useAuth } from "../hooks/queries/useAuth";
 import { useCreateIncomeTransaction } from "../hooks/queries/useTransactions";
@@ -83,16 +82,19 @@ export default function AddIncomePage() {
         type: "success",
       });
 
-      // Close modal after a brief delay
-      setTimeout(() => {
-        setShowVoiceInput(false);
-      }, 1500);
+      // Modal stays open - user can click Done button to close
     },
     accounts,
     transactionType: "income",
   });
 
-  // Using standardized income categories from constants
+  // Quick add sources - common income categories
+  const quickAddSources = [
+    "Salary",
+    "Freelance",
+    "Gift/Bonus",
+    "Investment Income",
+  ];
 
   const handleQuickAdd = (source: string) => {
     setIncomeSource(source);
@@ -165,7 +167,7 @@ export default function AddIncomePage() {
   // Show loading while checking auth state
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
+      <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
         <Nav />
         <View className="w-full px-6 py-8">
           <FormSkeleton />
@@ -180,7 +182,7 @@ export default function AddIncomePage() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <Nav />
 
       <ScrollView className="flex-1">
@@ -247,7 +249,9 @@ export default function AddIncomePage() {
                           key={acc.id}
                           value={`${acc.name} (${acc.type})`}
                         >
-                          {acc.name} ({acc.type})
+                          <Text>
+                            {acc.name} ({acc.type})
+                          </Text>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -267,14 +271,14 @@ export default function AddIncomePage() {
                 <View className="space-y-3 py-2">
                   <Label>Quick Add:</Label>
                   <View className="flex-row flex-wrap gap-1">
-                    {getIncomeCategoryNames().map((source) => (
+                    {quickAddSources.map((source) => (
                       <Button
                         key={source}
                         variant="outline"
                         onPress={() => handleQuickAdd(source)}
                         className="px-2 py-1 m-1 flex-shrink"
                       >
-                        <Text className="text-xs">{source}</Text>
+                        {source}
                       </Button>
                     ))}
                   </View>
@@ -289,7 +293,7 @@ export default function AddIncomePage() {
                       onPress={handleCancel}
                       className="w-40"
                     >
-                      <Text>Cancel</Text>
+                      Cancel
                     </Button>
                     <Button
                       onPress={handleSubmit}
@@ -307,7 +311,7 @@ export default function AddIncomePage() {
                       variant="outline"
                       className="w-40"
                     >
-                      <Text>Voice Input</Text>
+                      Voice Input
                     </Button>
                   </View>
                 </View>

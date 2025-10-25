@@ -1,7 +1,7 @@
 import { queryKeys } from '@/lib/query-keys';
 import { supabase } from '@/lib/supabase';
 import { Transaction } from '@/lib/types';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCurrentUser, useAuth } from './useAuth';
 
 // Type definitions
@@ -47,26 +47,28 @@ interface DatabaseTransaction {
 // RPC Data Functions
 /**
  * Get filtered transactions using client-side filtering (more reliable)
+ * Supports pagination with offset for infinite scroll
  */
 async function getFilteredTransactions(
   filters: TransactionFilters = {},
-  limit: number = 500 // CHANGED: Default to 500 instead of 1000 for Android stability
+  limit: number = 100, // CHANGED: Default to 100 per page for better performance
+  offset: number = 0 // NEW: Support pagination offset
 ): Promise<Transaction[]> {
   const user = await getCurrentUser();
   if (!user) {
     return [];
   }
 
-  // SAFETY: Cap limit at 1000 max to prevent memory issues on Android
-  const safeLimit = Math.min(limit, 1000);
+  // SAFETY: Cap limit at 500 max per request to prevent memory issues on Android
+  const safeLimit = Math.min(limit, 500);
 
-  // Fetch transactions for the user with limit
+  // Fetch transactions for the user with limit and offset
   const { data, error } = await supabase
     .from('transactions')
     .select('*')
     .eq('user_id', user.id)
     .order('date', { ascending: false })
-    .limit(safeLimit);
+    .range(offset, offset + safeLimit - 1);
 
   if (error) {
     console.error('Error fetching transactions:', error);
@@ -141,10 +143,7 @@ async function getFilteredTransactions(
     }
   }
 
-  // Apply limit
-  const limitedData = transformedData.slice(0, limit);
-
-  return limitedData;
+  return transformedData;
 }
 
 /**
@@ -667,6 +666,7 @@ export function useRecentTransactions(limit: number = 10) {
 
 /**
  * Hook to get all transactions using RPC (for reports and admin views)
+ * Legacy hook - limited to 500 transactions
  */
 export function useTransactions() {
   const { isGuest } = useAuth();
@@ -674,6 +674,34 @@ export function useTransactions() {
   return useQuery({
     queryKey: TRANSACTION_QUERY_KEYS.all,
     queryFn: getCurrentUserTransactions,
+    staleTime: isGuest ? 10 * 60 * 1000 : 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: !isGuest,
+  });
+}
+
+/**
+ * Hook to get paginated transactions with infinite scroll support
+ * NEW: Use this for transaction lists that need to load more data
+ */
+export function useInfiniteTransactions(pageSize: number = 100) {
+  const { isGuest } = useAuth();
+
+  return useInfiniteQuery({
+    queryKey: [...TRANSACTION_QUERY_KEYS.all, 'infinite', pageSize],
+    queryFn: async ({ pageParam = 0 }) => {
+      const offset = pageParam as number;
+      return getFilteredTransactions({}, pageSize, offset);
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      // If last page has fewer items than pageSize, we've reached the end
+      if (lastPage.length < pageSize) {
+        return undefined;
+      }
+      // Return the next offset
+      return allPages.length * pageSize;
+    },
     staleTime: isGuest ? 10 * 60 * 1000 : 5 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
     refetchOnWindowFocus: !isGuest,

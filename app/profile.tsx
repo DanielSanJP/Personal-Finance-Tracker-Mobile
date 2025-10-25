@@ -1,8 +1,8 @@
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
 import Nav from "../components/nav";
 import { Button } from "../components/ui/button";
 import {
@@ -14,8 +14,8 @@ import {
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Separator } from "../components/ui/separator";
-import { useAuth } from "../hooks/queries/useAuth";
 import { useToast } from "../components/ui/sonner";
+import { useAuth } from "../hooks/queries/useAuth";
 import {
   useUpdateUserProfile,
   validateProfileData,
@@ -99,10 +99,12 @@ export default function ProfilePage() {
   // Show loading while checking auth state
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
+      <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
         <Nav />
         <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-500">Loading...</Text>
+          <Text className="text-muted-foreground-light dark:text-muted-foreground-dark">
+            Loading...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -114,7 +116,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <Nav />
 
       <ScrollView className="flex-1">
@@ -123,11 +125,11 @@ export default function ProfilePage() {
             <CardHeader>
               <View className="flex-row items-center gap-4">
                 <Feather name="user" size={24} color="#374151" />
-                <CardTitle className="text-2xl font-bold text-gray-900">
+                <CardTitle className="text-2xl font-bold text-foreground-light dark:text-foreground-dark">
                   Profile
                 </CardTitle>
               </View>
-              <Text className="text-gray-600 mt-2">
+              <Text className="text-muted-foreground-light dark:text-muted-foreground-dark mt-2">
                 Manage your personal information and display preferences.
               </Text>
             </CardHeader>
@@ -135,10 +137,10 @@ export default function ProfilePage() {
             <CardContent className="gap-8">
               {/* Profile Information */}
               <View className="gap-4">
-                <Text className="text-lg font-medium">
+                <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark">
                   Personal Information
                 </Text>
-                <Text className="text-gray-600">
+                <Text className="text-muted-foreground-light dark:text-muted-foreground-dark">
                   Update your personal details below.
                 </Text>
 
@@ -183,7 +185,7 @@ export default function ProfilePage() {
                       autoCapitalize="words"
                       autoCorrect={false}
                     />
-                    <Text className="text-xs text-gray-600">
+                    <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
                       If left empty, your display name will be your first and
                       last name.
                     </Text>

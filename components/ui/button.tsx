@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import { useColorScheme } from "nativewind";
 import * as React from "react";
 import {
   Platform,
@@ -14,12 +15,13 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-sm",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm",
-        outline: "border border-input bg-background text-foreground shadow-sm",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm",
-        ghost: "text-foreground",
-        link: "text-primary underline-offset-4",
+        default: "bg-primary-light dark:bg-primary-dark shadow-sm",
+        destructive: "bg-destructive-light dark:bg-destructive-dark shadow-sm",
+        outline:
+          "border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark shadow-sm",
+        secondary: "bg-secondary-light dark:bg-secondary-dark shadow-sm",
+        ghost: "",
+        link: "underline-offset-4",
       },
       size: {
         default: "h-11 px-4 py-2",
@@ -38,12 +40,15 @@ const buttonVariants = cva(
 const buttonTextVariants = cva("text-sm font-medium text-center", {
   variants: {
     variant: {
-      default: "text-primary-foreground",
-      destructive: "text-destructive-foreground",
-      outline: "text-foreground",
-      secondary: "text-secondary-foreground",
-      ghost: "text-foreground",
-      link: "text-primary",
+      default:
+        "text-primary-foreground-light dark:text-primary-foreground-dark",
+      destructive:
+        "text-destructive-foreground-light dark:text-destructive-foreground-dark",
+      outline: "text-foreground-light dark:text-foreground-dark",
+      secondary:
+        "text-secondary-foreground-light dark:text-secondary-foreground-dark",
+      ghost: "text-foreground-light dark:text-foreground-dark",
+      link: "text-primary-light dark:text-primary-dark",
     },
   },
   defaultVariants: {
@@ -67,7 +72,10 @@ function Button({
   children,
   ...props
 }: ButtonProps) {
-  // Create fallback styles for better mobile support
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  // Create fallback styles for better mobile support with dark mode
   const getButtonStyle = (): ViewStyle => {
     const baseStyle: ViewStyle = {
       borderRadius: 8,
@@ -99,21 +107,27 @@ function Button({
         return {
           ...baseStyle,
           ...shadowStyles,
-          backgroundColor: "#1a1a1a", // var(--primary) from CSS
+          backgroundColor: isDark ? "#ebebeb" : "#1a1a1a", // primary
         };
       case "outline":
         return {
           ...baseStyle,
           ...shadowStyles,
-          backgroundColor: "#ffffff", // var(--background) from CSS
+          backgroundColor: isDark ? "#0a0a0a" : "#ffffff", // background (slightly darker in dark mode)
           borderWidth: 1,
-          borderColor: "#ebebeb", // var(--input) from CSS
+          borderColor: isDark ? "#444444" : "#ebebeb", // visible border in dark mode
         };
       case "secondary":
         return {
           ...baseStyle,
           ...shadowStyles,
-          backgroundColor: "#f7f7f7", // var(--secondary) from CSS
+          backgroundColor: isDark ? "#444444" : "#f7f7f7", // secondary
+        };
+      case "destructive":
+        return {
+          ...baseStyle,
+          ...shadowStyles,
+          backgroundColor: isDark ? "#cc5b49" : "#dc4439", // destructive
         };
       default:
         return baseStyle;
@@ -129,11 +143,13 @@ function Button({
 
     switch (variant) {
       case "default":
-        return { ...baseStyle, color: "#fcfcfc" }; // var(--primary-foreground) from CSS
+        return { ...baseStyle, color: isDark ? "#1a1a1a" : "#fcfcfc" }; // primary-foreground
       case "outline":
-        return { ...baseStyle, color: "#0a0a0a" }; // var(--foreground) from CSS
+        return { ...baseStyle, color: isDark ? "#fcfcfc" : "#0a0a0a" }; // foreground
       case "secondary":
-        return { ...baseStyle, color: "#1a1a1a" }; // var(--secondary-foreground) from CSS
+        return { ...baseStyle, color: isDark ? "#fcfcfc" : "#1a1a1a" }; // secondary-foreground
+      case "destructive":
+        return { ...baseStyle, color: "#fcfcfc" }; // destructive-foreground (same in both modes)
       default:
         return baseStyle;
     }

@@ -77,6 +77,13 @@ export const queryKeys = {
     current: () => [...queryKeys.profile.all, 'current'] as const,
     details: (userId: string) => [...queryKeys.profile.all, userId] as const,
   },
+
+  // User Preferences queries
+  preferences: {
+    all: ['preferences'] as const,
+    current: () => [...queryKeys.preferences.all, 'current'] as const,
+    user: (userId: string) => [...queryKeys.preferences.all, 'user', userId] as const,
+  },
 } as const;
 
 // Export type for TypeScript inference

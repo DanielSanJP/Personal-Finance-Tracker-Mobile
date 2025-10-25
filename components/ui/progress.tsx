@@ -21,13 +21,16 @@ export function Progress({
   return (
     <View
       className={cn(
-        "relative h-4 w-full overflow-hidden rounded-full bg-gray-100",
+        "relative h-4 w-full overflow-hidden rounded-full bg-secondary-light dark:bg-secondary-dark",
         className
       )}
       {...props}
     >
       <View
-        className={cn("h-full bg-gray-900", indicatorClassName)}
+        className={cn(
+          "h-full bg-primary-light dark:bg-primary-dark",
+          indicatorClassName
+        )}
         style={{ width: `${percentage}%` }}
       />
     </View>

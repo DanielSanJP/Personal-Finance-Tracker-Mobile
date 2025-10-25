@@ -6,38 +6,28 @@
 
 #### High Priority 🔴
 
-- [ ] **Monitor Production Stability**
-  - Track crash rates and error logs
-  - Monitor Gemini API usage and costs
-  - Ensure environment variables properly set in production builds
+- [ ] **Implement Pagination**
+  - Replace 500 transaction limit with pagination
+  - Virtual scrolling or "Load More" button
+  - Optimize query performance for large datasets
   - **Assignee**: TBD
-  - **Deadline**: Ongoing
+  - **Deadline**: Next sprint
+  - **Effort**: 3-4 days
 
 #### Medium Priority 🟡
 
-- [ ] **User Feedback Collection**
-
-  - Implement analytics (Google Analytics or Mixpanel)
-  - Add in-app feedback form
-  - Create feedback collection process
-  - **Assignee**: TBD
-  - **Deadline**: Next sprint
-
-- [ ] **Performance Optimization**
-  - Investigate pagination for transactions (replace 500 limit)
-  - Optimize image loading for receipt scans
-  - Reduce initial bundle size
+- [ ] **Implement Preferences Page Functionality**
+  - **Theme Settings**: Persist theme selection (Light/Dark/System)
+  - **Currency Settings**: Save and apply default currency across app
+  - **Language Settings**: Multi-language support (English/Español/Français/Deutsch/Italiano)
+  - **Email Notifications**: Backend integration for notification preferences
+  - **Budget Alerts**: Alert system when approaching budget limits
+  - **Goal Reminders**: Notification system for goal progress
+  - **Weekly Reports**: Generate and send weekly financial summaries
+  - **Display Options**: Apply showAccountNumbers, compactView, showCents across UI
   - **Assignee**: TBD
   - **Deadline**: Q1 2026
-
-#### Low Priority 🟢
-
-- [ ] **Documentation Updates**
-  - Add video tutorials to help section
-  - Create API documentation (if exposing API)
-  - Update README with production deployment guide
-  - **Assignee**: TBD
-  - **Deadline**: As needed
+  - **Effort**: 1-2 weeks
 
 ### Recently Completed ✅
 
@@ -67,75 +57,21 @@
   - Impact: Better collaboration and AI agent guidance
   - Files: `.spec/SPECIFICATION.md`, `.spec/PLAN.md`, `.spec/IMPLEMENTATION.md`, `.spec/TASKS.md`, `.env.example`
 
-### Backlog (Future Enhancements)
+### Backlog (Nice-to-Have Features - Not Planned)
 
-#### Features
+#### Features (Out of Scope)
 
-- [ ] **Dark Mode Support**
+These features have been removed from the project scope to maintain focus on core functionality:
 
-  - UI framework ready (CSS variables)
-  - Need to implement theme toggle
-  - Persist user preference
-  - **Priority**: Medium
-  - **Effort**: 2-3 days
+- ~~Dark Mode Support~~ - Deferred
+- ~~Recurring Transactions~~ - Future consideration
+- ~~Transaction Search~~ - Future consideration
+- ~~Multi-Currency Support~~ - Out of scope
+- ~~Budget Recommendations~~ - Out of scope
+- ~~Investment Portfolio Tracking~~ - Out of scope
+- ~~Bank Account Integration (Plaid)~~ - Out of scope
 
-- [ ] **Recurring Transactions**
-
-  - Database schema for recurrence rules
-  - Background job to create recurring transactions
-  - UI for managing recurring items
-  - **Priority**: High (user-requested)
-  - **Effort**: 1 week
-
-- [ ] **Transaction Search**
-
-  - Full-text search in descriptions
-  - Search by amount range
-  - Advanced filters (date range picker)
-  - **Priority**: Medium
-  - **Effort**: 2-3 days
-
-- [ ] **Multi-Currency Support**
-
-  - Add currency field to accounts
-  - Exchange rate API integration
-  - Convert amounts for summary calculations
-  - **Priority**: Low
-  - **Effort**: 1 week
-
-- [ ] **Budget Recommendations**
-
-  - Analyze spending patterns
-  - Suggest budget amounts based on history
-  - ML model for predictions (optional)
-  - **Priority**: Low
-  - **Effort**: 2 weeks
-
-- [ ] **Investment Portfolio Tracking**
-
-  - New account type: Investment
-  - Stock/crypto price API integration
-  - Portfolio value charts
-  - **Priority**: Low
-  - **Effort**: 2 weeks
-
-- [ ] **Bank Account Integration (Plaid)**
-  - Plaid API integration
-  - Automatic transaction import
-  - Bank balance sync
-  - **Priority**: Medium (high user value)
-  - **Effort**: 2-3 weeks
-  - **Cost**: Plaid subscription required
-
-#### Technical Debt
-
-- [ ] **Implement Pagination**
-
-  - Replace 500 transaction limit with pagination
-  - Virtual scrolling for large lists
-  - Infinite scroll or "Load More" button
-  - **Priority**: Medium
-  - **Effort**: 3-4 days
+#### Technical Improvements (If Time Permits)
 
 - [ ] **Enable Reanimated Animations**
 
@@ -150,7 +86,7 @@
   - Install Sentry SDK
   - Configure error reporting
   - Set up alerts for critical errors
-  - **Priority**: High
+  - **Priority**: Low
   - **Effort**: 1 day
 
 - [ ] **Implement Offline Support**
@@ -158,7 +94,7 @@
   - Queue mutations when offline
   - Sync when back online
   - Handle conflicts gracefully
-  - **Priority**: Medium
+  - **Priority**: Low
   - **Effort**: 1 week
 
 - [ ] **Add Unit Tests**
@@ -166,7 +102,7 @@
   - Test utility functions
   - Test React Query hooks
   - Test complex business logic
-  - **Priority**: Medium
+  - **Priority**: Low
   - **Effort**: 1 week
 
 - [ ] **Add E2E Tests**
@@ -176,30 +112,22 @@
   - **Priority**: Low
   - **Effort**: 1-2 weeks
 
-#### UI/UX Improvements
+#### UI/UX Improvements (If Time Permits)
 
 - [ ] **Onboarding Flow**
 
   - Welcome screens for new users
   - Feature highlights
   - Optional tutorial
-  - **Priority**: Medium
-  - **Effort**: 2-3 days
-
-- [ ] **Improved Charts**
-
-  - More chart types (heatmap, scatter)
-  - Interactive charts (drill-down)
-  - Export chart images
   - **Priority**: Low
-  - **Effort**: 1 week
+  - **Effort**: 2-3 days
 
 - [ ] **Accessibility Improvements**
 
   - Screen reader testing
   - High contrast mode
   - Font size adjustments
-  - **Priority**: Medium
+  - **Priority**: Low
   - **Effort**: 3-4 days
 
 - [ ] **Tablet Optimization**

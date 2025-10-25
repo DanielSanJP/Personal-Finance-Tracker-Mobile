@@ -7,36 +7,39 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useCallback, useState } from 'react';
 import { Platform } from 'react-native';
 
+type RecordingState = 'idle' | 'recording' | 'processing';
+
 interface UseAudioRecorderOptions {
   onTranscription: (transcript: string) => void;
   onError?: (error: string) => void;
 }
 
 export const useAudioRecorder = ({ onTranscription, onError }: UseAudioRecorderOptions) => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   
   // Use HIGH_QUALITY preset - M4A/AAC is supported by Gemini!
   const audioRecorder = useExpoAudioRecorder(RecordingPresets.HIGH_QUALITY);
   
-  console.log('🎤 Audio recorder initialized:', {
-    isRecording: audioRecorder.isRecording,
-    uri: audioRecorder.uri,
-  });
+  if (__DEV__) {
+    console.log('🎤 Audio recorder initialized:', {
+      isRecording: audioRecorder.isRecording,
+      uri: audioRecorder.uri,
+    });
+  }
 
   const checkPermissions = useCallback(async () => {
     try {
-      console.log('🔐 Requesting recording permissions...');
+      if (__DEV__) console.log('🔐 Requesting recording permissions...');
       const result = await AudioModule.requestRecordingPermissionsAsync();
-      console.log('🔐 Permission result:', result);
+      if (__DEV__) console.log('🔐 Permission result:', result);
       
       if (!result.granted) {
-        console.log('❌ Permission denied');
+        if (__DEV__) console.log('❌ Permission denied');
         onError?.('Microphone permission is required for voice input');
         return false;
       }
       
-      console.log('✅ Permission granted');
+      if (__DEV__) console.log('✅ Permission granted');
       return true;
     } catch (error) {
       console.error('❌ Error checking permissions:', error);
@@ -47,21 +50,21 @@ export const useAudioRecorder = ({ onTranscription, onError }: UseAudioRecorderO
 
   const startRecording = useCallback(async () => {
     try {
-      console.log('🎤 Starting recording process...');
+      if (__DEV__) console.log('🎤 Starting recording process...');
       
       const hasPermission = await checkPermissions();
-      console.log('🔐 Permission check result:', hasPermission);
+      if (__DEV__) console.log('🔐 Permission check result:', hasPermission);
       if (!hasPermission) return;
 
       // Set audio mode for iOS to allow recording
       if (Platform.OS === 'ios') {
-        console.log('📱 Setting iOS audio mode...');
+        if (__DEV__) console.log('📱 Setting iOS audio mode...');
         try {
           await AudioModule.setAudioModeAsync({
             allowsRecording: true,
             playsInSilentMode: true,
           });
-          console.log('✅ iOS audio mode set successfully');
+          if (__DEV__) console.log('✅ iOS audio mode set successfully');
         } catch (audioModeError) {
           console.error('❌ Failed to set iOS audio mode:', audioModeError);
           onError?.('Failed to configure audio for recording');
@@ -69,60 +72,68 @@ export const useAudioRecorder = ({ onTranscription, onError }: UseAudioRecorderO
         }
       }
 
-      console.log('🎵 Preparing to record...');
+      if (__DEV__) console.log('🎵 Preparing to record...');
       
       // IMPORTANT: Must call prepareToRecordAsync() before record()
       try {
         await audioRecorder.prepareToRecordAsync();
-        console.log('✅ Recorder prepared successfully');
+        if (__DEV__) console.log('✅ Recorder prepared successfully');
       } catch (prepareError) {
         console.error('❌ Failed to prepare recorder:', prepareError);
         onError?.('Failed to prepare audio recorder');
         return;
       }
       
-      console.log('🎵 Starting recording...');
+      if (__DEV__) console.log('🎵 Starting recording...');
       
       // Log recorder state before recording
-      console.log('🎵 Recorder state before record():', {
-        isRecording: audioRecorder.isRecording,
-        uri: audioRecorder.uri
-      });
+      if (__DEV__) {
+        console.log('🎵 Recorder state before record():', {
+          isRecording: audioRecorder.isRecording,
+          uri: audioRecorder.uri
+        });
+      }
       
       await audioRecorder.record();
-      console.log('🎵 audioRecorder.record() completed, checking isRecording:', audioRecorder.isRecording);
+      if (__DEV__) console.log('🎵 audioRecorder.record() completed, checking isRecording:', audioRecorder.isRecording);
       
       // Wait a short moment and check again - sometimes state takes time to update
       setTimeout(() => {
-        console.log('🎵 After timeout, isRecording:', audioRecorder.isRecording);
+        if (__DEV__) console.log('🎵 After timeout, isRecording:', audioRecorder.isRecording);
         if (audioRecorder.isRecording) {
-          console.log('✅ Recording started successfully');
-          setIsRecording(true);
+          if (__DEV__) console.log('✅ Recording started successfully');
+          setRecordingState('recording');
         } else {
-          console.log('❌ Recording still not active after timeout');
-          console.log('❌ This usually means prepareToRecordAsync() was not called or failed');
+          if (__DEV__) {
+            console.log('❌ Recording still not active after timeout');
+            console.log('❌ This usually means prepareToRecordAsync() was not called or failed');
+          }
+          setRecordingState('idle');
           onError?.('Failed to start recording - recording not active. Make sure microphone permissions are granted.');
         }
       }, 100);
     } catch (error) {
       console.error('❌ Exception in startRecording:', error);
+      setRecordingState('idle');
       onError?.(`Failed to start recording: ${error instanceof Error ? error.message : String(error)}`);
     }
   }, [checkPermissions, onError, audioRecorder]);
 
   const stopRecording = useCallback(async () => {
-    console.log('🎤 stopRecording called, audioRecorder.isRecording:', audioRecorder.isRecording, 'local isRecording:', isRecording);
+    if (__DEV__) {
+      console.log('🎤 stopRecording called, audioRecorder.isRecording:', audioRecorder.isRecording, 'recordingState:', recordingState);
+    }
     
     // Check our local state first, then audioRecorder state
-    if (!isRecording && !audioRecorder.isRecording) {
-      console.log('⚠️ Not recording, exiting stopRecording');
+    if (recordingState !== 'recording' && !audioRecorder.isRecording) {
+      if (__DEV__) console.log('⚠️ Not recording, exiting stopRecording');
       return;
     }
 
     try {
-      console.log('🛑 Stopping recording...');
-      setIsRecording(false);
-      setIsProcessing(true);
+      if (__DEV__) console.log('🛑 Stopping recording...');
+      // Set to processing IMMEDIATELY before any async operations
+      setRecordingState('processing');
 
       // Only stop if actually recording
       if (audioRecorder.isRecording) {
@@ -130,13 +141,13 @@ export const useAudioRecorder = ({ onTranscription, onError }: UseAudioRecorderO
       }
       
       const uri = audioRecorder.uri;
-      console.log('✅ Recording stopped, uri:', uri);
+      if (__DEV__) console.log('✅ Recording stopped, uri:', uri);
 
       if (uri) {
         try {
           // Check if file exists first
           const fileInfo = await FileSystem.getInfoAsync(uri);
-          console.log('📁 File info:', fileInfo);
+          if (__DEV__) console.log('📁 File info:', fileInfo);
           
           if (!fileInfo.exists) {
             throw new Error(`Recording file does not exist at ${uri}`);
@@ -146,14 +157,14 @@ export const useAudioRecorder = ({ onTranscription, onError }: UseAudioRecorderO
             throw new Error('Recording file is empty - no audio was captured');
           }
           
-          console.log('📁 File exists and has size:', fileInfo.size, 'bytes');
+          if (__DEV__) console.log('📁 File exists and has size:', fileInfo.size, 'bytes');
           
           // Read audio file as base64
           const base64Audio = await FileSystem.readAsStringAsync(uri, {
             encoding: 'base64',
           });
           
-          console.log('📁 Audio file read successfully, length:', base64Audio.length);
+          if (__DEV__) console.log('📁 Audio file read successfully, length:', base64Audio.length);
           
           // Get API key for Gemini
           const apiKey = process.env.EXPO_PUBLIC_GOOGLE_API_KEY || 
@@ -203,13 +214,15 @@ export const useAudioRecorder = ({ onTranscription, onError }: UseAudioRecorderO
             const transcript = data.candidates[0].content.parts[0].text?.trim();
             
             if (transcript) {
-              console.log('✅ Transcription successful:', transcript);
+              if (__DEV__) console.log('✅ Transcription successful:', transcript);
               onTranscription(transcript);
+              // DON'T reset to idle here - let the parent (useVoiceInput) control when processing is done
+              // This prevents the button from flickering between transcription and parsing
             } else {
               throw new Error('No transcription text found in response');
             }
           } else {
-            console.warn('⚠️  No speech detected in audio');
+            if (__DEV__) console.warn('⚠️  No speech detected in audio');
             throw new Error('No speech detected. Please try speaking more clearly.');
           }
           
@@ -217,32 +230,40 @@ export const useAudioRecorder = ({ onTranscription, onError }: UseAudioRecorderO
           console.error('❌ Transcription error:', error);
           const errorMessage = error instanceof Error ? error.message : 'Transcription failed';
           onError?.(errorMessage);
+          // Only reset to idle on error
+          setRecordingState('idle');
         }
       }
     } catch (error) {
       console.error('Failed to stop recording:', error);
       onError?.('Failed to stop recording');
-    } finally {
-      setIsProcessing(false);
+      setRecordingState('idle');
     }
-  }, [onTranscription, onError, audioRecorder, isRecording]);
+    // NOTE: No finally block - state stays 'processing' until parent explicitly resets it
+  }, [onTranscription, onError, audioRecorder, recordingState]);
 
   const toggleRecording = useCallback(() => {
-    if (isRecording) {
+    if (recordingState === 'recording') {
       stopRecording();
-    } else {
+    } else if (recordingState === 'idle') {
       startRecording();
     }
-  }, [isRecording, startRecording, stopRecording]);
+  }, [recordingState, startRecording, stopRecording]);
+
+  const resetState = useCallback(() => {
+    if (__DEV__) console.log('🔄 Resetting recording state to idle');
+    setRecordingState('idle');
+  }, []);
 
   const isSupported = Platform.OS !== 'web'; // Only supported on native platforms
 
   return {
-    isRecording,
-    isProcessing,
+    isRecording: recordingState === 'recording',
+    isProcessing: recordingState === 'processing',
     isSupported,
     startRecording,
     stopRecording,
     toggleRecording,
+    resetState,
   };
 };

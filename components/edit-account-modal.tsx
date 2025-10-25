@@ -1,15 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, Switch } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Switch, Text, View } from "react-native";
+import { useUpdateAccount } from "../hooks/queries/useAccounts";
+import type { Account } from "../lib/types";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 import {
   Dialog,
   DialogContent,
@@ -18,9 +11,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select-mobile";
 import { useToast } from "./ui/sonner";
-import { useUpdateAccount } from "../hooks/queries/useAccounts";
-import type { Account } from "../lib/types";
 
 interface EditAccountModalProps {
   account: Account | null;

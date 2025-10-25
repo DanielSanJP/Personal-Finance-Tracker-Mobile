@@ -1,29 +1,27 @@
 "use client";
 
+import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Text, View } from "react-native";
-import Svg, { Rect, Line, Text as SvgText } from "react-native-svg";
-import { Feather } from "@expo/vector-icons";
+import Svg, { Line, Rect, Text as SvgText } from "react-native-svg";
+import { useYearlyBudgetAnalysis } from "../hooks/queries/useBudgets";
+import { formatCurrency } from "../lib/utils";
+import { Badge } from "./ui/badge";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   CardDescription,
   CardFooter,
+  CardHeader,
+  CardTitle,
 } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { formatCurrency } from "../lib/utils";
-import { useYearlyBudgetAnalysis } from "../hooks/queries/useBudgets";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select-mobile";
 
 interface MonthlyBudgetData {
   month: string;
@@ -50,8 +48,9 @@ const YearlyBarChart = ({
 }) => {
   if (data.length === 0) return null;
 
-  const padding = 50;
-  const chartWidth = width - padding * 2;
+  const padding = 60; // Increased left padding for labels
+  const rightPadding = 50; // Separate right padding for max budget label
+  const chartWidth = width - padding - rightPadding;
   const chartHeight = height - padding * 2;
   const barWidth = (chartWidth / data.length) * 0.6;
   const barSpacing = (chartWidth / data.length) * 0.4;
@@ -84,7 +83,7 @@ const YearlyBarChart = ({
             key={`grid-${index}`}
             x1={padding}
             y1={padding + chartHeight * (1 - ratio)}
-            x2={width - padding}
+            x2={width - rightPadding}
             y2={padding + chartHeight * (1 - ratio)}
             stroke="#f3f4f6"
             strokeWidth="1"
@@ -96,7 +95,7 @@ const YearlyBarChart = ({
           <Line
             x1={padding}
             y1={padding + chartHeight * (1 - maxBudget / maxValue)}
-            x2={width - padding}
+            x2={width - rightPadding}
             y2={padding + chartHeight * (1 - maxBudget / maxValue)}
             stroke="#9ca3af"
             strokeWidth="1"
@@ -171,13 +170,13 @@ const YearlyBarChart = ({
         {/* Max Budget Label - only show if reference line is visible */}
         {maxBudget > 0 && maxBudget <= maxValue * 2 && (
           <SvgText
-            x={width - padding + 5}
-            y={padding + chartHeight * (1 - maxBudget / maxValue) - 5}
-            fontSize="10"
+            x={width - rightPadding + 5}
+            y={padding + chartHeight * (1 - maxBudget / maxValue) + 4}
+            fontSize="9"
             fill="#9ca3af"
             textAnchor="start"
           >
-            Max Budget
+            Max
           </SvgText>
         )}
       </Svg>
@@ -230,11 +229,11 @@ export function BarChart({ data: propData }: BarChartProps = {}) {
     return (
       <Card>
         <CardHeader>
-          <View className="h-6 w-48 bg-gray-200 rounded" />
-          <View className="h-4 w-32 bg-gray-200 rounded mt-2" />
+          <View className="h-6 w-48 bg-muted-light dark:bg-muted-dark rounded" />
+          <View className="h-4 w-32 bg-muted-light dark:bg-muted-dark rounded mt-2" />
         </CardHeader>
         <CardContent className="flex-1 pb-0">
-          <View className="mx-auto w-80 h-60 bg-gray-200 rounded" />
+          <View className="mx-auto w-80 h-60 bg-muted-light dark:bg-muted-dark rounded" />
         </CardContent>
       </Card>
     );
@@ -253,62 +252,56 @@ export function BarChart({ data: propData }: BarChartProps = {}) {
         <CardHeader className="pb-0">
           <View className="flex-row items-center gap-2">
             <Feather name="bar-chart-2" size={24} color="#374151" />
-            <CardTitle className="text-xl font-bold text-gray-900">
+            <CardTitle className="text-xl font-bold text-foreground-light dark:text-foreground-dark">
               Yearly Spending Chart
             </CardTitle>
           </View>
-          <CardDescription className="text-sm text-gray-600">
+          <CardDescription className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
             Monthly spending analysis - {selectedYear}
           </CardDescription>
 
           {/* Year Selector */}
           <View className="flex items-center gap-2 mt-4">
-            <Text className="text-sm font-medium">Year:</Text>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="min-w-32 w-auto justify-between px-4"
-                >
-                  <View className="flex-row items-center gap-2">
-                    <Text>{selectedYear}</Text>
-                    {selectedYear === new Date().getFullYear() && (
-                      <Badge className="text-xs">Current</Badge>
-                    )}
-                  </View>
-                  <Text className="ml-2">▼</Text>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="min-w-32 w-auto" align="center">
-                <DropdownMenuLabel>
-                  <Text>Select Year</Text>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+            <Text className="text-sm font-medium text-foreground-light dark:text-foreground-dark">
+              Year:
+            </Text>
+            <Select
+              value={selectedYear.toString()}
+              onValueChange={(value) => handleYearChange(value)}
+            >
+              <SelectTrigger className="min-w-48 w-auto">
+                <View className="flex-row items-center gap-2 flex-1">
+                  <SelectValue displayValue={selectedYear.toString()} />
+                  {selectedYear === new Date().getFullYear() && (
+                    <Badge className="text-xs">Current</Badge>
+                  )}
+                </View>
+              </SelectTrigger>
+              <SelectContent>
                 {yearOptions.map((option) => (
-                  <DropdownMenuItem
-                    key={option.value}
-                    onPress={() => handleYearChange(option.value)}
-                  >
+                  <SelectItem key={option.value} value={option.value}>
                     <View className="flex-row items-center gap-2">
-                      <Text>{option.label}</Text>
+                      <Text className="text-foreground-light dark:text-foreground-dark">
+                        {option.label}
+                      </Text>
                       {option.isCurrent && (
                         <Badge className="text-xs">Current</Badge>
                       )}
                     </View>
-                  </DropdownMenuItem>
+                  </SelectItem>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </SelectContent>
+            </Select>
           </View>
         </CardHeader>
         <CardContent className="flex-1 pb-0">
           <View className="mx-auto flex items-center justify-center py-8">
             <View className="items-center">
               <Feather name="bar-chart-2" size={48} color="#9CA3AF" />
-              <Text className="text-lg font-medium text-gray-900 mt-4 text-center">
+              <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark mt-4 text-center">
                 No spending data available
               </Text>
-              <Text className="text-gray-600 text-center mt-2 px-4">
+              <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-center mt-2 px-4">
                 {isCurrentYear
                   ? "Start tracking your expenses to see yearly spending analysis and trends"
                   : `No budget data found for ${selectedYear}. This year has no recorded transactions.`}
@@ -318,9 +311,11 @@ export function BarChart({ data: propData }: BarChartProps = {}) {
         </CardContent>
         <CardFooter className="flex-col gap-2 text-sm border-t-0">
           <View className="flex-row items-center justify-center gap-2">
-            <Text className="font-medium">Budget utilization: 0%</Text>
+            <Text className="font-medium text-foreground-light dark:text-foreground-dark">
+              Budget utilization: 0%
+            </Text>
           </View>
-          <Text className="text-gray-600 text-center">
+          <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-center">
             No spending data available for the selected period
           </Text>
         </CardFooter>
@@ -359,59 +354,55 @@ export function BarChart({ data: propData }: BarChartProps = {}) {
       <CardHeader className="pb-0">
         <View className="flex-row items-center gap-2">
           <Feather name="bar-chart-2" size={24} color="#374151" />
-          <CardTitle className="text-xl font-bold text-gray-900">
+          <CardTitle className="text-xl font-bold text-foreground-light dark:text-foreground-dark">
             Yearly Spending Chart
           </CardTitle>
         </View>
-        <CardDescription className="text-sm text-gray-600">
+        <CardDescription className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
           Monthly spending analysis - {selectedYear}
         </CardDescription>
 
         {/* Year Selector */}
         <View className="flex items-center gap-2 mt-4">
-          <Text className="text-sm font-medium">Year:</Text>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="min-w-32 w-auto justify-between px-4"
-              >
-                <View className="flex-row items-center gap-2">
-                  <Text>{selectedYear}</Text>
-                  {selectedYear === new Date().getFullYear() && (
-                    <Badge className="text-xs">Current</Badge>
-                  )}
-                </View>
-                <Text className="ml-2">▼</Text>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="min-w-32 w-auto" align="center">
-              <DropdownMenuLabel>
-                <Text>Select Year</Text>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
+          <Text className="text-sm font-medium text-foreground-light dark:text-foreground-dark">
+            Year:
+          </Text>
+          <Select
+            value={selectedYear.toString()}
+            onValueChange={(value) => handleYearChange(value)}
+          >
+            <SelectTrigger className="min-w-48 w-auto">
+              <View className="flex-row items-center gap-2 flex-1">
+                <SelectValue displayValue={selectedYear.toString()} />
+                {selectedYear === new Date().getFullYear() && (
+                  <Badge className="text-xs">Current</Badge>
+                )}
+              </View>
+            </SelectTrigger>
+            <SelectContent>
               {yearOptions.map((option) => (
-                <DropdownMenuItem
-                  key={option.value}
-                  onPress={() => handleYearChange(option.value)}
-                >
+                <SelectItem key={option.value} value={option.value}>
                   <View className="flex-row items-center gap-2">
-                    <Text>{option.label}</Text>
+                    <Text className="text-foreground-light dark:text-foreground-dark">
+                      {option.label}
+                    </Text>
                     {option.isCurrent && (
                       <Badge className="text-xs">Current</Badge>
                     )}
                   </View>
-                </DropdownMenuItem>
+                </SelectItem>
               ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </SelectContent>
+          </Select>
         </View>
 
         {/* Max Budget Display */}
         <View className="flex items-end mt-2">
           <View className="items-end">
-            <Text className="text-xs text-gray-500">Max Budget</Text>
-            <Text className="text-lg font-semibold text-gray-900">
+            <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
+              Max Budget
+            </Text>
+            <Text className="text-lg font-semibold text-foreground-light dark:text-foreground-dark">
               {formatCurrency(maxBudget)}
             </Text>
           </View>
@@ -428,11 +419,11 @@ export function BarChart({ data: propData }: BarChartProps = {}) {
 
           {/* Tooltip */}
           {selectedBar && (
-            <View className="absolute top-4 left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg min-w-48">
-              <Text className="text-sm font-semibold text-gray-900">
+            <View className="absolute top-4 left-4 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-lg p-3 shadow-lg min-w-48">
+              <Text className="text-sm font-semibold text-foreground-light dark:text-foreground-dark">
                 {selectedBar.item.month}
               </Text>
-              <Text className="text-sm text-gray-900">
+              <Text className="text-sm text-foreground-light dark:text-foreground-dark">
                 Spending {formatCurrency(selectedBar.item.spending)}
               </Text>
             </View>
@@ -442,7 +433,7 @@ export function BarChart({ data: propData }: BarChartProps = {}) {
       <CardFooter className="flex-col gap-2 text-sm pt-0 border-t-0">
         <View className="flex-row items-center justify-between w-full">
           <View className="flex-row items-center gap-2">
-            <Text className="font-medium">
+            <Text className="font-medium text-foreground-light dark:text-foreground-dark">
               {isOverBudget ? "Over" : "Under"} budget by{" "}
               {Math.abs(budgetUtilization - 100).toFixed(1)}%
             </Text>
@@ -453,13 +444,15 @@ export function BarChart({ data: propData }: BarChartProps = {}) {
             />
           </View>
           <View className="items-end">
-            <Text className="text-xs text-gray-500">Total Spending</Text>
-            <Text className="font-semibold">
+            <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
+              Total Spending
+            </Text>
+            <Text className="font-semibold text-foreground-light dark:text-foreground-dark">
               {formatCurrency(totalSpending)}
             </Text>
           </View>
         </View>
-        <Text className="text-gray-600 text-center">
+        <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-center">
           {monthsUnderBudget} months under budget, {monthsOverBudget} months
           over budget
         </Text>

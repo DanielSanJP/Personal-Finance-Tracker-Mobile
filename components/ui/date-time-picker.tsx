@@ -1,7 +1,13 @@
-import RNDateTimePicker from "@react-native-community/datetimepicker";
 import { Feather } from "@expo/vector-icons";
+import RNDateTimePicker from "@react-native-community/datetimepicker";
 import * as React from "react";
-import { Platform, Text, TouchableOpacity, View } from "react-native";
+import {
+  Platform,
+  Text,
+  TouchableOpacity,
+  View,
+  useColorScheme,
+} from "react-native";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
 import { Calendar } from "./calendar";
@@ -138,6 +144,9 @@ export function DateTimePicker({
     return `${displayHours}:${minutes} ${period}`;
   };
 
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
   return (
     <View className={className}>
       {/* Side-by-side Date and Time */}
@@ -151,10 +160,20 @@ export function DateTimePicker({
           )}
           <TouchableOpacity
             className={cn(
-              "w-full justify-between font-normal h-12 px-3 py-3 border border-gray-300 rounded-lg bg-white",
-              !selectedDate && "text-muted-foreground",
-              disabled && "bg-gray-50 opacity-60"
+              "w-full justify-between font-normal h-12 px-3 py-3 rounded-lg",
+              !selectedDate &&
+                "text-muted-foreground-light dark:text-muted-foreground-dark",
+              disabled && "bg-muted-light dark:bg-muted-dark opacity-60"
             )}
+            style={{
+              borderWidth: 1,
+              borderColor: isDark ? "#1a1a1a" : "#ebebeb",
+              backgroundColor: disabled
+                ? undefined
+                : isDark
+                ? "#0a0a0a"
+                : "#ffffff",
+            }}
             onPress={openDatePicker}
             activeOpacity={0.7}
             disabled={disabled}
@@ -165,13 +184,23 @@ export function DateTimePicker({
                   flex: 1,
                   fontSize: 12,
                   marginRight: 6,
-                  color: selectedDate ? "#111827" : "#6b7280",
+                  color: selectedDate
+                    ? isDark
+                      ? "#fcfcfc"
+                      : "#111827"
+                    : isDark
+                    ? "#b5b5b5"
+                    : "#6b7280",
                 }}
                 numberOfLines={1}
               >
                 {selectedDate ? formatDate(selectedDate) : placeholder}
               </Text>
-              <Feather name="calendar" size={14} color="#6b7280" />
+              <Feather
+                name="calendar"
+                size={14}
+                color={isDark ? "#b5b5b5" : "#6b7280"}
+              />
             </View>
           </TouchableOpacity>
         </View>
@@ -185,9 +214,18 @@ export function DateTimePicker({
           )}
           <TouchableOpacity
             className={cn(
-              "w-full justify-between font-normal h-12 px-3 py-3 border border-gray-300 rounded-lg bg-white",
-              disabled && "bg-gray-50 opacity-60"
+              "w-full justify-between font-normal h-12 px-3 py-3 rounded-lg",
+              disabled && "bg-muted-light dark:bg-muted-dark opacity-60"
             )}
+            style={{
+              borderWidth: 1,
+              borderColor: isDark ? "#1a1a1a" : "#ebebeb",
+              backgroundColor: disabled
+                ? undefined
+                : isDark
+                ? "#0a0a0a"
+                : "#ffffff",
+            }}
             onPress={openTimePicker}
             activeOpacity={0.7}
             disabled={disabled}
@@ -198,13 +236,17 @@ export function DateTimePicker({
                   flex: 1,
                   fontSize: 12,
                   marginRight: 6,
-                  color: "#111827",
+                  color: isDark ? "#fcfcfc" : "#111827",
                 }}
                 numberOfLines={1}
               >
                 {selectedDate ? formatTime(selectedDate) : "12:00"}
               </Text>
-              <Feather name="clock" size={14} color="#6b7280" />
+              <Feather
+                name="clock"
+                size={14}
+                color={isDark ? "#b5b5b5" : "#6b7280"}
+              />
             </View>
           </TouchableOpacity>
         </View>

@@ -1,6 +1,6 @@
-import * as React from "react";
-import { View, Text } from "react-native";
 import { cva, type VariantProps } from "class-variance-authority";
+import * as React from "react";
+import { Text, View } from "react-native";
 import { cn } from "../../lib/utils";
 
 const alertVariants = cva(
@@ -8,8 +8,10 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-card border-border",
-        destructive: "bg-card border-destructive",
+        default:
+          "bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark",
+        destructive:
+          "bg-card-light dark:bg-card-dark border-destructive-light dark:border-destructive-dark",
       },
     },
     defaultVariants: {
@@ -40,7 +42,7 @@ function AlertTitle({ className, children, ...props }: AlertTitleProps) {
   return (
     <Text
       className={cn(
-        "font-medium tracking-tight text-card-foreground mb-1",
+        "font-medium tracking-tight text-card-foreground-light dark:text-card-foreground-dark mb-1",
         className
       )}
       {...props}
@@ -62,7 +64,10 @@ function AlertDescription({
 }: AlertDescriptionProps) {
   return (
     <Text
-      className={cn("text-muted-foreground text-sm leading-relaxed", className)}
+      className={cn(
+        "text-muted-foreground-light dark:text-muted-foreground-dark text-sm leading-relaxed",
+        className
+      )}
       {...props}
     >
       {children}
@@ -70,4 +75,4 @@ function AlertDescription({
   );
 }
 
-export { Alert, AlertTitle, AlertDescription };
+export { Alert, AlertDescription, AlertTitle };

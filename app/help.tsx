@@ -1,15 +1,15 @@
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import {
+  Alert,
+  Linking,
+  Pressable,
   ScrollView,
   Text,
   View,
-  Linking,
-  Alert,
-  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
 import Nav from "../components/nav";
 import { Button } from "../components/ui/button";
 import {
@@ -54,10 +54,12 @@ export default function HelpPage() {
   // Show loading while checking auth state
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
+      <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
         <Nav />
         <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-500">Loading...</Text>
+          <Text className="text-muted-foreground-light dark:text-muted-foreground-dark">
+            Loading...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -69,7 +71,7 @@ export default function HelpPage() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <Nav />
 
       <ScrollView className="flex-1">
@@ -82,7 +84,7 @@ export default function HelpPage() {
                   Help & Support
                 </CardTitle>
               </View>
-              <Text className="text-gray-600 mt-2">
+              <Text className="text-muted-foreground-light dark:text-muted-foreground-dark mt-2">
                 Get help with your Personal Finance Tracker experience.
               </Text>
             </CardHeader>
@@ -92,48 +94,48 @@ export default function HelpPage() {
               <View className="gap-4">
                 <View className="flex-row items-center gap-2">
                   <Feather name="file-text" size={20} color="#374151" />
-                  <Text className="text-lg font-medium">
+                  <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark">
                     Frequently Asked Questions
                   </Text>
                 </View>
 
                 <View className="gap-4">
-                  <View className="border border-gray-200 rounded-lg p-4 bg-white">
-                    <Text className="font-medium mb-2">
+                  <View className="border border-border-light dark:border-border-dark rounded-lg p-4 bg-card-light dark:bg-card-dark">
+                    <Text className="font-medium mb-2 text-foreground-light dark:text-foreground-dark">
                       How do I add a new account?
                     </Text>
-                    <Text className="text-sm text-gray-600">
+                    <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                       Navigate to the Accounts page and tap &quot;Add
                       Account&quot;. Fill in your account details and tap save.
                     </Text>
                   </View>
 
-                  <View className="border border-gray-200 rounded-lg p-4 bg-white">
-                    <Text className="font-medium mb-2">
+                  <View className="border border-border-light dark:border-border-dark rounded-lg p-4 bg-card-light dark:bg-card-dark">
+                    <Text className="font-medium mb-2 text-foreground-light dark:text-foreground-dark">
                       How do I categorize transactions?
                     </Text>
-                    <Text className="text-sm text-gray-600">
+                    <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                       When adding transactions, you can select from predefined
                       categories or create custom ones to organize your
                       spending.
                     </Text>
                   </View>
 
-                  <View className="border border-gray-200 rounded-lg p-4 bg-white">
-                    <Text className="font-medium mb-2">
+                  <View className="border border-border-light dark:border-border-dark rounded-lg p-4 bg-card-light dark:bg-card-dark">
+                    <Text className="font-medium mb-2 text-foreground-light dark:text-foreground-dark">
                       Can I export my financial data?
                     </Text>
-                    <Text className="text-sm text-gray-600">
+                    <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                       Yes! Visit the Reports page where you can export your data
                       in CSV or PDF format for your records.
                     </Text>
                   </View>
 
-                  <View className="border border-gray-200 rounded-lg p-4 bg-white">
-                    <Text className="font-medium mb-2">
+                  <View className="border border-border-light dark:border-border-dark rounded-lg p-4 bg-card-light dark:bg-card-dark">
+                    <Text className="font-medium mb-2 text-foreground-light dark:text-foreground-dark">
                       How do I set up budgets?
                     </Text>
-                    <Text className="text-sm text-gray-600">
+                    <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                       Go to the Budgets page to create spending limits for
                       different categories and track your progress throughout
                       the month.
@@ -148,7 +150,9 @@ export default function HelpPage() {
               <View className="gap-4">
                 <View className="flex-row items-center gap-2">
                   <Feather name="message-circle" size={20} color="#374151" />
-                  <Text className="text-lg font-medium">Contact Support</Text>
+                  <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark">
+                    Contact Support
+                  </Text>
                 </View>
 
                 <View className="flex-row gap-4 flex-wrap">
@@ -156,9 +160,11 @@ export default function HelpPage() {
                     <Card className="p-4">
                       <View className="flex-row items-center gap-3 mb-3">
                         <Feather name="mail" size={20} color="#2563eb" />
-                        <Text className="font-medium">Email Support</Text>
+                        <Text className="font-medium text-foreground-light dark:text-foreground-dark">
+                          Email Support
+                        </Text>
                       </View>
-                      <Text className="text-sm text-gray-600 mb-3">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark mb-3">
                         Get help via email. We typically respond within 24
                         hours.
                       </Text>
@@ -167,18 +173,15 @@ export default function HelpPage() {
                         onPress={handleEmailSupport}
                         className="w-full"
                       >
-                        <View className="flex-col items-center gap-2">
-                          <View className="flex-row items-center gap-2">
-                            <Feather
-                              name="external-link"
-                              size={16}
-                              color="#374151"
-                            />
-                            <Text className="font-medium"> {email}</Text>
-                          </View>
-                          {/* <Text className="text-xs text-gray-600 text-center">
+                        <View className="flex-row items-center gap-2">
+                          <Feather
+                            name="external-link"
+                            size={16}
+                            color="#374151"
+                          />
+                          <Text className="font-medium text-foreground-light dark:text-foreground-dark">
                             {email}
-                          </Text> */}
+                          </Text>
                         </View>
                       </Button>
                     </Card>
@@ -188,9 +191,11 @@ export default function HelpPage() {
                     <Card className="p-4">
                       <View className="flex-row items-center gap-3 mb-3">
                         <Feather name="phone" size={20} color="#16a34a" />
-                        <Text className="font-medium">Phone Support</Text>
+                        <Text className="font-medium text-foreground-light dark:text-foreground-dark">
+                          Phone Support
+                        </Text>
                       </View>
-                      <Text className="text-sm text-gray-600 mb-3">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark mb-3">
                         Speak with our support team during business hours.
                       </Text>
                       <Button
@@ -200,7 +205,7 @@ export default function HelpPage() {
                       >
                         <View className="flex-row items-center gap-2">
                           <Feather name="phone" size={16} color="#374151" />
-                          <Text className="font-medium">
+                          <Text className="font-medium text-foreground-light dark:text-foreground-dark">
                             {phoneNumber.replace("tel:", "")}
                           </Text>
                         </View>
@@ -214,7 +219,9 @@ export default function HelpPage() {
 
               {/* Resources */}
               <View className="gap-4">
-                <Text className="text-lg font-medium">Resources</Text>
+                <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark">
+                  Resources
+                </Text>
 
                 <View className="gap-4">
                   <Pressable
@@ -222,13 +229,13 @@ export default function HelpPage() {
                       /* TODO: Implement user guide */
                     }}
                   >
-                    <View className="border border-gray-200 rounded-lg p-4 bg-white">
+                    <View className="border border-border-light dark:border-border-dark rounded-lg p-4 bg-card-light dark:bg-card-dark">
                       <View className="flex-col items-center gap-2">
                         <Feather name="file-text" size={24} color="#374151" />
-                        <Text className="font-medium text-center">
+                        <Text className="font-medium text-center text-foreground-light dark:text-foreground-dark">
                           User Guide
                         </Text>
-                        <Text className="text-xs text-gray-600 text-center">
+                        <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark text-center">
                           Complete documentation
                         </Text>
                       </View>
@@ -240,17 +247,17 @@ export default function HelpPage() {
                       /* TODO: Implement community forum */
                     }}
                   >
-                    <View className="border border-gray-200 rounded-lg p-4 bg-white">
+                    <View className="border border-border-light dark:border-border-dark rounded-lg p-4 bg-card-light dark:bg-card-dark">
                       <View className="flex-col items-center gap-2">
                         <Feather
                           name="message-circle"
                           size={24}
                           color="#374151"
                         />
-                        <Text className="font-medium text-center">
+                        <Text className="font-medium text-center text-foreground-light dark:text-foreground-dark">
                           Community Forum
                         </Text>
-                        <Text className="text-xs text-gray-600 text-center">
+                        <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark text-center">
                           Connect with other users
                         </Text>
                       </View>
@@ -262,13 +269,13 @@ export default function HelpPage() {
                       /* TODO: Implement video tutorials */
                     }}
                   >
-                    <View className="border border-gray-200 rounded-lg p-4 bg-white">
+                    <View className="border border-border-light dark:border-border-dark rounded-lg p-4 bg-card-light dark:bg-card-dark">
                       <View className="flex-col items-center gap-2">
                         <Feather name="help-circle" size={24} color="#374151" />
-                        <Text className="font-medium text-center">
+                        <Text className="font-medium text-center text-foreground-light dark:text-foreground-dark">
                           Video Tutorials
                         </Text>
-                        <Text className="text-xs text-gray-600 text-center">
+                        <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark text-center">
                           Step-by-step guides
                         </Text>
                       </View>
@@ -281,32 +288,40 @@ export default function HelpPage() {
 
               {/* App Information */}
               <View className="gap-4">
-                <Text className="text-lg font-medium">App Information</Text>
+                <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark">
+                  App Information
+                </Text>
 
                 <View className="flex-row gap-4 flex-wrap">
                   <View className="flex-1 min-w-[120px]">
-                    <Text className="font-medium text-gray-600 text-sm">
+                    <Text className="font-medium text-muted-foreground-light dark:text-muted-foreground-dark text-sm">
                       Version:
                     </Text>
-                    <Text className="text-sm">1.0.0</Text>
+                    <Text className="text-sm text-foreground-light dark:text-foreground-dark">
+                      1.0.0
+                    </Text>
                   </View>
                   <View className="flex-1 min-w-[120px]">
-                    <Text className="font-medium text-gray-600 text-sm">
+                    <Text className="font-medium text-muted-foreground-light dark:text-muted-foreground-dark text-sm">
                       Last Updated:
                     </Text>
-                    <Text className="text-sm">August 2025</Text>
+                    <Text className="text-sm text-foreground-light dark:text-foreground-dark">
+                      August 2025
+                    </Text>
                   </View>
                   <View className="flex-1 min-w-[120px]">
-                    <Text className="font-medium text-gray-600 text-sm">
+                    <Text className="font-medium text-muted-foreground-light dark:text-muted-foreground-dark text-sm">
                       Platform:
                     </Text>
-                    <Text className="text-sm">Mobile Application</Text>
+                    <Text className="text-sm text-foreground-light dark:text-foreground-dark">
+                      Mobile Application
+                    </Text>
                   </View>
                   <View className="flex-1 min-w-[120px]">
-                    <Text className="font-medium text-gray-600 text-sm">
+                    <Text className="font-medium text-muted-foreground-light dark:text-muted-foreground-dark text-sm">
                       Status:
                     </Text>
-                    <Text className="text-sm text-green-600">
+                    <Text className="text-sm text-green-600 dark:text-green-400">
                       All Systems Operational
                     </Text>
                   </View>

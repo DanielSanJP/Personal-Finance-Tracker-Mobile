@@ -11,12 +11,14 @@ import { Card, CardContent } from "../components/ui/card";
 import { useToast } from "../components/ui/sonner";
 import { useAccounts } from "../hooks/queries/useAccounts";
 import { useAuth } from "../hooks/queries/useAuth";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 import type { Account } from "../lib/types";
 import { formatCurrency } from "../lib/utils";
 
 export default function Accounts() {
   const router = useRouter();
   const { user, isLoading: loading } = useAuth();
+  const { currency, showCents, compactView } = useUserPreferences();
   const {
     data: accounts = [],
     isLoading: accountsLoading,
@@ -85,10 +87,12 @@ export default function Accounts() {
   // Show loading while checking auth state
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
+      <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
         <Nav />
         <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-500">Loading...</Text>
+          <Text className="text-muted-foreground-light dark:text-muted-foreground-dark">
+            Loading...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -100,14 +104,14 @@ export default function Accounts() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <Nav />
 
       <ScrollView ref={scrollViewRef} className="flex-1">
         <View className="max-w-7xl mx-auto px-6 py-8">
           {/* Header with title */}
           <View className="mb-6">
-            <Text className="text-3xl font-bold text-gray-900 mb-4">
+            <Text className="text-3xl font-bold text-foreground-light dark:text-foreground-dark mb-4">
               My Accounts
             </Text>
             {/* Action Buttons */}
@@ -135,10 +139,10 @@ export default function Accounts() {
           ) : accounts.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
-                <Text className="text-lg font-medium text-gray-900 mb-2">
+                <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark mb-2">
                   No accounts found
                 </Text>
-                <Text className="text-gray-500 mb-4">
+                <Text className="text-muted-foreground-light dark:text-muted-foreground-dark mb-4">
                   Get started by adding your first account.
                 </Text>
                 <Button onPress={handleAddAccount}>
@@ -160,21 +164,29 @@ export default function Accounts() {
                     },
                   ]}
                 >
-                  <View className="bg-white flex flex-col rounded-xl border border-gray-200 shadow-sm">
-                    <View className="px-6 pt-6 pb-4">
+                  <View className="bg-card-light dark:bg-card-dark flex flex-col rounded-xl border border-border-light dark:border-border-dark shadow-sm">
+                    <View
+                      className={
+                        compactView ? "px-4 pt-4 pb-2" : "px-6 pt-6 pb-4"
+                      }
+                    >
                       <View className="flex-row justify-between items-start">
-                        <Text className="text-lg font-semibold text-gray-900 flex-1">
+                        <Text
+                          className={`font-semibold text-card-foreground-light dark:text-card-foreground-dark flex-1 ${
+                            compactView ? "text-base" : "text-lg"
+                          }`}
+                        >
                           {account.name}
                         </Text>
                         <View
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full ${
-                            getAccountTypeColor(account.type).bg
-                          }`}
+                          className={`inline-flex items-center rounded-full ${
+                            compactView ? "px-2 py-0.5" : "px-2.5 py-0.5"
+                          } ${getAccountTypeColor(account.type).bg}`}
                         >
                           <Text
-                            className={`text-xs font-medium ${
-                              getAccountTypeColor(account.type).text
-                            }`}
+                            className={`font-medium ${
+                              compactView ? "text-[10px]" : "text-xs"
+                            } ${getAccountTypeColor(account.type).text}`}
                           >
                             {account.type.charAt(0).toUpperCase() +
                               account.type.slice(1)}
@@ -182,33 +194,59 @@ export default function Accounts() {
                         </View>
                       </View>
                     </View>
-                    <View className="px-6 pb-6">
-                      <View className="space-y-2 gap-2">
-                        <Text className="text-2xl font-bold text-gray-900">
-                          {formatCurrency(account.balance)}
+                    <View className={compactView ? "px-4 pb-4" : "px-6 pb-6"}>
+                      <View
+                        className={
+                          compactView ? "space-y-1 gap-1" : "space-y-2 gap-2"
+                        }
+                      >
+                        <Text
+                          className={`font-bold text-card-foreground-light dark:text-card-foreground-dark ${
+                            compactView ? "text-xl" : "text-2xl"
+                          }`}
+                        >
+                          {formatCurrency(account.balance, currency, showCents)}
                         </Text>
                         {account.accountNumber && (
-                          <Text className="text-sm text-gray-500">
+                          <Text
+                            className={`text-muted-foreground-light dark:text-muted-foreground-dark ${
+                              compactView ? "text-xs" : "text-sm"
+                            }`}
+                          >
                             Account: {account.accountNumber}
                           </Text>
                         )}
-                        <View className="flex-row justify-between items-center pt-3">
+                        <View
+                          className={`flex-row justify-between items-center ${
+                            compactView ? "pt-2" : "pt-3"
+                          }`}
+                        >
                           <View
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full ${
-                              account.isActive ? "bg-green-100" : "bg-gray-100"
+                            className={`inline-flex items-center rounded-full ${
+                              compactView ? "px-2 py-0.5" : "px-2.5 py-0.5"
+                            } ${
+                              account.isActive
+                                ? "bg-green-100 dark:bg-green-900/30"
+                                : "bg-muted-light dark:bg-muted-dark"
                             }`}
                           >
                             <Text
-                              className={`text-xs font-medium ${
+                              className={`font-medium ${
+                                compactView ? "text-[10px]" : "text-xs"
+                              } ${
                                 account.isActive
-                                  ? "text-green-800"
-                                  : "text-gray-800"
+                                  ? "text-green-800 dark:text-green-400"
+                                  : "text-muted-foreground-light dark:text-muted-foreground-dark"
                               }`}
                             >
                               {account.isActive ? "Active" : "Inactive"}
                             </Text>
                           </View>
-                          <Text className="text-xs text-gray-400">
+                          <Text
+                            className={`text-muted-foreground-light dark:text-muted-foreground-dark ${
+                              compactView ? "text-[10px]" : "text-xs"
+                            }`}
+                          >
                             Tap to edit
                           </Text>
                         </View>

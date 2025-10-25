@@ -76,8 +76,9 @@ export function DatePicker({
     <>
       <TouchableOpacity
         className={cn(
-          "w-full justify-between font-normal h-12 px-4 py-3 border border-gray-300 rounded-lg bg-white",
-          !date && "text-muted-foreground",
+          "w-full justify-between font-normal h-12 px-4 py-3 border border-border-light dark:border-border-dark rounded-lg bg-card-light dark:bg-card-dark",
+          !date &&
+            "text-muted-foreground-light dark:text-muted-foreground-dark",
           className
         )}
         onPress={openDatePicker}
@@ -87,12 +88,16 @@ export function DatePicker({
           <Text
             className={cn(
               "text-base",
-              date ? "text-gray-900" : "text-gray-500"
+              date
+                ? "text-foreground-light dark:text-foreground-dark"
+                : "text-muted-foreground-light dark:text-muted-foreground-dark"
             )}
           >
             {date ? formatDate(date) : placeholder}
           </Text>
-          <Text className="text-gray-500 text-lg">📅</Text>
+          <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-lg">
+            📅
+          </Text>
         </View>
       </TouchableOpacity>
 

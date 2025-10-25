@@ -35,9 +35,10 @@ import {
 import { useAuth } from "../../hooks/queries/useAuth";
 import {
   useDeleteTransaction,
+  useInfiniteTransactions,
   useTransactionFilterOptions,
-  useTransactions,
 } from "../../hooks/queries/useTransactions";
+import { useUserPreferences } from "../../hooks/useUserPreferences";
 import {
   exportTransactionsToCSV,
   exportTransactionsToPDF,
@@ -47,9 +48,22 @@ import { formatCurrency } from "../../lib/utils";
 
 export default function Transactions() {
   useAuth(); // Keep auth context active
+  const { currency, showCents, compactView } = useUserPreferences();
 
   // Use React Query hooks for transactions and filter options
-  const { data: transactions = [], isLoading, refetch } = useTransactions();
+  const {
+    data: transactionsData,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteTransactions(100); // Load 100 transactions per page
+
+  // Flatten all pages of transactions into single array
+  const transactions = useMemo(() => {
+    return transactionsData?.pages.flatMap((page) => page) || [];
+  }, [transactionsData]);
+
   const { data: filterOptions } = useTransactionFilterOptions();
   const deleteTransactionMutation = useDeleteTransaction();
 
@@ -77,9 +91,8 @@ export default function Transactions() {
   useFocusEffect(
     React.useCallback(() => {
       scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
-      // Refetch transactions when tab is focused
-      refetch();
-    }, [refetch])
+      // Note: Infinite query auto-refetches on focus based on staleTime
+    }, [])
   );
 
   // Get filter options from React Query or compute from transactions
@@ -192,7 +205,11 @@ export default function Transactions() {
       "All Parties",
       ...sortedPartyEntries.map(([party, { amount, type }]) => {
         // Use absolute value to avoid doubling minus signs
-        const formattedAmount = formatCurrency(Math.abs(amount));
+        const formattedAmount = formatCurrency(
+          Math.abs(amount),
+          currency,
+          showCents
+        );
         // Use different symbols based on transaction type
         let displayAmount = "";
         if (type === "expense") {
@@ -207,7 +224,7 @@ export default function Transactions() {
     ];
 
     return parties;
-  }, [preFilteredTransactions, sortBy, sortDirection]);
+  }, [preFilteredTransactions, sortBy, sortDirection, currency, showCents]);
 
   // Apply party filter and sort transactions - MEMOIZED for performance
   const filteredTransactions = useMemo(() => {
@@ -255,30 +272,23 @@ export default function Transactions() {
   }, [preFilteredTransactions, selectedParty, sortBy, sortDirection]);
 
   // Pagination calculations - MEMOIZED for performance
-  const {
-    totalTransactions,
-    totalPages,
-    startIndex,
-    endIndex,
-    paginatedTransactions,
-  } = useMemo(() => {
-    const totalTransactions = filteredTransactions.length;
-    const totalPages = Math.ceil(totalTransactions / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedTransactions = filteredTransactions.slice(
-      startIndex,
-      endIndex
-    );
+  const { totalTransactions, totalPages, paginatedTransactions } =
+    useMemo(() => {
+      const totalTransactions = filteredTransactions.length;
+      const totalPages = Math.ceil(totalTransactions / itemsPerPage);
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedTransactions = filteredTransactions.slice(
+        startIndex,
+        endIndex
+      );
 
-    return {
-      totalTransactions,
-      totalPages,
-      startIndex,
-      endIndex,
-      paginatedTransactions,
-    };
-  }, [filteredTransactions, currentPage, itemsPerPage]);
+      return {
+        totalTransactions,
+        totalPages,
+        paginatedTransactions,
+      };
+    }, [filteredTransactions, currentPage, itemsPerPage]);
 
   // Reset to page 1 when filters change
   React.useEffect(() => {
@@ -312,7 +322,7 @@ export default function Transactions() {
         "Delete Transaction",
         `Are you sure you want to delete this ${
           transaction.type
-        } of ${formatCurrency(transaction.amount)}?`,
+        } of ${formatCurrency(transaction.amount, currency, showCents)}?`,
         [
           {
             text: "Cancel",
@@ -339,7 +349,7 @@ export default function Transactions() {
         ]
       );
     },
-    [deleteTransactionMutation]
+    [deleteTransactionMutation, currency, showCents]
   );
 
   // Helper function to get the relevant party to display
@@ -355,15 +365,15 @@ export default function Transactions() {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <Nav />
 
       <ScrollView ref={scrollViewRef} className="flex-1">
         <View className="px-6 py-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-1">
+          <Text className="text-2xl font-bold text-foreground-light dark:text-foreground-dark mb-1">
             Transactions
           </Text>
-          <Text className="text-gray-600 mb-6">
+          <Text className="text-muted-foreground-light dark:text-muted-foreground-dark mb-6">
             {filteredTransactions.length} transactions
           </Text>
 
@@ -426,44 +436,48 @@ export default function Transactions() {
                 <CardContent>
                   <View className="flex-row flex-wrap justify-center gap-4">
                     <View className="items-center flex-1 min-w-[120px]">
-                      <Text className="text-sm text-gray-600 font-medium mb-2">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-2">
                         Total Income
                       </Text>
                       <Badge
                         variant="default"
-                        className="text-base font-bold px-4 py-2 bg-green-600"
+                        className="text-base font-bold px-4 py-2 bg-green-600 dark:bg-green-600"
                       >
-                        <Text>
+                        <Text className="text-white dark:text-white">
                           +
                           {formatCurrency(
                             filteredTransactions
                               .filter((t) => t.type === "income")
-                              .reduce((sum, t) => sum + t.amount, 0)
+                              .reduce((sum, t) => sum + t.amount, 0),
+                            currency,
+                            showCents
                           )}
                         </Text>
                       </Badge>
                     </View>
 
                     <View className="items-center flex-1 min-w-[120px]">
-                      <Text className="text-sm text-gray-600 font-medium mb-2">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-2">
                         Total Expenses
                       </Text>
                       <Badge
                         variant="destructive"
                         className="text-base font-bold px-4 py-2"
                       >
-                        <Text>
+                        <Text className="text-white dark:text-white">
                           {formatCurrency(
                             filteredTransactions
                               .filter((t) => t.type === "expense")
-                              .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+                              .reduce((sum, t) => sum + Math.abs(t.amount), 0),
+                            currency,
+                            showCents
                           )}
                         </Text>
                       </Badge>
                     </View>
 
                     <View className="items-center flex-1 min-w-[120px]">
-                      <Text className="text-sm text-gray-600 font-medium mb-2">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-2">
                         Net Total
                       </Text>
                       <Badge
@@ -480,16 +494,18 @@ export default function Transactions() {
                             (sum, t) => sum + t.amount,
                             0
                           ) >= 0
-                            ? "bg-green-600"
+                            ? "bg-green-600 dark:bg-green-600"
                             : ""
                         }`}
                       >
-                        <Text>
+                        <Text className="text-white dark:text-white">
                           {formatCurrency(
                             filteredTransactions.reduce(
                               (sum, t) => sum + t.amount,
                               0
-                            )
+                            ),
+                            currency,
+                            showCents
                           )}
                         </Text>
                       </Badge>
@@ -598,13 +614,15 @@ export default function Transactions() {
                           setSelectedType("All Types");
                         }}
                       >
-                        <Text>Clear All Filters</Text>
+                        <Text className="text-foreground-light dark:text-foreground-dark">
+                          Clear All Filters
+                        </Text>
                       </Button>
                     </View>
                   </View>
 
                   {/* Transaction List */}
-                  <View className="rounded-md border border-gray-200">
+                  <View className="rounded-md border border-border-light dark:border-border-dark">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -645,13 +663,17 @@ export default function Transactions() {
                           paginatedTransactions.map((transaction) => (
                             <TableRow
                               key={transaction.id}
-                              className="cursor-pointer"
+                              className={`cursor-pointer ${
+                                compactView ? "py-1" : ""
+                              }`}
                               onPress={() =>
                                 handleTransactionClick(transaction)
                               }
                             >
                               <TableCell
-                                className="font-medium"
+                                className={`font-medium ${
+                                  compactView ? "py-2" : ""
+                                }`}
                                 style={{
                                   width: 140,
                                   minWidth: 140,
@@ -660,14 +682,18 @@ export default function Transactions() {
                               >
                                 <View>
                                   <Text
-                                    className="font-semibold text-gray-900 text-sm"
+                                    className={`font-semibold text-foreground-light dark:text-foreground-dark ${
+                                      compactView ? "text-xs" : "text-sm"
+                                    }`}
                                     numberOfLines={1}
                                     ellipsizeMode="tail"
                                   >
                                     {transaction.description}
                                   </Text>
                                   <Text
-                                    className="text-xs text-gray-500"
+                                    className={`text-muted-foreground-light dark:text-muted-foreground-dark ${
+                                      compactView ? "text-[10px]" : "text-xs"
+                                    }`}
                                     numberOfLines={1}
                                     ellipsizeMode="tail"
                                   >
@@ -676,6 +702,7 @@ export default function Transactions() {
                                 </View>
                               </TableCell>
                               <TableCell
+                                className={compactView ? "py-2" : ""}
                                 style={{
                                   width: 120,
                                   minWidth: 120,
@@ -683,7 +710,9 @@ export default function Transactions() {
                                 }}
                               >
                                 <Text
-                                  className="text-sm"
+                                  className={`text-foreground-light dark:text-foreground-dark ${
+                                    compactView ? "text-xs" : "text-sm"
+                                  }`}
                                   numberOfLines={2}
                                   ellipsizeMode="tail"
                                 >
@@ -691,18 +720,25 @@ export default function Transactions() {
                                 </Text>
                               </TableCell>
                               <TableCell
+                                className={compactView ? "py-2" : ""}
                                 style={{
                                   width: 80,
                                   minWidth: 80,
                                   maxWidth: 80,
                                 }}
                               >
-                                <Text className="text-sm">
+                                <Text
+                                  className={`text-foreground-light dark:text-foreground-dark ${
+                                    compactView ? "text-xs" : "text-sm"
+                                  }`}
+                                >
                                   {formatDate(transaction.date)}
                                 </Text>
                               </TableCell>
                               <TableCell
-                                className="text-right"
+                                className={`text-right ${
+                                  compactView ? "py-2" : ""
+                                }`}
                                 style={{
                                   width: 110,
                                   minWidth: 110,
@@ -710,14 +746,18 @@ export default function Transactions() {
                                 }}
                               >
                                 <Text
-                                  className={`font-bold text-sm ${getAmountColor(
-                                    transaction.type
-                                  )}`}
+                                  className={`font-bold ${
+                                    compactView ? "text-xs" : "text-sm"
+                                  } ${getAmountColor(transaction.type)}`}
                                   numberOfLines={1}
                                   ellipsizeMode="tail"
                                 >
                                   {transaction.type === "income" ? "+" : "-"}
-                                  {formatCurrency(Math.abs(transaction.amount))}
+                                  {formatCurrency(
+                                    Math.abs(transaction.amount),
+                                    currency,
+                                    showCents
+                                  )}
                                 </Text>
                               </TableCell>
                               <TableCell
@@ -753,7 +793,7 @@ export default function Transactions() {
                                 maxWidth: 480,
                               }}
                             >
-                              <Text className="text-gray-500">
+                              <Text className="text-muted-foreground-light dark:text-muted-foreground-dark">
                                 No transactions found.
                               </Text>
                             </TableCell>
@@ -763,26 +803,55 @@ export default function Transactions() {
                     </Table>
                   </View>
 
-                  {/* Pagination Controls */}
+                  {/* Load More / Pagination Info */}
                   {totalTransactions > 0 && (
                     <View className="mt-6 space-y-4">
                       {/* Transaction Counter */}
                       <View className="items-center">
-                        <Text className="text-sm text-gray-600">
-                          Showing {startIndex + 1}-
-                          {Math.min(endIndex, totalTransactions)} of{" "}
-                          {totalTransactions} transactions
+                        <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
+                          Showing {paginatedTransactions.length} of{" "}
+                          {totalTransactions} filtered transactions
                         </Text>
+                        {transactions.length < totalTransactions && (
+                          <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark mt-1">
+                            ({transactions.length} total loaded)
+                          </Text>
+                        )}
                       </View>
 
-                      {/* Pagination Buttons */}
+                      {/* Load More Button (if more data available from server) */}
+                      {hasNextPage && (
+                        <View className="items-center">
+                          <Button
+                            variant="outline"
+                            onPress={() => fetchNextPage()}
+                            disabled={isFetchingNextPage}
+                            className="min-w-[200px]"
+                          >
+                            {isFetchingNextPage ? (
+                              <Text>Loading more...</Text>
+                            ) : (
+                              <View className="flex-row items-center gap-2">
+                                <Feather
+                                  name="download"
+                                  size={16}
+                                  color="#374151"
+                                />
+                                <Text>Load More Transactions</Text>
+                              </View>
+                            )}
+                          </Button>
+                        </View>
+                      )}
+
+                      {/* Page Navigation (for filtered results) */}
                       {totalPages > 1 && (
                         <View className="flex-row justify-center items-center gap-4">
                           {/* Previous Button */}
                           <Pressable
                             onPress={handlePreviousPage}
                             disabled={currentPage === 1}
-                            className="w-12 h-12 border border-gray-300 rounded-lg items-center justify-center bg-white"
+                            className="w-12 h-12 border border-input-light dark:border-input-dark rounded-lg items-center justify-center bg-card-light dark:bg-card-dark"
                           >
                             <Feather
                               name="chevron-left"
@@ -793,8 +862,8 @@ export default function Transactions() {
 
                           {/* Page Indicator */}
                           <View className="px-3">
-                            <Text className="text-sm font-medium text-gray-700">
-                              {currentPage} / {totalPages}
+                            <Text className="text-sm font-medium text-foreground-light dark:text-foreground-dark">
+                              Page {currentPage} of {totalPages}
                             </Text>
                           </View>
 
@@ -802,7 +871,7 @@ export default function Transactions() {
                           <Pressable
                             onPress={handleNextPage}
                             disabled={currentPage === totalPages}
-                            className="w-12 h-12 border border-gray-300 rounded-lg items-center justify-center bg-white"
+                            className="w-12 h-12 border border-input-light dark:border-input-dark rounded-lg items-center justify-center bg-card-light dark:bg-card-dark"
                           >
                             <Feather
                               name="chevron-right"
@@ -842,7 +911,7 @@ export default function Transactions() {
                   transactions={filteredTransactions}
                   onClose={() => setEditTransactionsOpen(false)}
                   onSave={() => {
-                    refetch();
+                    // Query will auto-invalidate and refetch
                   }}
                 />
               </View>

@@ -171,7 +171,7 @@ export function RegisterForm({ className }: RegisterFormProps) {
           </View>
           <View className="mt-4 text-center">
             <TouchableOpacity onPress={handleBackToLogin}>
-              <Text className="text-center text-sm underline">
+              <Text className="text-center text-sm underline text-foreground-light dark:text-foreground-dark">
                 Already have an account? Sign in
               </Text>
             </TouchableOpacity>

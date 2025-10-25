@@ -1,8 +1,8 @@
+import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather, MaterialIcons } from "@expo/vector-icons";
 import Nav from "../components/nav";
 import { Button } from "../components/ui/button";
 import {
@@ -12,41 +12,52 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Label } from "../components/ui/label";
-import { Separator } from "../components/ui/separator";
-import { Switch } from "../components/ui/switch";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../components/ui/select";
+} from "../components/ui/select-mobile";
+import { Separator } from "../components/ui/separator";
 import { useToast } from "../components/ui/sonner";
+import { Switch } from "../components/ui/switch";
 import { useAuth } from "../hooks/queries/useAuth";
+import {
+  DEFAULT_PREFERENCES,
+  usePreferences,
+  useUpdatePreferences,
+} from "../hooks/queries/usePreferences";
+import type { UpdateUserPreferences } from "../lib/types";
 
 export default function PreferencesPage() {
   const router = useRouter();
-  const { user, isLoading: loading } = useAuth();
-  const [saving, setSaving] = useState(false);
-  const { success } = useToast();
+  const { user, isLoading: authLoading, isGuest } = useAuth();
+  const { data: userPreferences, isLoading: prefsLoading } = usePreferences();
+  const updatePreferencesMutation = useUpdatePreferences();
+  const { success, error: toastError } = useToast();
 
-  const [preferences, setPreferences] = useState({
-    // Appearance
-    theme: "Light",
-    currency: "USD",
-    language: "English",
+  const loading = authLoading || prefsLoading;
 
-    // Notifications
-    emailNotifications: true,
-    budgetAlerts: true,
-    goalReminders: false,
-    weeklyReports: true,
+  // Use database preferences or defaults
+  const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
 
-    // Display
-    showAccountNumbers: false,
-    compactView: false,
-    showCents: true,
-  });
+  // Update local state when database preferences load
+  useEffect(() => {
+    if (userPreferences) {
+      setPreferences({
+        currency: userPreferences.currency,
+        language: userPreferences.language,
+        email_notifications: userPreferences.email_notifications,
+        budget_alerts: userPreferences.budget_alerts,
+        goal_reminders: userPreferences.goal_reminders,
+        weekly_reports: userPreferences.weekly_reports,
+        show_account_numbers: userPreferences.show_account_numbers,
+        compact_view: userPreferences.compact_view,
+        show_cents: userPreferences.show_cents,
+      });
+    }
+  }, [userPreferences]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -56,14 +67,22 @@ export default function PreferencesPage() {
   }, [user, loading, router]);
 
   const handleSave = async () => {
-    setSaving(true);
+    if (isGuest) {
+      toastError("Guest users cannot save preferences");
+      return;
+    }
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    success("Preferences saved successfully!");
-
-    setSaving(false);
+    try {
+      await updatePreferencesMutation.mutateAsync(
+        preferences as UpdateUserPreferences
+      );
+      success("Preferences saved successfully!");
+    } catch (err) {
+      console.error("Error saving preferences:", err);
+      toastError(
+        err instanceof Error ? err.message : "Failed to save preferences"
+      );
+    }
   };
 
   const updatePreference = (key: string, value: string | boolean) => {
@@ -76,10 +95,12 @@ export default function PreferencesPage() {
   // Show loading while checking auth state
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
+      <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
         <Nav />
         <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-500">Loading...</Text>
+          <Text className="text-muted-foreground-light dark:text-muted-foreground-dark">
+            Loading...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -91,7 +112,7 @@ export default function PreferencesPage() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <Nav />
 
       <ScrollView className="flex-1">
@@ -104,7 +125,7 @@ export default function PreferencesPage() {
                   Preferences
                 </CardTitle>
               </View>
-              <Text className="text-gray-600 mt-2">
+              <Text className="text-muted-foreground-light dark:text-muted-foreground-dark mt-2">
                 Customize your Personal Finance Tracker experience.
               </Text>
             </CardHeader>
@@ -114,39 +135,12 @@ export default function PreferencesPage() {
               <View className="gap-4">
                 <View className="flex-row items-center gap-2">
                   <MaterialIcons name="palette" size={20} color="#374151" />
-                  <Text className="text-lg font-medium">Appearance</Text>
+                  <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark">
+                    Appearance
+                  </Text>
                 </View>
 
                 <View className="flex-row gap-6 flex-wrap">
-                  <View className="flex-1 min-w-[200px] gap-2">
-                    <Label>Theme</Label>
-                    <Select
-                      value={preferences.theme}
-                      onValueChange={(value) =>
-                        updatePreference("theme", value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select theme" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Light">
-                          <View className="flex-row items-center gap-2">
-                            <Feather name="sun" size={16} color="#374151" />
-                            <Text>Light</Text>
-                          </View>
-                        </SelectItem>
-                        <SelectItem value="Dark">
-                          <View className="flex-row items-center gap-2">
-                            <Feather name="moon" size={16} color="#374151" />
-                            <Text>Dark</Text>
-                          </View>
-                        </SelectItem>
-                        <SelectItem value="system">System</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </View>
-
                   <View className="flex-1 min-w-[200px] gap-2">
                     <Label>Default Currency</Label>
                     <Select
@@ -164,6 +158,7 @@ export default function PreferencesPage() {
                         <SelectItem value="GBP">GBP (£)</SelectItem>
                         <SelectItem value="CAD">CAD (C$)</SelectItem>
                         <SelectItem value="AUD">AUD (A$)</SelectItem>
+                        <SelectItem value="NZD">NZD (NZ$)</SelectItem>
                       </SelectContent>
                     </Select>
                   </View>
@@ -197,21 +192,23 @@ export default function PreferencesPage() {
               <View className="gap-4">
                 <View className="flex-row items-center gap-2">
                   <Feather name="bell" size={20} color="#374151" />
-                  <Text className="text-lg font-medium">Notifications</Text>
+                  <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark">
+                    Notifications
+                  </Text>
                 </View>
 
                 <View className="gap-4">
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1 gap-1">
                       <Label>Email Notifications</Label>
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                         Receive important updates via email
                       </Text>
                     </View>
                     <Switch
-                      checked={preferences.emailNotifications}
+                      checked={preferences.email_notifications}
                       onCheckedChange={(checked) =>
-                        updatePreference("emailNotifications", checked)
+                        updatePreference("email_notifications", checked)
                       }
                     />
                   </View>
@@ -219,14 +216,14 @@ export default function PreferencesPage() {
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1 gap-1">
                       <Label>Budget Alerts</Label>
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                         Get notified when you approach budget limits
                       </Text>
                     </View>
                     <Switch
-                      checked={preferences.budgetAlerts}
+                      checked={preferences.budget_alerts}
                       onCheckedChange={(checked) =>
-                        updatePreference("budgetAlerts", checked)
+                        updatePreference("budget_alerts", checked)
                       }
                     />
                   </View>
@@ -234,14 +231,14 @@ export default function PreferencesPage() {
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1 gap-1">
                       <Label>Goal Reminders</Label>
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                         Receive reminders about your financial goals
                       </Text>
                     </View>
                     <Switch
-                      checked={preferences.goalReminders}
+                      checked={preferences.goal_reminders}
                       onCheckedChange={(checked) =>
-                        updatePreference("goalReminders", checked)
+                        updatePreference("goal_reminders", checked)
                       }
                     />
                   </View>
@@ -249,14 +246,14 @@ export default function PreferencesPage() {
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1 gap-1">
                       <Label>Weekly Reports</Label>
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                         Get weekly summaries of your financial activity
                       </Text>
                     </View>
                     <Switch
-                      checked={preferences.weeklyReports}
+                      checked={preferences.weekly_reports}
                       onCheckedChange={(checked) =>
-                        updatePreference("weeklyReports", checked)
+                        updatePreference("weekly_reports", checked)
                       }
                     />
                   </View>
@@ -269,21 +266,23 @@ export default function PreferencesPage() {
               <View className="gap-4">
                 <View className="flex-row items-center gap-2">
                   <Feather name="globe" size={20} color="#374151" />
-                  <Text className="text-lg font-medium">Display Options</Text>
+                  <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark">
+                    Display Options
+                  </Text>
                 </View>
 
                 <View className="gap-4">
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1 gap-1">
                       <Label>Show Account Numbers</Label>
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                         Display account numbers in account lists
                       </Text>
                     </View>
                     <Switch
-                      checked={preferences.showAccountNumbers}
+                      checked={preferences.show_account_numbers}
                       onCheckedChange={(checked) =>
-                        updatePreference("showAccountNumbers", checked)
+                        updatePreference("show_account_numbers", checked)
                       }
                     />
                   </View>
@@ -291,14 +290,14 @@ export default function PreferencesPage() {
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1 gap-1">
                       <Label>Compact View</Label>
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                         Use a more compact layout for tables and lists
                       </Text>
                     </View>
                     <Switch
-                      checked={preferences.compactView}
+                      checked={preferences.compact_view}
                       onCheckedChange={(checked) =>
-                        updatePreference("compactView", checked)
+                        updatePreference("compact_view", checked)
                       }
                     />
                   </View>
@@ -306,14 +305,14 @@ export default function PreferencesPage() {
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1 gap-1">
                       <Label>Show Cents</Label>
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                         Display currency amounts with decimal places
                       </Text>
                     </View>
                     <Switch
-                      checked={preferences.showCents}
+                      checked={preferences.show_cents}
                       onCheckedChange={(checked) =>
-                        updatePreference("showCents", checked)
+                        updatePreference("show_cents", checked)
                       }
                     />
                   </View>
@@ -326,10 +325,12 @@ export default function PreferencesPage() {
               <View className="flex-row justify-end">
                 <Button
                   onPress={handleSave}
-                  disabled={saving}
+                  disabled={updatePreferencesMutation.isPending}
                   className="min-w-32"
                 >
-                  {saving ? "Saving..." : "Save Preferences"}
+                  {updatePreferencesMutation.isPending
+                    ? "Saving..."
+                    : "Save Preferences"}
                 </Button>
               </View>
             </CardContent>

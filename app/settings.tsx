@@ -1,9 +1,10 @@
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
 import Nav from "../components/nav";
+import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -14,9 +15,8 @@ import {
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Separator } from "../components/ui/separator";
-import { Alert, AlertDescription } from "../components/ui/alert";
-import { useAuth } from "../hooks/queries/useAuth";
 import { useToast } from "../components/ui/sonner";
+import { useAuth } from "../hooks/queries/useAuth";
 import { supabase } from "../lib/supabase";
 
 export default function SettingsPage() {
@@ -171,10 +171,12 @@ export default function SettingsPage() {
   // Show loading while checking auth state
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
+      <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
         <Nav />
         <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-500">Loading...</Text>
+          <Text className="text-muted-foreground-light dark:text-muted-foreground-dark">
+            Loading...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -186,7 +188,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <Nav />
 
       <ScrollView className="flex-1">
@@ -195,11 +197,11 @@ export default function SettingsPage() {
             <CardHeader>
               <View className="flex-row items-center gap-2">
                 <Feather name="shield" size={24} color="#374151" />
-                <CardTitle className="text-2xl font-bold text-gray-900">
+                <CardTitle className="text-2xl font-bold">
                   Account Settings
                 </CardTitle>
               </View>
-              <Text className="text-gray-600">
+              <Text className="text-muted-foreground-light dark:text-muted-foreground-dark">
                 Manage your email address and password security settings.
               </Text>
             </CardHeader>
@@ -209,7 +211,7 @@ export default function SettingsPage() {
               <View className="space-y-4 gap-4">
                 <View className="flex-row items-center gap-2">
                   <Feather name="mail" size={24} color="#374151" />
-                  <Text className="text-lg font-medium text-gray-900">
+                  <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark">
                     Email Address
                   </Text>
                 </View>
@@ -265,7 +267,7 @@ export default function SettingsPage() {
               <View className="space-y-4 gap-4">
                 <View className="flex-row items-center gap-2">
                   <Feather name="lock" size={24} color="#374151" />
-                  <Text className="text-lg font-medium text-gray-900">
+                  <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark">
                     Password
                   </Text>
                 </View>

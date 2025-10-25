@@ -52,6 +52,8 @@ hooks/
 - **Why**: Expo API routes only work in development mode. For mobile apps, direct client calls are simpler and work in all builds (dev, preview, production).
 - **Implementation**: `useReceiptScan.ts` and `useVoiceInput.ts` use `@google/generative-ai` package directly
 - **API Key**: Uses `EXPO_PUBLIC_GEMINI_API_KEY` environment variable (injected via EAS Secrets)
+- **Modal Behavior**: Both voice input and receipt scanner modals stay open after processing completes. Users must explicitly click "Done" or "X" button to close. NO auto-close timeouts.
+- **MIME Type Handling**: Receipt scanner normalizes `.jpg` extensions to `.jpeg` for Gemini API compatibility
 - **Security Note**: Client-side API calls are acceptable for Gemini because:
   - API key is scoped/restricted to specific APIs in Google Cloud Console
   - No sensitive user data is exposed
@@ -182,6 +184,9 @@ npx expo start --web      # Web browser
 5. ❌ Manual balance updates → ✅ Database triggers handle account balance changes
 6. ❌ Missing environment variables → ✅ Check `EXPO_PUBLIC_*` variables are set
 7. ❌ Inconsistent date formats → ✅ Always use ISO strings with full timestamp for transaction dates
+8. ❌ Auto-closing AI modals with setTimeout → ✅ Let users control when to close via "Done" button
+9. ❌ Using `image/jpg` MIME type → ✅ Normalize to `image/jpeg` for Gemini API
+10. ❌ Using deprecated modal components → ✅ Use page routes `app/addtransaction.tsx` and `app/addincome.tsx`, not `components/transactions/add-*-modal.tsx`
 
 ## Code Style
 

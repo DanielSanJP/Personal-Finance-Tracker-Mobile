@@ -24,28 +24,30 @@ export const useVoiceInput = ({
   accounts = [],
   transactionType = 'expense'
 }: UseVoiceInputProps) => {
-  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastTranscript, setLastTranscript] = useState<string>('');
   const [parsedData, setParsedData] = useState<Partial<VoiceInputResult> | null>(null);
   const [confidence, setConfidence] = useState(0);
 
-  const { isRecording, startRecording, stopRecording, isSupported } = useAudioRecorder({
+  const { isRecording, isProcessing: isRecorderProcessing, startRecording, stopRecording, isSupported, resetState } = useAudioRecorder({
     onTranscription: (newTranscript: string) => {
       if (newTranscript && typeof newTranscript === 'string' && newTranscript.trim()) {
         handleVoiceProcessing(newTranscript);
       } else {
-        console.warn('⚠️  Received invalid transcript:', newTranscript);
+        if (__DEV__) console.warn('⚠️  Received invalid transcript:', newTranscript);
         setError('No speech detected. Please try again.');
+        resetState(); // Reset to idle on error
       }
     },
-    onError: (err) => setError(err)
+    onError: (err) => {
+      setError(err);
+      resetState(); // Reset to idle on error
+    }
   });
 
   const handleVoiceProcessing = useCallback(async (rawTranscript: string) => {
-    if (!rawTranscript.trim() || isProcessing) return;
+    if (!rawTranscript.trim()) return;
 
-    setIsProcessing(true);
     setError(null);
     setLastTranscript(rawTranscript);
 
@@ -147,35 +149,54 @@ Return ONLY the JSON object, no additional text.`;
       setParsedData(voiceResult);
       setConfidence(voiceResult.confidence);
       
+      if (__DEV__) {
+        console.log('🎤 useVoiceInput - calling onResult with:', voiceResult);
+      }
+      
       onResult(voiceResult);
+      
+      if (__DEV__) {
+        console.log('🎤 useVoiceInput - onResult completed, calling resetState');
+      }
+      
+      // Now that we have parsed data, reset the recording state to idle
+      resetState();
+
+      if (__DEV__) {
+        console.log('🎤 useVoiceInput - resetState completed, processing finished');
+      }
 
     } catch (err) {
       console.error('Voice processing error:', err);
       setError(err instanceof Error ? err.message : 'Voice processing failed');
-    } finally {
-      setIsProcessing(false);
+      resetState(); // Reset to idle on error
     }
-  }, [onResult, accounts, transactionType, isProcessing]);
+  }, [onResult, accounts, transactionType, resetState]);
 
   const startVoiceInput = useCallback(() => {
-    console.log('🎙️ startVoiceInput called');
+    if (__DEV__) console.log('🎙️ startVoiceInput called');
     setError(null);
     startRecording();
   }, [startRecording]);
 
   const stopVoiceInput = useCallback(() => {
-    console.log('🛑 stopVoiceInput called');
+    if (__DEV__) console.log('🛑 stopVoiceInput called');
     stopRecording();
   }, [stopRecording]);
 
   const resetVoiceInput = useCallback(() => {
+    console.log('🔄 resetVoiceInput called');
+    console.trace('Stack trace for resetVoiceInput');
     setError(null);
     setLastTranscript('');
-  }, []);
+    setParsedData(null);
+    setConfidence(0);
+    resetState();
+  }, [resetState]);
 
   return {
     isRecording,
-    isProcessing,
+    isProcessing: isRecorderProcessing,
     isSupported,
     error,
     lastTranscript,

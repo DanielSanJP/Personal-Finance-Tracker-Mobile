@@ -21,9 +21,7 @@ personal-finance-tracker-mobile/
 │   │   ├── transactions.tsx     # Transaction list
 │   │   ├── budgets.tsx          # Budget management
 │   │   └── goals.tsx            # Goals management
-│   └── api/                     # API routes
-│       ├── receipt-scan+api.ts  # Receipt scanning endpoint
-│       └── speech-to-text+api.ts # Voice input endpoint
+
 ├── components/
 │   ├── ui/                      # shadcn-inspired UI components
 │   │   ├── button.tsx
@@ -332,67 +330,110 @@ $$ LANGUAGE plpgsql;
 
 ### 6. AI Feature Implementation
 
-**Receipt Scanning** (`app/api/receipt-scan+api.ts`):
+**IMPORTANT**: AI features use **direct client-side API calls** to Google Gemini, NOT API routes. This is because Expo API routes (`app/api/*.+api.ts`) only work in development mode (`npx expo start`), not in standalone builds (preview/production APKs) or development builds.
+
+**Why Direct API Calls**:
+
+- ✅ Works in all build types (development, preview, production)
+- ✅ Simpler architecture (no server-side endpoints needed)
+- ✅ No CORS issues on mobile
+- ✅ Expo Go compatibility
+- ✅ Proper error handling and logging
+- ⚠️ API key is client-side but scoped/restricted in Google Cloud Console
+
+**Receipt Scanning** (`hooks/useReceiptScan.ts`):
 
 ```typescript
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import * as FileSystem from "expo-file-system/legacy"; // Use /legacy for SDK 54+
+import * as ImagePicker from "expo-image-picker";
 
-const genAI = new GoogleGenerativeAI(process.env.EXPO_PUBLIC_GEMINI_API_KEY!);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+export const useReceiptScan = ({ onReceiptData, onError }) => {
+  const processImage = async (imageUri: string) => {
+    // Initialize Gemini with API key from environment variable
+    const genAI = new GoogleGenerativeAI(
+      process.env.EXPO_PUBLIC_GEMINI_API_KEY!
+    );
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-export async function POST(req: Request) {
-  const formData = await req.formData();
-  const imageFile = formData.get("image") as Blob;
+    // Read image as base64 using legacy FileSystem API
+    const base64Image = await FileSystem.readAsStringAsync(imageUri, {
+      encoding: "base64",
+    });
 
-  // Validate file size (max 10MB) and type
-  if (imageFile.size > 10 * 1024 * 1024) {
-    return Response.json({ error: "File too large" }, { status: 400 });
-  }
+    // Call Gemini API directly from client
+    const result = await model.generateContent([
+      { text: receiptExtractionPrompt },
+      { inlineData: { data: base64Image, mimeType: "image/jpeg" } },
+    ]);
 
-  // Convert to base64
-  const arrayBuffer = await imageFile.arrayBuffer();
-  const base64Image = Buffer.from(arrayBuffer).toString("base64");
+    const parsedData = JSON.parse(result.response.text());
+    onReceiptData(parsedData);
+  };
 
-  // Generate content with Gemini
-  const result = await model.generateContent([
-    { text: promptForReceiptExtraction },
-    { inlineData: { data: base64Image, mimeType: imageFile.type } },
-  ]);
+  const scanFromCamera = async () => {
+    // Use array syntax for mediaTypes (SDK 54+ deprecates MediaTypeOptions)
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 0.8,
+    });
 
-  const parsedData = JSON.parse(result.response.text());
-  return Response.json({ parsedData });
-}
+    if (!result.canceled) {
+      await processImage(result.assets[0].uri);
+    }
+  };
+};
 ```
 
 **Voice Input** (`hooks/useVoiceInput.ts`):
 
 ```typescript
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { useAudioRecorder } from "./useAudioRecorder";
+
 export function useVoiceInput() {
-  const startRecording = async () => {
-    const { recording } = await Audio.Recording.createAsync(
-      Audio.RecordingOptionsPresets.HIGH_QUALITY
+  const { startRecording, stopRecording, audioUri } = useAudioRecorder();
+
+  const processAudio = async (audioUri: string) => {
+    // Initialize Gemini
+    const genAI = new GoogleGenerativeAI(
+      process.env.EXPO_PUBLIC_GEMINI_API_KEY!
     );
-    setRecording(recording);
-  };
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
-  const stopRecording = async () => {
-    await recording.stopAndUnloadAsync();
-    const uri = recording.getURI();
-
-    // Send to speech-to-text API
-    const formData = new FormData();
-    formData.append("audio", { uri, type: "audio/m4a", name: "voice.m4a" });
-
-    const response = await fetch("/api/speech-to-text", {
-      method: "POST",
-      body: formData,
+    // Read audio file as base64
+    const base64Audio = await FileSystem.readAsStringAsync(audioUri, {
+      encoding: "base64",
     });
 
-    const { text } = await response.json();
-    parseTransactionFromText(text);
+    // Call Gemini API directly for speech-to-text and parsing
+    const result = await model.generateContent([
+      { text: voiceInputPrompt },
+      { inlineData: { data: base64Audio, mimeType: "audio/m4a" } },
+    ]);
+
+    const parsedData = JSON.parse(result.response.text());
+    return parsedData; // { merchant, amount, category, type }
   };
+
+  const handleStopRecording = async () => {
+    const uri = await stopRecording();
+    const data = await processAudio(uri);
+    setParsedData(data);
+  };
+
+  return { startRecording, handleStopRecording, parsedData };
 }
 ```
+
+**Key Implementation Notes**:
+
+- Use `expo-file-system/legacy` instead of `expo-file-system` (SDK 54+ deprecation)
+- Use `mediaTypes: ['images']` instead of `ImagePicker.MediaTypeOptions.Images`
+- No `getInfoAsync()` validation needed (removed in SDK 54)
+- Comprehensive console logging with emoji markers (📷, 🖼️, ✅, ❌)
+- Direct API calls work in all build types, no server required
 
 ### 7. Silent Mutations for Batch Operations
 
@@ -467,7 +508,35 @@ npx expo start
 # Select platform: a (Android), i (iOS), w (Web)
 ```
 
+### Development Build (Recommended for Testing)
+
+**Development builds** include the `expo-dev-client` library, allowing you to:
+
+- Scan QR codes to connect to Metro bundler
+- See console logs in your terminal
+- Use hot reload ('r' key)
+- Test with latest code without rebuilding
+
+```bash
+# Build development APK/IPA
+eas build --profile development --platform android
+eas build --profile development --platform ios
+
+# Install on device, then run:
+npx expo start
+# Scan QR code from dev build launcher screen
+```
+
+**When to use**:
+
+- ✅ Active development and debugging
+- ✅ Testing AI features (receipt scan, voice input)
+- ✅ Need to see console.log output
+- ✅ Iterative testing with hot reload
+
 ### Preview Build
+
+**Preview builds** are standalone APKs/IPAs with bundled JavaScript code. They behave like production apps but use the "preview" environment/channel.
 
 **Using EAS Secrets (Recommended)**:
 
@@ -489,6 +558,11 @@ eas build --profile preview --platform ios
 ```json
 {
   "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development"
+    },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
@@ -506,6 +580,13 @@ EAS will automatically load secrets and show them in the build logs:
 Environment variables with visibility "Plain text" and "Sensitive" loaded from the "preview" environment on EAS:
 EXPO_PUBLIC_GEMINI_API_KEY, EXPO_PUBLIC_SUPABASE_KEY, EXPO_PUBLIC_SUPABASE_URL
 ```
+
+**When to use preview builds**:
+
+- ✅ Testing on multiple devices without dev server
+- ✅ Sharing with testers/stakeholders
+- ✅ Final testing before production release
+- ❌ NOT for active development (no Metro connection, no logs, no hot reload)
 
 ### Production Build
 
@@ -568,6 +649,23 @@ eas update --branch production --message "Bug fixes and improvements"
 
 **Issue**: localStorage not available in some browsers (incognito, limited storage)  
 **Workaround**: WebStorage class checks availability, falls back gracefully
+
+### 5. Expo API Routes Only Work in Development Mode
+
+**Issue**: API routes (`app/api/*.+api.ts`) only work with `npx expo start`, not in standalone builds  
+**Solution**: Use direct API calls to external services (like Gemini) instead of API routes  
+**Impact**: AI features (receipt scan, voice input) use client-side API calls  
+**Reference**: [Expo Router API Routes documentation](https://docs.expo.dev/router/reference/api-routes/)
+
+### 6. FileSystem and ImagePicker Deprecations (SDK 54+)
+
+**Issue**: `expo-file-system` and `expo-image-picker` deprecated some APIs  
+**Solution**:
+
+- Use `import * as FileSystem from 'expo-file-system/legacy';`
+- Use `mediaTypes: ['images']` instead of `ImagePicker.MediaTypeOptions.Images`
+- Remove `getInfoAsync()` calls (no longer needed)  
+  **Files Affected**: `hooks/useReceiptScan.ts`
 
 ## Security Considerations
 

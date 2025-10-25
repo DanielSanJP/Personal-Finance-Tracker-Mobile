@@ -25,7 +25,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
+} from "../ui/select-mobile";
 import { useToast } from "../ui/sonner";
 
 interface EditSingleTransactionModalProps {

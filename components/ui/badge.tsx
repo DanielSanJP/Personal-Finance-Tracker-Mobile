@@ -9,17 +9,19 @@ interface BadgeProps {
 }
 
 const badgeVariants = {
-  default: "bg-gray-900",
-  secondary: "bg-gray-100",
-  destructive: "bg-red-500",
-  outline: "bg-transparent border border-gray-200",
+  default: "bg-primary-light dark:bg-primary-dark",
+  secondary: "bg-secondary-light dark:bg-secondary-dark",
+  destructive: "bg-destructive-light dark:bg-destructive-dark",
+  outline: "bg-transparent border border-border-light dark:border-border-dark",
 };
 
 const badgeTextVariants = {
-  default: "text-white",
-  secondary: "text-gray-900",
-  destructive: "text-white",
-  outline: "text-gray-950",
+  default: "text-primary-foreground-light dark:text-primary-foreground-dark",
+  secondary:
+    "text-secondary-foreground-light dark:text-secondary-foreground-dark",
+  destructive:
+    "text-destructive-foreground-light dark:text-destructive-foreground-dark",
+  outline: "text-foreground-light dark:text-foreground-dark",
 };
 
 export function Badge({

@@ -101,3 +101,36 @@ export interface RegisterCredentials {
   firstName: string;
   lastName: string;
 }
+
+// User Preferences types
+export interface UserPreferences {
+  id: string;
+  user_id: string;
+  // Appearance Settings
+  currency: 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'NZD';
+  language: 'English' | 'Español' | 'Français' | 'Deutsch' | 'Italiano';
+  // Notification Settings
+  email_notifications: boolean;
+  budget_alerts: boolean;
+  goal_reminders: boolean;
+  weekly_reports: boolean;
+  // Display Options
+  show_account_numbers: boolean;
+  compact_view: boolean;
+  show_cents: boolean;
+  // Metadata
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpdateUserPreferences {
+  currency?: 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'NZD';
+  language?: 'English' | 'Español' | 'Français' | 'Deutsch' | 'Italiano';
+  email_notifications?: boolean;
+  budget_alerts?: boolean;
+  goal_reminders?: boolean;
+  weekly_reports?: boolean;
+  show_account_numbers?: boolean;
+  compact_view?: boolean;
+  show_cents?: boolean;
+}

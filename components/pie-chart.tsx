@@ -5,7 +5,6 @@ import Svg, { Circle, G, Path } from "react-native-svg";
 import { useTransactions } from "../hooks/queries/useTransactions";
 import { formatCurrency } from "../lib/utils";
 import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import {
   Card,
   CardContent,
@@ -14,13 +13,12 @@ import {
   CardTitle,
 } from "./ui/card";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select-mobile";
 
 export const description = "A pie chart showing actual spending by category";
 
@@ -173,11 +171,14 @@ const SimplePieChart = ({
                 className="w-3 h-3 rounded mr-2"
                 style={{ backgroundColor: item.color }}
               />
-              <Text className="text-sm text-gray-700 flex-1" numberOfLines={1}>
+              <Text
+                className="text-sm text-foreground-light dark:text-foreground-dark flex-1"
+                numberOfLines={1}
+              >
                 {item.category}
               </Text>
             </View>
-            <Text className="text-sm font-medium text-gray-900 ml-2">
+            <Text className="text-sm font-medium text-foreground-light dark:text-foreground-dark ml-2">
               {formatCurrency(item.amount)} ({item.percentage.toFixed(1)}%)
             </Text>
           </View>
@@ -305,11 +306,11 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
     return (
       <Card>
         <CardHeader className="items-center pb-0">
-          <View className="h-6 w-48 bg-gray-200 rounded" />
-          <View className="h-4 w-32 bg-gray-200 rounded mt-2" />
+          <View className="h-6 w-48 bg-muted-light dark:bg-muted-dark rounded" />
+          <View className="h-4 w-32 bg-muted-light dark:bg-muted-dark rounded mt-2" />
         </CardHeader>
         <CardContent className="flex-1 pb-0">
-          <View className="mx-auto w-48 h-48 rounded-full bg-gray-200" />
+          <View className="mx-auto w-48 h-48 rounded-full bg-muted-light dark:bg-muted-dark" />
         </CardContent>
       </Card>
     );
@@ -332,23 +333,29 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
         <CardHeader className="items-center pb-0">
           <View className="flex-row items-center gap-2">
             <Feather name="pie-chart" size={24} color="#374151" />
-            <CardTitle className="text-xl font-bold text-gray-900">
+            <CardTitle className="text-xl font-bold text-foreground-light dark:text-foreground-dark">
               Category Spending Breakdown
             </CardTitle>
           </View>
 
           {/* Month Selector */}
           <View className="flex items-center gap-2 mt-4">
-            <Text className="text-sm font-medium">Viewing:</Text>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="min-w-72 w-auto justify-between px-4"
-                >
-                  <View className="flex-row items-center gap-2">
-                    <Text>
-                      {isCurrentMonth
+            <Text className="text-sm font-medium text-foreground-light dark:text-foreground-dark">
+              Viewing:
+            </Text>
+            <Select
+              value={
+                isCurrentMonth
+                  ? "current"
+                  : `${selectedDate.year}-${selectedDate.month}`
+              }
+              onValueChange={handleMonthChange}
+            >
+              <SelectTrigger className="min-w-72 w-auto">
+                <View className="flex-row items-center gap-2 flex-1">
+                  <SelectValue
+                    displayValue={
+                      isCurrentMonth
                         ? getCurrentMonthDisplay()
                         : new Date(
                             selectedDate.year,
@@ -356,36 +363,28 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
                           ).toLocaleDateString("en-US", {
                             month: "long",
                             year: "numeric",
-                          })}
-                    </Text>
-                    {isCurrentMonth && (
-                      <Badge className="text-xs">Current</Badge>
-                    )}
-                  </View>
-                  <Text className="ml-2">▼</Text>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="min-w-72 w-auto" align="center">
-                <DropdownMenuLabel>
-                  <Text>Select Time Period</Text>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onPress={() => handleMonthChange("current")}>
+                          })
+                    }
+                  />
+                  {isCurrentMonth && (
+                    <Badge className="text-xs ml-2">Current</Badge>
+                  )}
+                </View>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="current">
                   <View className="flex-row items-center gap-2">
                     <Text>{getCurrentMonthDisplay()}</Text>
                     <Badge className="text-xs">Current</Badge>
                   </View>
-                </DropdownMenuItem>
+                </SelectItem>
                 {monthOptions.slice(1).map((option) => (
-                  <DropdownMenuItem
-                    key={option.value}
-                    onPress={() => handleMonthChange(option.value)}
-                  >
-                    <Text>{option.label}</Text>
-                  </DropdownMenuItem>
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </SelectContent>
+            </Select>
           </View>
 
           {!isCurrentMonth && (
@@ -398,10 +397,10 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
           <View className="mx-auto flex items-center justify-center py-8">
             <View className="items-center">
               <Feather name="pie-chart" size={48} color="#9CA3AF" />
-              <Text className="text-lg font-medium text-gray-900 mt-4 text-center">
+              <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark mt-4 text-center">
                 No spending data available
               </Text>
-              <Text className="text-gray-600 text-center mt-2 px-4">
+              <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-center mt-2 px-4">
                 {isCurrentMonth
                   ? "Start tracking your expenses to see spending analysis and category breakdown"
                   : `No spending data found for ${new Date(
@@ -417,11 +416,11 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
         </CardContent>
         <CardFooter className="flex-col gap-2 text-sm border-t-0">
           <View className="flex-row items-center justify-center gap-2">
-            <Text className="font-medium">
+            <Text className="font-medium text-foreground-light dark:text-foreground-dark">
               Total spending: {formatCurrency(0)}
             </Text>
           </View>
-          <Text className="text-gray-600 text-center">
+          <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-center">
             {isCurrentMonth
               ? "No spending data available for the current month"
               : `No spending data found for ${new Date(
@@ -442,23 +441,29 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
       <CardHeader className="items-center pb-0">
         <View className="flex-row items-center gap-2 mb-2">
           <Feather name="pie-chart" size={24} color="#374151" />
-          <CardTitle className="text-xl font-bold text-gray-900">
+          <CardTitle className="text-xl font-bold text-foreground-light dark:text-foreground-dark">
             Category Spending Breakdown
           </CardTitle>
         </View>
 
         {/* Month Selector */}
         <View className="flex items-center gap-2">
-          <Text className="text-sm font-medium">Viewing:</Text>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="min-w-72 w-auto justify-between px-4"
-              >
-                <View className="flex-row items-center gap-2">
-                  <Text>
-                    {isCurrentMonth
+          <Text className="text-sm font-medium text-foreground-light dark:text-foreground-dark">
+            Viewing:
+          </Text>
+          <Select
+            value={
+              isCurrentMonth
+                ? "current"
+                : `${selectedDate.year}-${selectedDate.month}`
+            }
+            onValueChange={handleMonthChange}
+          >
+            <SelectTrigger className="min-w-72 w-auto">
+              <View className="flex-row items-center gap-2 flex-1">
+                <SelectValue
+                  displayValue={
+                    isCurrentMonth
                       ? getCurrentMonthDisplay()
                       : new Date(
                           selectedDate.year,
@@ -466,34 +471,30 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
                         ).toLocaleDateString("en-US", {
                           month: "long",
                           year: "numeric",
-                        })}
-                  </Text>
-                  {isCurrentMonth && <Badge className="text-xs">Current</Badge>}
-                </View>
-                <Text className="ml-2">▼</Text>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="min-w-72 w-auto" align="center">
-              <DropdownMenuLabel>
-                <Text>Select Time Period</Text>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onPress={() => handleMonthChange("current")}>
+                        })
+                  }
+                />
+                {isCurrentMonth && (
+                  <Badge className="text-xs ml-2">Current</Badge>
+                )}
+              </View>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="current">
                 <View className="flex-row items-center gap-2">
-                  <Text>{getCurrentMonthDisplay()}</Text>
+                  <Text className="text-foreground-light dark:text-foreground-dark">
+                    {getCurrentMonthDisplay()}
+                  </Text>
                   <Badge className="text-xs">Current</Badge>
                 </View>
-              </DropdownMenuItem>
+              </SelectItem>
               {monthOptions.slice(1).map((option) => (
-                <DropdownMenuItem
-                  key={option.value}
-                  onPress={() => handleMonthChange(option.value)}
-                >
-                  <Text>{option.label}</Text>
-                </DropdownMenuItem>
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
               ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </SelectContent>
+          </Select>
         </View>
 
         {!isCurrentMonth && (
@@ -511,21 +512,21 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
 
           {/* Tooltip */}
           {selectedSlice && (
-            <View className="absolute top-4 left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg min-w-48">
+            <View className="absolute top-4 left-4 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-lg p-3 shadow-lg min-w-48">
               <View className="flex-row items-center gap-2 mb-1">
                 <View
                   className="w-3 h-3 rounded"
                   style={{ backgroundColor: selectedSlice.color }}
                 />
-                <Text className="text-sm font-medium text-gray-900">
+                <Text className="text-sm font-medium text-foreground-light dark:text-foreground-dark">
                   {selectedSlice.category}
                 </Text>
               </View>
               <View className="flex-row items-center justify-between">
-                <Text className="text-sm font-semibold text-gray-900">
+                <Text className="text-sm font-semibold text-foreground-light dark:text-foreground-dark">
                   {formatCurrency(selectedSlice.amount)}
                 </Text>
-                <Text className="text-sm text-gray-600 ml-2">
+                <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark ml-2">
                   {selectedSlice.percentage.toFixed(1)}%
                 </Text>
               </View>
@@ -535,14 +536,14 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm pt-0 border-t-0">
         <View className="flex-row items-center justify-center gap-2">
-          <Text className="font-medium">
+          <Text className="font-medium text-foreground-light dark:text-foreground-dark">
             Total spending: {formatCurrency(totalSpent)}
           </Text>
           {totalSpent > 0 && (
             <Feather name="trending-up" size={16} color="#374151" />
           )}
         </View>
-        <Text className="text-gray-600 text-center">
+        <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-center">
           {isCurrentMonth
             ? "Current month spending by category"
             : `Spending for ${new Date(

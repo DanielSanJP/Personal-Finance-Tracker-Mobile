@@ -18,7 +18,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
+} from "../ui/select-mobile";
 import { getPriorityLabel, priorityOptions } from "./goal-utils";
 
 interface AddGoalModalProps {

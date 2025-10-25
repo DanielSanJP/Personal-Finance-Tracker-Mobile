@@ -124,7 +124,7 @@ export function NavDropdownContent({
         >
           <View
             className={cn(
-              "bg-white rounded-lg border border-gray-200 shadow-lg p-1 min-w-[200px] max-w-[280px]",
+              "bg-card-light dark:bg-card-dark rounded-lg border border-border-light dark:border-border-dark shadow-lg p-1 min-w-[200px] max-w-[280px]",
               className
             )}
           >
@@ -168,10 +168,15 @@ export function NavDropdownItem({
   return (
     <TouchableOpacity
       onPress={handlePress}
-      className={cn("px-3 py-2 rounded-md", className)}
+      className={cn(
+        "px-3 py-2 rounded-md hover:bg-secondary-light dark:hover:bg-secondary-dark",
+        className
+      )}
     >
       {typeof children === "string" ? (
-        <Text className="text-sm text-gray-900">{children}</Text>
+        <Text className="text-sm text-foreground-light dark:text-foreground-dark">
+          {children}
+        </Text>
       ) : (
         children
       )}
@@ -185,7 +190,7 @@ export function NavDropdownLabel({
 }: NavDropdownLabelProps) {
   return (
     <View className={cn("px-3 py-2", className)}>
-      <Text className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+      <Text className="text-xs font-medium text-muted-foreground-light dark:text-muted-foreground-dark uppercase tracking-wider">
         {children}
       </Text>
     </View>
@@ -193,5 +198,9 @@ export function NavDropdownLabel({
 }
 
 export function NavDropdownSeparator({ className }: NavDropdownSeparatorProps) {
-  return <View className={cn("h-px bg-gray-200 my-1", className)} />;
+  return (
+    <View
+      className={cn("h-px bg-border-light dark:bg-muted-dark my-1", className)}
+    />
+  );
 }

@@ -26,9 +26,12 @@ import {
   useDeleteBudget,
   useUpdateBudget,
 } from "../../hooks/queries/useBudgets";
+import { useUserPreferences } from "../../hooks/useUserPreferences";
+import { formatCurrency } from "../../lib/utils";
 
 export default function Budgets() {
   useAuth();
+  const { currency, showCents, compactView } = useUserPreferences();
   const { toast } = useToast();
   const { data: budgets = [], isLoading, refetch } = useBudgets();
   const createBudgetMutation = useCreateBudget();
@@ -221,13 +224,17 @@ export default function Budgets() {
   const totalRemaining = totalBudget - totalSpent;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <Nav />
 
       <ScrollView ref={scrollViewRef} className="flex-1">
         <View className="px-6 py-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-1">Budgets</Text>
-          <Text className="text-gray-600 mb-6">Monthly Budget Overview</Text>
+          <Text className="text-2xl font-bold text-foreground-light dark:text-foreground-dark mb-1">
+            Budgets
+          </Text>
+          <Text className="text-muted-foreground-light dark:text-muted-foreground-dark mb-6">
+            Monthly Budget Overview
+          </Text>
 
           {isLoading && (
             <View className="space-y-6">
@@ -279,14 +286,24 @@ export default function Budgets() {
                   </CardTitle>
                 </CardHeader>
 
-                <CardContent className="space-y-8 p-6">
+                <CardContent
+                  className={compactView ? "space-y-4 p-3" : "space-y-8 p-6"}
+                >
                   {/* Over Budget Alert */}
                   {budgets.some(
                     (budget) => budget.spentAmount > budget.budgetAmount
                   ) && (
-                    <View className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <View
+                      className={`bg-red-50 border border-red-200 rounded-lg ${
+                        compactView ? "mb-3 p-3" : "mb-6 p-4"
+                      }`}
+                    >
                       <View className="flex-row items-center">
-                        <Text className="text-red-800 font-medium">
+                        <Text
+                          className={`text-red-800 font-medium ${
+                            compactView ? "text-sm" : "text-base"
+                          }`}
+                        >
                           ⚠️ You have categories that are over budget this
                           month.
                         </Text>
@@ -307,43 +324,82 @@ export default function Budgets() {
 
                     return (
                       <View key={budget.id}>
-                        <View className="space-y-3 py-4">
-                          <Text className="text-base font-medium text-gray-900">
+                        <View
+                          className={
+                            compactView ? "space-y-2 py-2" : "space-y-3 py-4"
+                          }
+                        >
+                          <Text
+                            className={`font-medium text-foreground-light dark:text-foreground-dark ${
+                              compactView ? "text-sm" : "text-base"
+                            }`}
+                          >
                             {budget.category}
                           </Text>
 
-                          <Text className="text-sm text-gray-600 py-2">
-                            ${budget.spentAmount.toFixed(2)} / $
-                            {budget.budgetAmount.toFixed(2)}
+                          <Text
+                            className={`text-muted-foreground-light dark:text-muted-foreground-dark ${
+                              compactView ? "text-xs py-1" : "text-sm py-2"
+                            }`}
+                          >
+                            {formatCurrency(
+                              budget.spentAmount,
+                              currency,
+                              showCents
+                            )}{" "}
+                            /{" "}
+                            {formatCurrency(
+                              budget.budgetAmount,
+                              currency,
+                              showCents
+                            )}
                           </Text>
 
                           {/* Progress Bar */}
-                          <View className="w-full bg-gray-200 rounded-full h-2">
+                          <View
+                            className={`w-full bg-muted-light dark:bg-muted-dark rounded-full ${
+                              compactView ? "h-1.5" : "h-2"
+                            }`}
+                          >
                             <View
-                              className={`h-2 rounded-full ${
+                              className={`rounded-full ${
+                                compactView ? "h-1.5" : "h-2"
+                              } ${
                                 budgetStatus.status === "over" ||
                                 budgetStatus.status === "full"
                                   ? "bg-red-500"
                                   : budgetStatus.status === "warning"
                                   ? "bg-orange-500"
-                                  : "bg-gray-900"
+                                  : "bg-primary-light dark:bg-primary-dark"
                               }`}
                               style={{ width: `${progressWidth}%` }}
                             />
                           </View>
 
                           {overBudget && (
-                            <Text className="text-sm text-red-600 font-medium py-2">
-                              Over budget by $
-                              {(
-                                budget.spentAmount - budget.budgetAmount
-                              ).toFixed(2)}
+                            <Text
+                              className={`text-red-600 dark:text-red-400 font-medium ${
+                                compactView ? "text-xs py-1" : "text-sm py-2"
+                              }`}
+                            >
+                              Over budget by{" "}
+                              {formatCurrency(
+                                budget.spentAmount - budget.budgetAmount,
+                                currency,
+                                showCents
+                              )}
                             </Text>
                           )}
                         </View>
 
                         {index < budgets.length - 1 && (
-                          <View className="mt-8 border-b border-gray-200" />
+                          <View
+                            className={
+                              compactView
+                                ? "mt-4 border-b border-border-light dark:border-border-dark"
+                                : "mt-8 border-b border-border-light dark:border-border-dark"
+                            }
+                          />
                         )}
                       </View>
                     );
@@ -354,38 +410,38 @@ export default function Budgets() {
               {/* Budget Summary */}
               <Card className="mt-6">
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-gray-900">
+                  <CardTitle className="text-lg font-semibold text-foreground-light dark:text-foreground-dark">
                     Budget Summary
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
                   <View className="flex-row justify-between mb-6 gap-2">
                     <View className="items-center flex-1">
-                      <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
+                      <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-1 text-center">
                         Total Budget
                       </Text>
-                      <View className="bg-gray-100 px-2 py-1 rounded-full min-w-[80px]">
-                        <Text className="text-sm font-bold text-gray-900 text-center">
+                      <View className="bg-muted-light dark:bg-muted-dark px-2 py-1 rounded-full min-w-[80px]">
+                        <Text className="text-sm font-bold text-foreground-light dark:text-foreground-dark text-center">
                           ${totalBudget.toFixed(2)}
                         </Text>
                       </View>
                     </View>
                     <View className="items-center flex-1">
-                      <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
+                      <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-1 text-center">
                         Total Spent
                       </Text>
                       <View
                         className={`px-2 py-1 rounded-full min-w-[80px] ${
                           totalSpent > totalBudget
-                            ? "bg-red-100"
-                            : "bg-gray-100"
+                            ? "bg-red-100 dark:bg-red-900/30"
+                            : "bg-muted-light dark:bg-muted-dark"
                         }`}
                       >
                         <Text
                           className={`text-sm font-bold text-center ${
                             totalSpent > totalBudget
-                              ? "text-red-800"
-                              : "text-gray-900"
+                              ? "text-red-800 dark:text-red-400"
+                              : "text-foreground-light dark:text-foreground-dark"
                           }`}
                         >
                           ${totalSpent.toFixed(2)}
@@ -393,19 +449,21 @@ export default function Budgets() {
                       </View>
                     </View>
                     <View className="items-center flex-1">
-                      <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
+                      <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-1 text-center">
                         Remaining
                       </Text>
                       <View
                         className={`px-2 py-1 rounded-full min-w-[80px] ${
-                          totalRemaining < 0 ? "bg-red-100" : "bg-green-100"
+                          totalRemaining < 0
+                            ? "bg-red-100 dark:bg-red-900/30"
+                            : "bg-green-100 dark:bg-green-900/30"
                         }`}
                       >
                         <Text
                           className={`text-sm font-bold text-center ${
                             totalRemaining < 0
-                              ? "text-red-800"
-                              : "text-green-800"
+                              ? "text-red-800 dark:text-red-400"
+                              : "text-green-800 dark:text-green-400"
                           }`}
                         >
                           ${totalRemaining.toFixed(2)}
@@ -417,21 +475,21 @@ export default function Budgets() {
                   {/* Overall Progress Bar */}
                   <View className="mb-6">
                     <View className="flex-row justify-between items-center mb-2">
-                      <Text className="text-sm font-medium text-gray-900">
+                      <Text className="text-sm font-medium text-foreground-light dark:text-foreground-dark">
                         Overall Budget Progress
                       </Text>
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                         {((totalSpent / totalBudget) * 100).toFixed(1)}%
                       </Text>
                     </View>
-                    <View className="w-full bg-gray-200 rounded-full h-3">
+                    <View className="w-full bg-muted-light dark:bg-muted-dark rounded-full h-3">
                       <View
                         className={`h-3 rounded-full ${
                           totalSpent > totalBudget
                             ? "bg-red-500"
                             : (totalSpent / totalBudget) * 100 > 80
                             ? "bg-orange-500"
-                            : "bg-gray-900"
+                            : "bg-gray-900 dark:bg-gray-100"
                         }`}
                         style={{
                           width: `${Math.min(

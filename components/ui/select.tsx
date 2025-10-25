@@ -1,235 +1,291 @@
+import { Icon } from "@/components/ui/icon";
+import { NativeOnlyAnimatedView } from "@/components/ui/native-only-animated-view";
+import { TextClassContext } from "@/components/ui/text";
+import { cn } from "@/lib/utils";
+import * as SelectPrimitive from "@rn-primitives/select";
+import {
+  Check,
+  ChevronDown,
+  ChevronDownIcon,
+  ChevronUpIcon,
+} from "lucide-react-native";
 import * as React from "react";
-import { Modal, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { cn } from "../../lib/utils";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
+import { FadeIn, FadeOut } from "react-native-reanimated";
+import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 
-interface SelectProps {
-  value?: string;
-  onValueChange?: (value: string) => void;
-  children: React.ReactNode;
-}
+type Option = SelectPrimitive.Option;
 
-function Select({ value, onValueChange, children }: SelectProps) {
-  const [open, setOpen] = React.useState(false);
+const Select = SelectPrimitive.Root;
 
+const SelectGroup = SelectPrimitive.Group;
+
+function SelectValue({
+  ref,
+  className,
+  ...props
+}: SelectPrimitive.ValueProps &
+  React.RefAttributes<SelectPrimitive.ValueRef> & {
+    className?: string;
+  }) {
+  const { value } = SelectPrimitive.useRootContext();
   return (
-    <SelectContext.Provider value={{ value, onValueChange, open, setOpen }}>
-      {children}
-    </SelectContext.Provider>
+    <SelectPrimitive.Value
+      ref={ref}
+      className={cn(
+        "text-foreground-light dark:text-foreground-dark line-clamp-1 flex flex-row items-center gap-2 text-sm",
+        !value && "text-muted-foreground-light dark:text-muted-foreground-dark",
+        className
+      )}
+      {...props}
+    />
   );
 }
 
-const SelectContext = React.createContext<{
-  value?: string;
-  onValueChange?: (value: string) => void;
-  open: boolean;
-  setOpen: (open: boolean) => void;
-} | null>(null);
-
-function useSelect() {
-  const context = React.useContext(SelectContext);
-  if (!context) {
-    throw new Error("Select components must be used within Select");
-  }
-  return context;
-}
-
-interface SelectTriggerProps {
-  className?: string;
-  children: React.ReactNode;
-  size?: "sm" | "default";
-}
-
 function SelectTrigger({
+  ref,
   className,
   children,
   size = "default",
   ...props
-}: SelectTriggerProps) {
-  const { open, setOpen } = useSelect();
-
+}: SelectPrimitive.TriggerProps &
+  React.RefAttributes<SelectPrimitive.TriggerRef> & {
+    children?: React.ReactNode;
+    size?: "default" | "sm";
+  }) {
   return (
-    <TouchableOpacity
+    <SelectPrimitive.Trigger
+      ref={ref}
       className={cn(
-        "border-gray-300 flex flex-row w-full items-center justify-start rounded-lg border bg-white px-4 py-2 text-sm shadow-xs",
-        size === "default" ? "h-14" : "h-12",
+        "border-input-light dark:border-input-dark bg-background-light dark:bg-background-dark flex h-10 flex-row items-center justify-between gap-2 rounded-md border px-3 py-2 shadow-sm shadow-black/5 sm:h-9",
+        Platform.select({
+          web: "focus-visible:border-ring focus-visible:ring-ring/50 w-fit whitespace-nowrap text-sm outline-none transition-[color,box-shadow] focus-visible:ring-[3px] disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        }),
+        props.disabled && "opacity-50",
+        size === "sm" && "h-8 py-2 sm:py-1.5",
         className
       )}
-      onPress={() => setOpen(!open)}
-      activeOpacity={0.7}
-      accessible={true}
-      accessibilityRole="button"
       {...props}
     >
-      {children}
-    </TouchableOpacity>
+      <>{children}</>
+      <Icon
+        as={ChevronDown}
+        aria-hidden={true}
+        className="text-muted-foreground-light dark:text-muted-foreground-dark size-4"
+      />
+    </SelectPrimitive.Trigger>
   );
 }
 
-interface SelectValueProps {
-  placeholder?: string;
-  className?: string;
-  displayValue?: string;
-}
+const FullWindowOverlay =
+  Platform.OS === "ios" ? RNFullWindowOverlay : React.Fragment;
 
-function SelectValue({
-  placeholder,
+function SelectContent({
   className,
-  displayValue,
-}: SelectValueProps) {
-  const { value } = useSelect();
-
-  // Use displayValue if provided, otherwise use the actual value
-  const displayText = displayValue || value;
-
+  children,
+  position = "popper",
+  portalHost,
+  ...props
+}: SelectPrimitive.ContentProps &
+  React.RefAttributes<SelectPrimitive.ContentRef> & {
+    className?: string;
+    portalHost?: string;
+  }) {
   return (
-    <Text
-      style={{
-        flex: 1,
-        fontSize: 14,
-        color: displayText ? "#111827" : "#6b7280",
-      }}
-      className={className}
-      numberOfLines={1}
-      ellipsizeMode="tail"
-    >
-      {displayText || placeholder}
-    </Text>
-  );
-}
-
-interface SelectContentProps {
-  className?: string;
-  children: React.ReactNode;
-}
-
-function SelectContent({ className, children, ...props }: SelectContentProps) {
-  const { open, setOpen } = useSelect();
-
-  if (!open) return null;
-
-  return (
-    <Modal
-      visible={open}
-      transparent={true}
-      animationType="slide"
-      presentationStyle="overFullScreen"
-      statusBarTranslucent={true}
-      onRequestClose={() => setOpen(false)}
-    >
-      <TouchableOpacity
-        className="flex-1 bg-black/50 justify-end"
-        activeOpacity={1}
-        onPress={() => setOpen(false)}
-        style={{ paddingTop: 0 }}
-      >
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={(e) => e.stopPropagation()}
+    <SelectPrimitive.Portal hostName={portalHost}>
+      <FullWindowOverlay>
+        <SelectPrimitive.Overlay
+          style={Platform.select({ native: StyleSheet.absoluteFill })}
         >
-          <View
-            className={cn(
-              "bg-white rounded-t-2xl border-t border-gray-200 shadow-lg max-h-96",
-              className
-            )}
-            {...props}
-          >
-            {/* Drag indicator */}
-            <View className="flex items-center py-3">
-              <View className="w-10 h-1 bg-gray-300 rounded-full" />
-            </View>
-
-            <ScrollView className="px-4 pb-6">{children}</ScrollView>
-          </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+          <TextClassContext.Provider value="text-card-foreground-light dark:text-card-foreground-dark">
+            <NativeOnlyAnimatedView
+              className="z-50"
+              entering={FadeIn}
+              exiting={FadeOut}
+            >
+              <SelectPrimitive.Content
+                className={cn(
+                  "bg-card-light dark:bg-card-dark border-border-light dark:border-border-dark relative z-50 min-w-[8rem] rounded-md border shadow-md shadow-black/5",
+                  Platform.select({
+                    web: cn(
+                      "animate-in fade-in-0 zoom-in-95 origin-(--radix-select-content-transform-origin) max-h-52 overflow-y-auto overflow-x-hidden",
+                      props.side === "bottom" && "slide-in-from-top-2",
+                      props.side === "top" && "slide-in-from-bottom-2"
+                    ),
+                    native: "p-1",
+                  }),
+                  position === "popper" &&
+                    Platform.select({
+                      web: cn(
+                        props.side === "bottom" && "translate-y-1",
+                        props.side === "top" && "-translate-y-1"
+                      ),
+                    }),
+                  className
+                )}
+                position={position}
+                {...props}
+              >
+                <SelectScrollUpButton />
+                <SelectPrimitive.Viewport
+                  className={cn(
+                    "p-1",
+                    position === "popper" &&
+                      cn(
+                        "w-full",
+                        Platform.select({
+                          web: "h-[var(--radix-select-trigger-height)] min-w-[var(--radix-select-trigger-width)]",
+                        })
+                      )
+                  )}
+                >
+                  {children}
+                </SelectPrimitive.Viewport>
+                <SelectScrollDownButton />
+              </SelectPrimitive.Content>
+            </NativeOnlyAnimatedView>
+          </TextClassContext.Provider>
+        </SelectPrimitive.Overlay>
+      </FullWindowOverlay>
+    </SelectPrimitive.Portal>
   );
 }
 
-interface SelectItemProps {
-  className?: string;
-  children: React.ReactNode;
-  value: string;
-}
-
-function SelectItem({ className, children, value, ...props }: SelectItemProps) {
-  const { value: selectedValue, onValueChange, setOpen } = useSelect();
-  const isSelected = selectedValue === value;
-
-  const handlePress = () => {
-    onValueChange?.(value);
-    setOpen(false);
-  };
-
+function SelectLabel({
+  className,
+  ...props
+}: SelectPrimitive.LabelProps & React.RefAttributes<SelectPrimitive.LabelRef>) {
   return (
-    <TouchableOpacity
+    <SelectPrimitive.Label
       className={cn(
-        "relative flex w-full items-center gap-3 rounded-lg py-4 px-3 min-h-[48px]",
-        isSelected ? "bg-gray-100" : "bg-white active:bg-gray-50",
+        "text-muted-foreground-light dark:text-muted-foreground-dark px-2 py-2 text-xs sm:py-1.5",
         className
       )}
-      onPress={handlePress}
-      activeOpacity={0.7}
       {...props}
-    >
-      <Text
-        className={cn(
-          "text-base flex-1",
-          isSelected ? "text-gray-900 font-medium" : "text-gray-700"
-        )}
-      >
-        {children}
-      </Text>
-      {isSelected && (
-        <View className="flex items-center justify-center">
-          <Text className="text-blue-600 text-lg font-bold">✓</Text>
-        </View>
+    />
+  );
+}
+
+function SelectItem({
+  className,
+  children,
+  ...props
+}: SelectPrimitive.ItemProps & React.RefAttributes<SelectPrimitive.ItemRef>) {
+  return (
+    <SelectPrimitive.Item
+      className={cn(
+        "active:bg-secondary-light dark:active:bg-secondary-dark group relative flex w-full flex-row items-center gap-2 rounded-sm py-2 pl-2 pr-8 sm:py-1.5",
+        Platform.select({
+          web: "focus:bg-secondary-light dark:focus:bg-secondary-dark focus:text-foreground-light dark:focus:text-foreground-dark *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2 cursor-default outline-none data-[disabled]:pointer-events-none [&_svg]:pointer-events-none",
+        }),
+        props.disabled && "opacity-50",
+        className
       )}
-    </TouchableOpacity>
-  );
-}
-
-interface SelectLabelProps {
-  className?: string;
-  children: React.ReactNode;
-}
-
-function SelectLabel({ className, children, ...props }: SelectLabelProps) {
-  return (
-    <Text
-      className={cn("text-muted-foreground px-2 py-1.5 text-xs", className)}
       {...props}
     >
-      {children}
-    </Text>
+      <View className="absolute right-2 flex size-3.5 items-center justify-center">
+        <SelectPrimitive.ItemIndicator>
+          <Icon
+            as={Check}
+            className="text-foreground-light dark:text-foreground-dark size-4 shrink-0"
+          />
+        </SelectPrimitive.ItemIndicator>
+      </View>
+      <SelectPrimitive.ItemText className="text-foreground-light dark:text-foreground-dark select-none text-sm" />
+    </SelectPrimitive.Item>
   );
 }
 
-interface SelectSeparatorProps {
-  className?: string;
-}
-
-function SelectSeparator({ className, ...props }: SelectSeparatorProps) {
+function SelectSeparator({
+  className,
+  ...props
+}: SelectPrimitive.SeparatorProps &
+  React.RefAttributes<SelectPrimitive.SeparatorRef>) {
   return (
-    <View className={cn("bg-gray-200 mx-3 my-2 h-px", className)} {...props} />
+    <SelectPrimitive.Separator
+      className={cn(
+        "bg-border-light dark:bg-border-dark -mx-1 my-1 h-px",
+        Platform.select({ web: "pointer-events-none" }),
+        className
+      )}
+      {...props}
+    />
   );
 }
 
-interface SelectGroupProps {
-  children: React.ReactNode;
+/**
+ * @platform Web only
+ * Returns null on native platforms
+ */
+function SelectScrollUpButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollUpButton>) {
+  if (Platform.OS !== "web") {
+    return null;
+  }
+  return (
+    <SelectPrimitive.ScrollUpButton
+      className={cn(
+        "flex cursor-default items-center justify-center py-1",
+        className
+      )}
+      {...props}
+    >
+      <Icon as={ChevronUpIcon} className="size-4" />
+    </SelectPrimitive.ScrollUpButton>
+  );
 }
 
-function SelectGroup({ children }: SelectGroupProps) {
-  return <>{children}</>;
+/**
+ * @platform Web only
+ * Returns null on native platforms
+ */
+function SelectScrollDownButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
+  if (Platform.OS !== "web") {
+    return null;
+  }
+  return (
+    <SelectPrimitive.ScrollDownButton
+      className={cn(
+        "flex cursor-default items-center justify-center py-1",
+        className
+      )}
+      {...props}
+    >
+      <Icon as={ChevronDownIcon} className="size-4" />
+    </SelectPrimitive.ScrollDownButton>
+  );
+}
+
+/**
+ * @platform Native only
+ * Returns the children on the web
+ */
+function NativeSelectScrollView({
+  className,
+  ...props
+}: React.ComponentProps<typeof ScrollView>) {
+  if (Platform.OS === "web") {
+    return <>{props.children}</>;
+  }
+  return <ScrollView className={cn("max-h-52", className)} {...props} />;
 }
 
 export {
+  NativeSelectScrollView,
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
   SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
   SelectSeparator,
   SelectTrigger,
   SelectValue,
+  type Option,
 };

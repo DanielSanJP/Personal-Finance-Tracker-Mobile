@@ -14,11 +14,13 @@ import {
 } from "../../components/ui/card";
 import { useAuth } from "../../hooks/queries/useAuth";
 import { useDashboardData } from "../../hooks/queries/useDashboard";
+import { useUserPreferences } from "../../hooks/useUserPreferences";
 import { formatCurrency } from "../../lib/utils";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
+  const { currency, showCents, compactView } = useUserPreferences();
 
   // Use React Query hook for dashboard data
   const { data: dashboardData, isLoading, refetch } = useDashboardData();
@@ -65,16 +67,16 @@ export default function Dashboard() {
     user?.user_metadata?.first_name || user?.email?.split("@")[0] || "User";
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <Nav />
 
       <ScrollView ref={scrollViewRef} className="flex-1">
         {/* Financial Summary Cards */}
         <View className="px-6 py-6">
-          <Text className="text-2xl font-bold text-gray-900 mb-1">
+          <Text className="text-2xl font-bold text-foreground-light dark:text-foreground-dark mb-1">
             Dashboard
           </Text>
-          <Text className="text-gray-600 mb-6">
+          <Text className="text-muted-foreground-light dark:text-muted-foreground-dark mb-6">
             Welcome back, {displayName}!
           </Text>
 
@@ -126,45 +128,108 @@ export default function Dashboard() {
               </Card>
 
               <View className="flex-row justify-between mb-6">
-                <View className="bg-white rounded-lg p-4 flex-1 mr-3 shadow-sm border border-gray-100">
-                  <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
+                <View
+                  className={`bg-card-light dark:bg-card-dark rounded-lg flex-1 mr-3 shadow-sm border border-border-light dark:border-border-dark ${
+                    compactView ? "p-2" : "p-4"
+                  }`}
+                >
+                  <Text
+                    className={`text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-1 text-center ${
+                      compactView ? "text-[10px]" : "text-xs"
+                    }`}
+                  >
                     Account Balance
                   </Text>
-                  <Text className="text-lg font-bold text-gray-900 text-center">
-                    {formatCurrency(summary?.totalBalance || 0)}
+                  <Text
+                    className={`font-bold text-card-foreground-light dark:text-card-foreground-dark text-center ${
+                      compactView ? "text-base" : "text-lg"
+                    }`}
+                  >
+                    {formatCurrency(
+                      summary?.totalBalance || 0,
+                      currency,
+                      showCents
+                    )}
                   </Text>
                 </View>
-                <View className="bg-white rounded-lg p-4 flex-1 ml-3 shadow-sm border border-gray-100">
-                  <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
+                <View
+                  className={`bg-card-light dark:bg-card-dark rounded-lg flex-1 ml-3 shadow-sm border border-border-light dark:border-border-dark ${
+                    compactView ? "p-2" : "p-4"
+                  }`}
+                >
+                  <Text
+                    className={`text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-1 text-center ${
+                      compactView ? "text-[10px]" : "text-xs"
+                    }`}
+                  >
                     This Month ({getCurrentMonthName()})
                   </Text>
                   <Text
-                    className={`text-lg font-bold text-center ${
+                    className={`font-bold text-center ${
+                      compactView ? "text-base" : "text-lg"
+                    } ${
                       (summary?.monthlyChange || 0) >= 0
-                        ? "text-green-600"
-                        : "text-red-600"
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
                     }`}
                   >
                     {(summary?.monthlyChange || 0) >= 0 ? "+" : ""}
-                    {formatCurrency(summary?.monthlyChange || 0)}
+                    {formatCurrency(
+                      summary?.monthlyChange || 0,
+                      currency,
+                      showCents
+                    )}
                   </Text>
                 </View>
               </View>
               <View className="flex-row justify-between mb-8">
-                <View className="bg-white rounded-lg p-4 flex-1 mr-3 shadow-sm border border-gray-100">
-                  <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
+                <View
+                  className={`bg-card-light dark:bg-card-dark rounded-lg flex-1 mr-3 shadow-sm border border-border-light dark:border-border-dark ${
+                    compactView ? "p-2" : "p-4"
+                  }`}
+                >
+                  <Text
+                    className={`text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-1 text-center ${
+                      compactView ? "text-[10px]" : "text-xs"
+                    }`}
+                  >
                     Income ({getCurrentMonthName()})
                   </Text>
-                  <Text className="text-lg font-bold text-green-600 text-center">
-                    +{formatCurrency(summary?.monthlyIncome || 0)}
+                  <Text
+                    className={`font-bold text-green-600 dark:text-green-400 text-center ${
+                      compactView ? "text-base" : "text-lg"
+                    }`}
+                  >
+                    +
+                    {formatCurrency(
+                      summary?.monthlyIncome || 0,
+                      currency,
+                      showCents
+                    )}
                   </Text>
                 </View>
-                <View className="bg-white rounded-lg p-4 flex-1 ml-3 shadow-sm border border-gray-100">
-                  <Text className="text-xs text-gray-600 font-medium mb-1 text-center">
+                <View
+                  className={`bg-card-light dark:bg-card-dark rounded-lg flex-1 ml-3 shadow-sm border border-border-light dark:border-border-dark ${
+                    compactView ? "p-2" : "p-4"
+                  }`}
+                >
+                  <Text
+                    className={`text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-1 text-center ${
+                      compactView ? "text-[10px]" : "text-xs"
+                    }`}
+                  >
                     Budget Remaining ({getCurrentMonthName()})
                   </Text>
-                  <Text className="text-lg font-bold text-gray-900 text-center">
-                    {formatCurrency(summary?.budgetRemaining || 0)}
+                  <Text
+                    className={`font-bold text-card-foreground-light dark:text-card-foreground-dark text-center ${
+                      compactView ? "text-base" : "text-lg"
+                    }`}
+                  >
+                    {formatCurrency(
+                      summary?.budgetRemaining || 0,
+                      currency,
+                      showCents
+                    )}
                   </Text>
                 </View>
               </View>
@@ -175,22 +240,42 @@ export default function Dashboard() {
               </View>
 
               {/* Your Accounts */}
-              <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 mb-6">
-                <Text className="text-lg font-semibold text-gray-900 mb-4">
+              <View
+                className={`bg-card-light dark:bg-card-dark rounded-lg shadow-sm border border-border-light dark:border-border-dark mb-6 ${
+                  compactView ? "p-3" : "p-6"
+                }`}
+              >
+                <Text
+                  className={`font-semibold text-card-foreground-light dark:text-card-foreground-dark ${
+                    compactView ? "text-base mb-2" : "text-lg mb-4"
+                  }`}
+                >
                   Your Accounts
                 </Text>
                 {accounts.map((account, index) => (
                   <View
                     key={account.id}
-                    className={`flex-row justify-between items-center py-3 ${
+                    className={`flex-row justify-between items-center ${
+                      compactView ? "py-2" : "py-3"
+                    } ${
                       index < accounts.length - 1
-                        ? "border-b border-gray-100"
+                        ? "border-b border-border-light dark:border-border-dark"
                         : ""
                     }`}
                   >
-                    <Text className="text-gray-700">{account.name}</Text>
-                    <Text className="font-semibold text-gray-900">
-                      {formatCurrency(account.balance)}
+                    <Text
+                      className={`text-foreground-light dark:text-foreground-dark ${
+                        compactView ? "text-sm" : "text-base"
+                      }`}
+                    >
+                      {account.name}
+                    </Text>
+                    <Text
+                      className={`font-semibold text-card-foreground-light dark:text-card-foreground-dark ${
+                        compactView ? "text-sm" : "text-base"
+                      }`}
+                    >
+                      {formatCurrency(account.balance, currency, showCents)}
                     </Text>
                   </View>
                 ))}

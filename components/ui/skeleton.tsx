@@ -11,7 +11,10 @@ function Skeleton({
   ...props
 }: SkeletonProps & React.ComponentProps<typeof View>) {
   return (
-    <View className={cn("bg-gray-200 rounded-md", className)} {...props} />
+    <View
+      className={cn("bg-muted-light dark:bg-muted-dark rounded-md", className)}
+      {...props}
+    />
   );
 }
 

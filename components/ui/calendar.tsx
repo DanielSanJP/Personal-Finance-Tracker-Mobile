@@ -3,17 +3,20 @@ import * as React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { cn } from "../../lib/utils";
 
-const calendarVariants = cva("bg-white p-4 w-full rounded-lg", {
-  variants: {
-    variant: {
-      default: "bg-white",
-      ghost: "bg-transparent",
+const calendarVariants = cva(
+  "bg-card-light dark:bg-card-dark p-4 w-full rounded-lg",
+  {
+    variants: {
+      variant: {
+        default: "bg-card-light dark:bg-card-dark",
+        ghost: "bg-transparent",
+      },
     },
-  },
-  defaultVariants: {
-    variant: "default",
-  },
-});
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+);
 
 interface CalendarProps extends VariantProps<typeof calendarVariants> {
   className?: string;
@@ -96,10 +99,10 @@ function Calendar({
           className={cn(
             "w-10 h-10 rounded-lg flex items-center justify-center m-1",
             isSelected
-              ? "bg-blue-600"
+              ? "bg-primary-light dark:bg-primary-dark"
               : isDisabled
               ? "bg-transparent"
-              : "bg-transparent active:bg-gray-100"
+              : "bg-transparent active:bg-muted-light active:dark:bg-muted-dark"
           )}
           onPress={() => !isDisabled && onSelect?.(date)}
           activeOpacity={isDisabled ? 1 : 0.7}
@@ -109,10 +112,10 @@ function Calendar({
             className={cn(
               "text-base font-medium",
               isSelected
-                ? "text-white"
+                ? "text-primary-foreground-light dark:text-primary-foreground-dark"
                 : isDisabled
-                ? "text-gray-300"
-                : "text-gray-900"
+                ? "text-muted-foreground-light dark:text-muted-foreground-dark opacity-40"
+                : "text-foreground-light dark:text-foreground-dark"
             )}
           >
             {day}
@@ -136,22 +139,26 @@ function Calendar({
       <View className="flex flex-row items-center justify-between mb-6">
         <TouchableOpacity
           onPress={goToPreviousMonth}
-          className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100"
+          className="w-10 h-10 rounded-lg flex items-center justify-center bg-secondary-light dark:bg-secondary-dark"
           activeOpacity={0.7}
         >
-          <Text className="text-gray-900 text-lg font-bold">‹</Text>
+          <Text className="text-foreground-light dark:text-foreground-dark text-lg font-bold">
+            ‹
+          </Text>
         </TouchableOpacity>
 
-        <Text className="text-lg font-semibold text-gray-900">
+        <Text className="text-lg font-semibold text-foreground-light dark:text-foreground-dark">
           {monthNames[month]} {year}
         </Text>
 
         <TouchableOpacity
           onPress={goToNextMonth}
-          className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-100"
+          className="w-10 h-10 rounded-lg flex items-center justify-center bg-secondary-light dark:bg-secondary-dark"
           activeOpacity={0.7}
         >
-          <Text className="text-gray-900 text-lg font-bold">›</Text>
+          <Text className="text-foreground-light dark:text-foreground-dark text-lg font-bold">
+            ›
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -162,7 +169,9 @@ function Calendar({
             key={day}
             className="w-10 h-8 flex items-center justify-center mx-1"
           >
-            <Text className="text-sm text-gray-600 font-semibold">{day}</Text>
+            <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark font-semibold">
+              {day}
+            </Text>
           </View>
         ))}
       </View>

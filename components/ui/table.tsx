@@ -1,5 +1,11 @@
 import * as React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+  useColorScheme,
+} from "react-native";
 import { cn } from "../../lib/utils";
 
 interface TableProps {
@@ -23,8 +29,15 @@ interface TableHeaderProps {
 }
 
 function TableHeader({ className, children, ...props }: TableHeaderProps) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
   return (
-    <View className={cn("border-b border-border", className)} {...props}>
+    <View
+      className={cn("border-b", className)}
+      style={{ borderBottomColor: isDark ? "#999999" : "#e5e7eb" }}
+      {...props}
+    >
       {children}
     </View>
   );
@@ -49,12 +62,13 @@ interface TableFooterProps {
 }
 
 function TableFooter({ className, children, ...props }: TableFooterProps) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
   return (
     <View
-      className={cn(
-        "bg-muted/50 border-t border-border font-medium",
-        className
-      )}
+      className={cn("bg-muted/50 border-t font-medium", className)}
+      style={{ borderTopColor: isDark ? "#999999" : "#e5e7eb" }}
       {...props}
     >
       {children}
@@ -69,11 +83,16 @@ interface TableRowProps {
 }
 
 function TableRow({ className, children, onPress, ...props }: TableRowProps) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const borderColor = isDark ? "#999999" : "#e5e7eb";
+
   if (onPress) {
     return (
       <TouchableOpacity
         onPress={onPress}
-        className={cn("border-b border-border flex flex-row", className)}
+        className={cn("border-b flex flex-row", className)}
+        style={{ borderBottomColor: borderColor }}
         {...props}
       >
         {children}
@@ -83,7 +102,8 @@ function TableRow({ className, children, onPress, ...props }: TableRowProps) {
 
   return (
     <View
-      className={cn("border-b border-border flex flex-row", className)}
+      className={cn("border-b flex flex-row", className)}
+      style={{ borderBottomColor: borderColor }}
       {...props}
     >
       {children}
@@ -104,7 +124,7 @@ function TableHead({ className, children, style, ...props }: TableHeadProps) {
       style={style}
       {...props}
     >
-      <Text className="text-foreground font-medium text-sm text-left">
+      <Text className="text-foreground-light dark:text-foreground-dark font-medium text-sm text-left">
         {children}
       </Text>
     </View>
@@ -125,7 +145,9 @@ function TableCell({ className, children, style, ...props }: TableCellProps) {
       {...props}
     >
       {typeof children === "string" ? (
-        <Text className="text-foreground text-sm text-left">{children}</Text>
+        <Text className="text-foreground-light dark:text-foreground-dark text-sm text-left">
+          {children}
+        </Text>
       ) : (
         children
       )}
@@ -141,7 +163,7 @@ interface TableCaptionProps {
 function TableCaption({ className, children, ...props }: TableCaptionProps) {
   return (
     <View className={cn("mt-4", className)} {...props}>
-      <Text className="text-muted-foreground text-sm text-center">
+      <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-sm text-center">
         {children}
       </Text>
     </View>

@@ -22,7 +22,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../components/ui/select";
+} from "../components/ui/select-mobile";
 import { useToast } from "../components/ui/sonner";
 import { VoiceInputModal } from "../components/voice-input-modal";
 import { useAccounts } from "../hooks/queries/useAccounts";
@@ -92,11 +92,7 @@ export default function AddTransactionPage() {
         type: "success",
       });
 
-      // Close modal after a brief delay
-      setTimeout(() => {
-        setShowReceiptScanner(false);
-        clearPreview();
-      }, 1500);
+      // Modal stays open - user can review data and click Done button to close
     },
     onError: (error) => {
       console.error("❌ Receipt scan error:", error);
@@ -142,10 +138,7 @@ export default function AddTransactionPage() {
         type: "success",
       });
 
-      // Close modal after a brief delay
-      setTimeout(() => {
-        setShowVoiceInput(false);
-      }, 1500);
+      // Modal stays open - user can click Done button to close
     },
     accounts,
     transactionType: "expense",
@@ -274,7 +267,7 @@ export default function AddTransactionPage() {
   // Show loading while checking auth state
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
+      <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
         <Nav />
         <View className="w-full px-6 py-8">
           <FormSkeleton />
@@ -289,7 +282,7 @@ export default function AddTransactionPage() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-background-light dark:bg-background-dark">
       <Nav />
 
       <ScrollView className="flex-1">
@@ -407,7 +400,9 @@ export default function AddTransactionPage() {
                         key={account.id}
                         value={`${account.name} (${account.type})`}
                       >
-                        {account.name} ({account.type})
+                        <Text>
+                          {account.name} ({account.type})
+                        </Text>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -434,7 +429,7 @@ export default function AddTransactionPage() {
                     variant="outline"
                     className="w-40"
                   >
-                    <Text>Cancel</Text>
+                    Cancel
                   </Button>
                   <Button
                     onPress={handleSave}
@@ -452,14 +447,14 @@ export default function AddTransactionPage() {
                     variant="outline"
                     className="w-40"
                   >
-                    <Text>Voice Input</Text>
+                    Voice Input
                   </Button>
                   <Button
                     onPress={handleScanReceipt}
                     variant="outline"
                     className="w-40"
                   >
-                    <Text>Scan Receipt</Text>
+                    Scan Receipt
                   </Button>
                 </View>
               </View>

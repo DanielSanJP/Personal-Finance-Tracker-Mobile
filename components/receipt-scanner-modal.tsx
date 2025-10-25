@@ -1,6 +1,12 @@
-import React from "react";
-import { View, Text, Image, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import React from "react";
+import {
+  ActivityIndicator,
+  Image,
+  Text,
+  useColorScheme,
+  View,
+} from "react-native";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -34,9 +40,35 @@ export function ReceiptScannerModal({
   confidence = 0,
 }: ReceiptScannerModalProps) {
   const hasData = parsedData && Object.keys(parsedData).length > 0;
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  if (__DEV__) {
+    console.log("📸 ReceiptScannerModal render:", {
+      visible,
+      isProcessing,
+      hasData,
+      hasPreview: !!previewUrl,
+      parsedDataKeys: parsedData ? Object.keys(parsedData) : [],
+    });
+  }
 
   return (
-    <Dialog open={visible} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={visible}
+      onOpenChange={(open) => {
+        console.log("📸 ReceiptScannerModal onOpenChange called:", {
+          open,
+          wasVisible: visible,
+        });
+        console.trace("Stack trace for ReceiptScannerModal onOpenChange");
+        // When Dialog requests to close (Android back button), call onClose
+        if (!open) {
+          console.log("📸 Calling onClose because open=false");
+          onClose();
+        }
+      }}
+    >
       <DialogContent onClose={onClose} showCloseButton={true}>
         <DialogHeader>
           <DialogTitle>Receipt Scanner</DialogTitle>
@@ -59,7 +91,7 @@ export function ReceiptScannerModal({
                 </View>
               </CardHeader>
               <CardContent>
-                <View className="bg-gray-100 rounded-lg overflow-hidden">
+                <View className="bg-muted-light dark:bg-muted-dark rounded-lg overflow-hidden">
                   <Image
                     source={{ uri: previewUrl }}
                     className="w-full h-64"
@@ -87,7 +119,7 @@ export function ReceiptScannerModal({
                       className="mr-2"
                       name="camera"
                       size={18}
-                      color="black"
+                      color={isDark ? "#fcfcfc" : "#0a0a0a"}
                     />
                     <Text className="text-sm font-semibold">Ready to scan</Text>
                   </View>
@@ -105,33 +137,33 @@ export function ReceiptScannerModal({
               {/* Parsed Data Preview */}
               {hasData && (
                 <View className="space-y-2">
-                  <Text className="text-xs font-medium text-gray-700">
+                  <Text className="text-xs font-medium text-foreground-light dark:text-foreground-dark">
                     Detected:
                   </Text>
                   <View className="flex-row flex-wrap gap-2">
                     {parsedData.amount && (
-                      <View className="bg-gray-100 px-3 py-1 rounded-full">
+                      <View className="bg-muted-light dark:bg-muted-dark px-3 py-1 rounded-full">
                         <Text className="text-xs font-medium">
                           ${parsedData.amount}
                         </Text>
                       </View>
                     )}
                     {parsedData.merchant && (
-                      <View className="bg-gray-100 px-3 py-1 rounded-full">
+                      <View className="bg-muted-light dark:bg-muted-dark px-3 py-1 rounded-full">
                         <Text className="text-xs font-medium">
                           {parsedData.merchant}
                         </Text>
                       </View>
                     )}
                     {parsedData.category && (
-                      <View className="bg-gray-100 px-3 py-1 rounded-full">
+                      <View className="bg-muted-light dark:bg-muted-dark px-3 py-1 rounded-full">
                         <Text className="text-xs font-medium">
                           {parsedData.category}
                         </Text>
                       </View>
                     )}
                     {parsedData.date && (
-                      <View className="bg-gray-100 px-3 py-1 rounded-full">
+                      <View className="bg-muted-light dark:bg-muted-dark px-3 py-1 rounded-full">
                         <Text className="text-xs font-medium">
                           {new Date(parsedData.date).toLocaleDateString()}
                         </Text>
@@ -151,8 +183,14 @@ export function ReceiptScannerModal({
                       className="w-full"
                     >
                       <View className="flex-row items-center justify-center gap-2">
-                        <Feather name="camera" size={18} color="white" />
-                        <Text className="text-white font-semibold">Camera</Text>
+                        <Feather
+                          name="camera"
+                          size={18}
+                          color={isDark ? "#1a1a1a" : "#fcfcfc"}
+                        />
+                        <Text className="text-primary-foreground-light dark:text-primary-foreground-dark font-semibold">
+                          Camera
+                        </Text>
                       </View>
                     </Button>
                   </View>
@@ -163,8 +201,14 @@ export function ReceiptScannerModal({
                       className="w-full"
                     >
                       <View className="flex-row items-center justify-center gap-2">
-                        <Feather name="upload" size={18} color="#374151" />
-                        <Text className="font-semibold">Upload</Text>
+                        <Feather
+                          name="upload"
+                          size={18}
+                          color={isDark ? "#fcfcfc" : "#0a0a0a"}
+                        />
+                        <Text className="text-foreground-light dark:text-foreground-dark font-semibold">
+                          Upload
+                        </Text>
                       </View>
                     </Button>
                   </View>
@@ -178,22 +222,24 @@ export function ReceiptScannerModal({
                   variant="outline"
                   className="w-full mt-2"
                 >
-                  <Text className="font-semibold">Done</Text>
+                  Done
                 </Button>
               )}
             </CardContent>
           </Card>
 
           {/* Tips Section */}
-          <View className="bg-gray-50 rounded-lg p-4 space-y-2">
-            <Text className="text-xs font-semibold text-gray-700">Tips:</Text>
-            <Text className="text-xs text-gray-600">
+          <View className="bg-background-light dark:bg-background-dark rounded-lg p-4 space-y-2 border border-border-light dark:border-border-dark">
+            <Text className="text-xs font-semibold text-foreground-light dark:text-foreground-dark">
+              Tips:
+            </Text>
+            <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
               • Ensure receipt is well-lit and flat
             </Text>
-            <Text className="text-xs text-gray-600">
+            <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
               • Include the total amount in the image
             </Text>
-            <Text className="text-xs text-gray-600">
+            <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
               • Works best with printed receipts
             </Text>
           </View>

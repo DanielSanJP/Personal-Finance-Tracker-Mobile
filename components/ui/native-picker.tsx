@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useColorScheme,
 } from "react-native";
 
 interface PickerOption {
@@ -34,6 +35,8 @@ export function NativePicker({
 }: NativePickerProps) {
   const [showModal, setShowModal] = useState(false);
   const [tempValue, setTempValue] = useState(value);
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   // Find the display label for the current value
   const selectedOption = options.find((opt) => opt.value === value);
@@ -69,7 +72,14 @@ export function NativePicker({
     return (
       <View className={className}>
         {label && (
-          <Text className="text-sm font-medium text-gray-700 mb-1">
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "500",
+              marginBottom: 4,
+              color: isDark ? "#a1a1a1" : "#374151",
+            }}
+          >
             {label}
           </Text>
         )}
@@ -82,9 +92,9 @@ export function NativePicker({
               alignItems: "center",
               justifyContent: "center",
               flexDirection: "row",
-              backgroundColor: "#ffffff",
+              backgroundColor: isDark ? "#1a1a1a" : "#ffffff",
               borderWidth: 1,
-              borderColor: "#ebebeb",
+              borderColor: isDark ? "#333333" : "#ebebeb",
               paddingHorizontal: 16,
               height: 44,
             },
@@ -95,13 +105,24 @@ export function NativePicker({
             style={{
               fontSize: 14,
               fontWeight: "500",
-              color: !selectedOption ? "#9CA3AF" : "#000000",
+              color: !selectedOption
+                ? "#9CA3AF"
+                : isDark
+                ? "#ffffff"
+                : "#000000",
               flex: 1,
             }}
           >
             {displayValue}
           </Text>
-          <Text style={{ fontSize: 14, color: "#4B5563" }}>▼</Text>
+          <Text
+            style={{
+              fontSize: 14,
+              color: isDark ? "#a1a1a1" : "#4B5563",
+            }}
+          >
+            ▼
+          </Text>
         </Pressable>
 
         <Modal
@@ -111,12 +132,32 @@ export function NativePicker({
           onRequestClose={handleCancel}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
+            <View
+              style={[
+                styles.modalContent,
+                { backgroundColor: isDark ? "#1a1a1a" : "#ffffff" },
+              ]}
+            >
+              <View
+                style={[
+                  styles.modalHeader,
+                  {
+                    borderBottomColor: isDark ? "#333333" : "#ebebeb",
+                    backgroundColor: isDark ? "#252525" : "#f7f7f7",
+                  },
+                ]}
+              >
                 <Pressable onPress={handleCancel} style={styles.modalButton}>
                   <Text style={styles.modalButtonText}>Cancel</Text>
                 </Pressable>
-                <Text style={styles.modalTitle}>{label || "Select"}</Text>
+                <Text
+                  style={[
+                    styles.modalTitle,
+                    { color: isDark ? "#ffffff" : "#000000" },
+                  ]}
+                >
+                  {label || "Select"}
+                </Text>
                 <Pressable onPress={handleConfirm} style={styles.modalButton}>
                   <Text style={[styles.modalButtonText, styles.confirmText]}>
                     Done
@@ -124,7 +165,10 @@ export function NativePicker({
                 </Pressable>
               </View>
               <ScrollView
-                style={styles.scrollView}
+                style={[
+                  styles.scrollView,
+                  { backgroundColor: isDark ? "#1a1a1a" : "#ffffff" },
+                ]}
                 contentContainerStyle={styles.scrollContent}
                 bounces={true}
                 showsVerticalScrollIndicator={true}
@@ -137,12 +181,26 @@ export function NativePicker({
                       onPress={() => setTempValue(option.value)}
                       style={[
                         styles.listItem,
-                        isSelected && styles.listItemSelected,
+                        {
+                          borderBottomColor: isDark ? "#333333" : "#f3f4f6",
+                          backgroundColor: isSelected
+                            ? isDark
+                              ? "#2a2a2a"
+                              : "#eff6ff"
+                            : "transparent",
+                        },
                       ]}
                     >
                       <Text
                         style={[
                           styles.listItemText,
+                          {
+                            color: isSelected
+                              ? "#007AFF"
+                              : isDark
+                              ? "#ffffff"
+                              : "#111827",
+                          },
                           isSelected && styles.listItemTextSelected,
                         ]}
                         numberOfLines={2}
@@ -165,7 +223,16 @@ export function NativePicker({
   return (
     <View className={className}>
       {label && (
-        <Text className="text-sm font-medium text-gray-700 mb-1">{label}</Text>
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "500",
+            marginBottom: 4,
+            color: isDark ? "#a1a1a1" : "#374151",
+          }}
+        >
+          {label}
+        </Text>
       )}
 
       <View style={{ position: "relative", zIndex: 1 }}>
@@ -177,9 +244,9 @@ export function NativePicker({
               alignItems: "center",
               justifyContent: "center",
               flexDirection: "row",
-              backgroundColor: "#ffffff",
+              backgroundColor: isDark ? "#1a1a1a" : "#ffffff",
               borderWidth: 1,
-              borderColor: "#ebebeb",
+              borderColor: isDark ? "#333333" : "#ebebeb",
               paddingHorizontal: 16,
               height: 44,
             },
@@ -190,12 +257,22 @@ export function NativePicker({
             style={{
               fontSize: 14,
               fontWeight: "500",
-              color: !selectedOption ? "#9CA3AF" : "#000000",
+              color: !selectedOption
+                ? "#9CA3AF"
+                : isDark
+                ? "#ffffff"
+                : "#000000",
             }}
           >
             {displayValue}
           </Text>
-          <Text style={{ fontSize: 14, color: "#4B5563", marginLeft: 8 }}>
+          <Text
+            style={{
+              fontSize: 14,
+              color: isDark ? "#a1a1a1" : "#4B5563",
+              marginLeft: 8,
+            }}
+          >
             ▼
           </Text>
         </View>

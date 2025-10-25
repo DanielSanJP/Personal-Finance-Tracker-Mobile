@@ -3,6 +3,7 @@ import React from "react";
 import { Linking, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../hooks/queries/useAuth";
+import { useThemeToggle } from "../hooks/useThemeToggle";
 import { supabase } from "../lib/supabase";
 import Breadcrumbs from "./breadcrumbs";
 import { Button } from "./ui/button";
@@ -20,6 +21,7 @@ export default function Nav() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
+  const { isDark, toggleTheme } = useThemeToggle();
   const [isNavigating, setIsNavigating] = React.useState(false);
 
   // Get user metadata for display
@@ -81,10 +83,13 @@ export default function Nav() {
   const isActiveTab = (path: string) => pathname === path;
 
   return (
-    <View className="bg-white">
+    <View className="bg-background-light dark:bg-background-dark border-b border-border-light dark:border-border-dark">
       {/* Main Navigation */}
-      <SafeAreaView edges={[]} className="bg-white">
-        <View className="w-full px-4 sm:px-6 border-b border-gray-200">
+      <SafeAreaView
+        edges={[]}
+        className="bg-background-light dark:bg-background-dark"
+      >
+        <View className="w-full px-4 sm:px-6 border-b border-border-light dark:border-border-dark">
           <View className="flex-row justify-between items-center h-14 sm:h-16">
             {/* Logo */}
             <View className="flex-row items-center flex-1">
@@ -102,6 +107,13 @@ export default function Nav() {
             {/* Navigation Actions */}
             {!showDashboardTabs && (
               <View className="flex-row flex-wrap items-center gap-2">
+                <TouchableOpacity
+                  onPress={toggleTheme}
+                  className="p-2 rounded-lg bg-secondary-light dark:bg-secondary-dark"
+                  activeOpacity={0.7}
+                >
+                  <Text className="text-lg">{isDark ? "☀️" : "🌙"}</Text>
+                </TouchableOpacity>
                 <Button
                   variant="outline"
                   size="sm"
@@ -127,18 +139,25 @@ export default function Nav() {
 
             {showDashboardTabs && (
               <View className="flex-row items-center gap-2 sm:gap-3">
+                <TouchableOpacity
+                  onPress={toggleTheme}
+                  className="p-2 rounded-lg bg-secondary-light dark:bg-secondary-dark"
+                  activeOpacity={0.7}
+                >
+                  <Text className="text-lg">{isDark ? "☀️" : "🌙"}</Text>
+                </TouchableOpacity>
                 <NavDropdown>
                   <NavDropdownTrigger asChild>
                     <TouchableOpacity
-                      className="flex-row items-center gap-2 hover:bg-gray-100 rounded-lg p-2"
+                      className="flex-row items-center gap-2 rounded-lg p-2"
                       activeOpacity={1}
                     >
-                      <View className="w-8 h-8 rounded-full bg-gray-300 items-center justify-center">
-                        <Text className="text-sm font-medium text-gray-600">
+                      <View className="w-8 h-8 rounded-full bg-muted-light dark:bg-muted-dark items-center justify-center">
+                        <Text className="text-sm font-medium text-muted-foreground-light dark:text-muted-foreground-dark">
                           {initials}
                         </Text>
                       </View>
-                      <Text className="text-xs sm:text-sm text-gray-600">
+                      <Text className="text-xs sm:text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                         {displayName}
                       </Text>
                     </TouchableOpacity>
@@ -147,21 +166,31 @@ export default function Nav() {
                     <NavDropdownLabel>My Account</NavDropdownLabel>
                     <NavDropdownSeparator />
                     <NavDropdownItem onPress={() => router.push("/profile")}>
-                      <Text>Profile</Text>
+                      <Text className="text-foreground-light dark:text-foreground-dark">
+                        Profile
+                      </Text>
                     </NavDropdownItem>
                     <NavDropdownItem onPress={() => router.push("/accounts")}>
-                      <Text>Bank Accounts</Text>
+                      <Text className="text-foreground-light dark:text-foreground-dark">
+                        Bank Accounts
+                      </Text>
                     </NavDropdownItem>
                     <NavDropdownItem onPress={() => router.push("/reports")}>
-                      <Text>View Reports</Text>
+                      <Text className="text-foreground-light dark:text-foreground-dark">
+                        View Reports
+                      </Text>
                     </NavDropdownItem>
                     <NavDropdownItem onPress={() => router.push("/settings")}>
-                      <Text>Settings</Text>
+                      <Text className="text-foreground-light dark:text-foreground-dark">
+                        Settings
+                      </Text>
                     </NavDropdownItem>
                     <NavDropdownItem
                       onPress={() => router.push("/preferences")}
                     >
-                      <Text>Preferences</Text>
+                      <Text className="text-foreground-light dark:text-foreground-dark">
+                        Preferences
+                      </Text>
                     </NavDropdownItem>
                     <NavDropdownSeparator />
                     <NavDropdownItem
@@ -171,13 +200,19 @@ export default function Nav() {
                         )
                       }
                     >
-                      <Text>User Guides</Text>
+                      <Text className="text-foreground-light dark:text-foreground-dark">
+                        User Guides
+                      </Text>
                     </NavDropdownItem>
                     <NavDropdownItem onPress={() => router.push("/help")}>
-                      <Text>Help & Support</Text>
+                      <Text className="text-foreground-light dark:text-foreground-dark">
+                        Help & Support
+                      </Text>
                     </NavDropdownItem>
                     <NavDropdownItem onPress={handleSignOut}>
-                      <Text className="text-red-600">Sign Out</Text>
+                      <Text className="text-destructive-light dark:text-destructive-dark">
+                        Sign Out
+                      </Text>
                     </NavDropdownItem>
                   </NavDropdownContent>
                 </NavDropdown>
@@ -189,7 +224,7 @@ export default function Nav() {
 
       {/* Dashboard Navigation Tabs */}
       {showDashboardTabs && (
-        <View className="bg-zinc-100 border-b border-gray-200">
+        <View className="bg-secondary-light dark:bg-secondary-dark border-b border-border-light dark:border-border-dark">
           <View className="w-full px-4 sm:px-6 py-2">
             <View className="flex-row justify-evenly gap-1 sm:gap-3">
               {navigationItems.map((item) => (
@@ -206,13 +241,15 @@ export default function Nav() {
                   disabled={isNavigating || isActiveTab(item.href)}
                   className={`flex-1 py-2 sm:py-3 px-1 sm:px-4 rounded-lg flex items-center justify-center ${
                     isActiveTab(item.href)
-                      ? "bg-white text-black border border-gray-200"
+                      ? "bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark"
                       : "bg-transparent"
                   }`}
                 >
                   <Text
                     className={`text-[11px] sm:text-sm font-medium ${
-                      isActiveTab(item.href) ? "text-black" : "text-zinc-500"
+                      isActiveTab(item.href)
+                        ? "text-foreground-light dark:text-foreground-dark"
+                        : "text-muted-foreground-light dark:text-muted-foreground-dark"
                     }`}
                     numberOfLines={1}
                     ellipsizeMode="tail"
@@ -228,7 +265,7 @@ export default function Nav() {
 
       {/* Breadcrumbs */}
       {showDashboardTabs && (
-        <View className="bg-gray-50 border-b border-gray-200">
+        <View className="bg-background-light dark:bg-background-dark border-b border-border-light dark:border-border-dark">
           <View className="w-full px-4 sm:px-6 py-3">
             <Breadcrumbs />
           </View>

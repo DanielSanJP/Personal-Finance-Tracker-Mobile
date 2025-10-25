@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useState } from 'react';
 
@@ -38,6 +38,7 @@ export const useReceiptScan = ({ onReceiptData, onError }: UseReceiptScanOptions
 
   const processImage = useCallback(async (imageUri: string) => {
     try {
+      if (__DEV__) console.log('🖼️ Processing image:', imageUri);
       setIsProcessing(true);
 
       // Get API key
@@ -45,20 +46,32 @@ export const useReceiptScan = ({ onReceiptData, onError }: UseReceiptScanOptions
       if (!apiKey) {
         throw new Error('Gemini API key not configured. Please check your environment variables.');
       }
+      if (__DEV__) console.log('✅ API key found');
 
       // Initialize Gemini AI
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      if (__DEV__) console.log('✅ Gemini model initialized');
 
       // Read image as base64
+      if (__DEV__) console.log('📖 Reading image file...');
       const base64Image = await FileSystem.readAsStringAsync(imageUri, {
         encoding: 'base64',
       });
+      if (__DEV__) console.log('✅ Image read successfully, length:', base64Image.length);
 
-      // Get file type
+      // Get file type - normalize jpg to jpeg for Gemini API compatibility
       const filename = imageUri.split('/').pop() || 'receipt.jpg';
       const match = /\.(\w+)$/.exec(filename);
-      const fileType = match ? `image/${match[1]}` : 'image/jpeg';
+      let fileExtension = match ? match[1].toLowerCase() : 'jpeg';
+      
+      // Gemini API requires 'jpeg' not 'jpg'
+      if (fileExtension === 'jpg') {
+        fileExtension = 'jpeg';
+      }
+      
+      const fileType = `image/${fileExtension}`;
+      if (__DEV__) console.log('📝 Image MIME type:', fileType);
 
       // Create the prompt for Gemini
       const categoryOptions = EXPENSE_CATEGORIES.join(', ');
@@ -101,9 +114,11 @@ export const useReceiptScan = ({ onReceiptData, onError }: UseReceiptScanOptions
       };
 
       // Call Gemini to analyze the receipt
+      if (__DEV__) console.log('🤖 Calling Gemini API...');
       const result = await model.generateContent([prompt, imagePart]);
       const response = await result.response;
       const text = response.text();
+      if (__DEV__) console.log('✅ Gemini response received');
 
       // Parse the JSON response
       let parsedResult;
@@ -114,7 +129,9 @@ export const useReceiptScan = ({ onReceiptData, onError }: UseReceiptScanOptions
         } else {
           parsedResult = JSON.parse(text);
         }
+        if (__DEV__) console.log('✅ JSON parsed successfully:', parsedResult);
       } catch {
+        console.error('❌ Failed to parse JSON from:', text);
         throw new Error('Failed to parse AI response. Please try again.');
       }
 
@@ -138,27 +155,40 @@ export const useReceiptScan = ({ onReceiptData, onError }: UseReceiptScanOptions
 
       setParsedData(receiptData);
       setConfidence(90); // High confidence for successful parse
+      
+      if (__DEV__) console.log('📸 useReceiptScan - calling onReceiptData with:', receiptData);
+      
       onReceiptData(receiptData);
+      
+      if (__DEV__) console.log('📸 useReceiptScan - onReceiptData completed');
+      if (__DEV__) console.log('✅ Receipt processing completed successfully');
 
     } catch (error) {
-      console.error('Error processing receipt:', error);
+      console.error('❌ Error processing receipt:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ Error message:', errorMessage);
       onError?.(errorMessage);
     } finally {
+      if (__DEV__) console.log('🏁 Processing finished, setting isProcessing to false');
       setIsProcessing(false);
     }
   }, [onReceiptData, onError]);
 
   const scanFromCamera = useCallback(async () => {
     try {
+      if (__DEV__) console.log('📷 scanFromCamera called');
+      
       // Check current permission status
       const { status: currentStatus } = await ImagePicker.getCameraPermissionsAsync();
+      if (__DEV__) console.log('📷 Current camera permission status:', currentStatus);
       
       let hasPermission = currentStatus === 'granted';
       
       // If not granted, request permission
       if (!hasPermission) {
+        if (__DEV__) console.log('📷 Requesting camera permission...');
         const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        if (__DEV__) console.log('📷 Permission result:', permissionResult);
         
         if (permissionResult.status !== 'granted') {
           // Check if we can ask again
@@ -174,42 +204,55 @@ export const useReceiptScan = ({ onReceiptData, onError }: UseReceiptScanOptions
 
       // Launch camera (only if we have permission)
       if (hasPermission) {
+        if (__DEV__) console.log('📷 Launching camera...');
         const result = await ImagePicker.launchCameraAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          mediaTypes: ['images'],
           allowsEditing: true,
           quality: 0.8,
           aspect: [3, 4],
         });
 
+        if (__DEV__) console.log('📷 Camera result:', { canceled: result.canceled, assetsLength: result.assets?.length });
+
         if (!result.canceled && result.assets[0]) {
           const uri = result.assets[0].uri;
+          if (__DEV__) console.log('📷 Image captured, URI:', uri);
           setPreviewUrl(uri);
           await processImage(uri);
+        } else {
+          if (__DEV__) console.log('📷 User canceled camera');
         }
       }
     } catch (error) {
-      console.error('Error scanning from camera:', error);
+      console.error('❌ Error scanning from camera:', error);
       onError?.(error instanceof Error ? error.message : 'Failed to scan from camera');
     }
   }, [processImage, onError]);
 
   const scanFromFile = useCallback(async () => {
     try {
+      if (__DEV__) console.log('🖼️ scanFromFile called');
+      
       // No permissions request is necessary for launching the image library (per Expo docs)
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         quality: 0.8,
         aspect: [3, 4],
       });
 
+      if (__DEV__) console.log('🖼️ Gallery result:', { canceled: result.canceled, assetsLength: result.assets?.length });
+
       if (!result.canceled && result.assets[0]) {
         const uri = result.assets[0].uri;
+        if (__DEV__) console.log('🖼️ Image selected, URI:', uri);
         setPreviewUrl(uri);
         await processImage(uri);
+      } else {
+        if (__DEV__) console.log('🖼️ User canceled gallery selection');
       }
     } catch (error) {
-      console.error('Error selecting file:', error);
+      console.error('❌ Error selecting file:', error);
       onError?.(error instanceof Error ? error.message : 'Failed to select file');
     }
   }, [processImage, onError]);

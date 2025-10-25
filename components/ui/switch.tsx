@@ -1,3 +1,4 @@
+import { useColorScheme } from "nativewind";
 import * as React from "react";
 import { Switch as RNSwitch, SwitchProps } from "react-native";
 
@@ -15,17 +16,20 @@ function Switch({
   disabled = false,
   ...props
 }: CustomSwitchProps) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+
   return (
     <RNSwitch
       value={checked}
       onValueChange={onCheckedChange}
       disabled={disabled}
       trackColor={{
-        false: "#e5e7eb", // gray-200 equivalent
-        true: "#3b82f6", // blue-500 equivalent (primary color)
+        false: isDark ? "#444444" : "#e5e5e5", // Inactive: dark gray / light gray
+        true: "#3b82f6", // Active: blue-500 for both light and dark mode
       }}
-      thumbColor={checked ? "#ffffff" : "#ffffff"}
-      ios_backgroundColor="#e5e7eb"
+      thumbColor="#ffffff"
+      ios_backgroundColor={isDark ? "#444444" : "#e5e5e5"}
       style={{
         opacity: disabled ? 0.5 : 1,
       }}

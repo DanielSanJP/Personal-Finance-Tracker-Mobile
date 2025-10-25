@@ -1,5 +1,5 @@
 import * as React from "react";
-import { TouchableOpacity, View, Text } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { cn } from "../../lib/utils";
 
 interface CheckboxProps {
@@ -25,8 +25,9 @@ function Checkbox({
   return (
     <TouchableOpacity
       className={cn(
-        "w-4 h-4 shrink-0 rounded border border-input bg-background shadow-xs",
-        checked && "bg-primary border-primary",
+        "w-4 h-4 shrink-0 rounded border border-input-light dark:border-input-dark bg-background-light dark:bg-background-dark shadow-xs",
+        checked &&
+          "bg-primary-light dark:bg-primary-dark border-primary-light dark:border-primary-dark",
         disabled && "opacity-50",
         className
       )}
@@ -37,7 +38,9 @@ function Checkbox({
     >
       {checked && (
         <View className="flex items-center justify-center w-full h-full">
-          <Text className="text-primary-foreground text-xs font-bold">✓</Text>
+          <Text className="text-primary-foreground-light dark:text-primary-foreground-dark text-xs font-bold">
+            ✓
+          </Text>
         </View>
       )}
     </TouchableOpacity>

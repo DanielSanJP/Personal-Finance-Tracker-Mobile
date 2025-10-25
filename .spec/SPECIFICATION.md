@@ -75,21 +75,34 @@ A cross-platform mobile application for personal finance management, built with 
 
 ### 6. AI-Powered Features
 
-**Receipt Scanning** (Google Gemini):
+**Receipt Scanning** (Google Gemini - Direct Client API):
 
-- Camera or gallery image selection
+- Uses `@google/generative-ai` package with direct API calls (no server routes)
+- Camera or gallery image selection via `expo-image-picker`
 - Max 10MB file size, supports JPEG, PNG, WebP, HEIC
 - Extracts: merchant name, total amount, date, time, items, category
 - Automatic expense creation with extracted data
+- Works in all build types (development, preview, production)
 - Error handling for blocked content, invalid images, API issues
+- Implementation: `hooks/useReceiptScan.ts` with `expo-file-system/legacy`
 
-**Voice Input** (Google Gemini):
+**Voice Input** (Google Gemini - Direct Client API):
 
-- Record transaction details via voice
-- Speech-to-text conversion
+- Record transaction details via voice using `expo-audio`
+- Speech-to-text conversion via Gemini API
 - Automatic parsing of amount, description, category
 - Supports both expense and income entry
 - Platform-specific audio recording (Expo Audio API)
+- Works in all build types (development, preview, production)
+- Implementation: `hooks/useVoiceInput.ts` with direct Gemini calls
+
+**Technical Architecture**:
+
+- No API routes used (Expo API routes only work in dev mode)
+- Direct client calls to Google Gemini API
+- API key managed via `EXPO_PUBLIC_GEMINI_API_KEY` environment variable
+- Injected securely via EAS Secrets for builds
+- Client-side API calls are acceptable because keys are scoped/restricted in Google Cloud Console
 
 ### 7. Dashboard & Analytics
 

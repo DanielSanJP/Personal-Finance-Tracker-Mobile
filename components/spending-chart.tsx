@@ -2,16 +2,16 @@
 
 import React, { useState } from "react";
 import { Text, View } from "react-native";
-import Svg, { Rect, Line, Text as SvgText } from "react-native-svg";
-import { formatCurrency } from "../lib/utils";
+import Svg, { Line, Rect, Text as SvgText } from "react-native-svg";
 import { useTransactions } from "../hooks/queries/useTransactions";
+import { formatCurrency } from "../lib/utils";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   CardDescription,
   CardFooter,
+  CardHeader,
+  CardTitle,
 } from "./ui/card";
 
 // Generate dynamic date range description
@@ -294,11 +294,11 @@ export function SpendingChart({
 
           {/* Tooltip */}
           {selectedBar && (
-            <View className="absolute top-4 left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
-              <Text className="text-sm font-semibold text-gray-900">
+            <View className="absolute top-4 left-4 bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-lg p-3 shadow-lg">
+              <Text className="text-sm font-semibold text-card-foreground-light dark:text-card-foreground-dark">
                 {selectedBar.item.month} 2025
               </Text>
-              <Text className="text-sm text-gray-600">
+              <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                 Spending: {formatCurrency(selectedBar.item.spending)}
               </Text>
             </View>
@@ -307,7 +307,7 @@ export function SpendingChart({
       </CardContent>
       <CardFooter className="flex-col items-start gap-1 pt-2">
         <View className="flex-row gap-2 items-center">
-          <Text className="text-xs font-medium">
+          <Text className="text-xs font-medium text-foreground-light dark:text-foreground-dark">
             {isIncreasing ? "Trending up" : "Trending down"} by{" "}
             {trendPercentage}% this month
           </Text>
@@ -319,7 +319,7 @@ export function SpendingChart({
             {isIncreasing ? "↗" : "↘"}
           </Text>
         </View>
-        <Text className="text-xs text-gray-500">
+        <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
           Showing monthly spending from January to current month
         </Text>
       </CardFooter>
