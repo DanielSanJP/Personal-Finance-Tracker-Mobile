@@ -159,6 +159,17 @@
 
 #### Recent Updates
 
+- [x] Comprehensive Dark Mode Theming (October 2025)
+  - Fixed all hardcoded colors across entire app
+  - Implemented `useColorScheme` pattern for dynamic theming
+  - Updated table, forms, modals, and all UI components
+  - Established pattern: inline `style` props for colors that don't work with NativeWind's `dark:` variant
+  - Border colors: #1a1a1a (dark) / #ebebeb (light) for input-like components
+  - Background colors: #0a0a0a (dark) / #ffffff (light) for input fields
+- [x] Fixed form button text display issues (all buttons now render correctly)
+- [x] Fixed account selection errors (proper Text wrapping in SelectItem)
+- [x] Added quick add sources for income form
+- [x] Removed excessive console logging from Dialog component
 - [x] Configured EAS Secrets for all environment variables (October 2025)
   - Used `eas secret:create` command with `--force` flag
   - Secrets automatically injected into builds without modifying `eas.json`
@@ -445,14 +456,17 @@ Secrets are automatically injected during build:
 ✅ React Query reduced boilerplate significantly  
 ✅ Database triggers eliminated balance calculation bugs  
 ✅ Guest mode excellent for demos and reducing friction  
-✅ NativeWind accelerated UI development
+✅ NativeWind accelerated UI development  
+✅ Direct Gemini API calls work reliably in all build types (dev, preview, production)  
+✅ useColorScheme hook pattern provides consistent dark mode theming
 
 ### What Could Be Improved
 
 ❌ Should have implemented pagination from the start (Android limit workaround)  
 ❌ Reanimated animations disabled (need development builds for users)  
 ❌ More comprehensive testing on low-end Android devices earlier  
-❌ Should have documented API decisions in real-time
+❌ Should have documented API decisions in real-time  
+❌ NativeWind's `dark:` variant limitations with border colors not discovered until late
 
 ### Key Takeaways
 
@@ -460,7 +474,10 @@ Secrets are automatically injected during build:
 💡 Guest mode is a powerful demo/onboarding tool  
 💡 Platform differences require abstraction layers (storage, audio, dates)  
 💡 Centralized query keys prevent cache invalidation bugs  
-💡 Silent mutations essential for batch operations
+💡 Silent mutations essential for batch operations  
+💡 **NativeWind's `dark:` variant doesn't work for border colors in React Native - use inline styles with `useColorScheme()`**  
+💡 **Button components should handle text rendering internally - don't wrap children in `<Text>` components**  
+💡 **React Native requires all text to be wrapped in `<Text>` components - JSX expressions like `{name} ({type})` need explicit wrapping**
 
 ## Maintenance Plan
 

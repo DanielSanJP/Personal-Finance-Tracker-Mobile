@@ -33,6 +33,52 @@
 
 #### October 2025
 
+- [x] **Comprehensive Dark Mode Theming Implementation** (2025-10-25)
+
+  - Issue: Hardcoded colors throughout app not respecting dark mode
+  - Solution: Implemented theme-aware styling using `useColorScheme` hook with inline styles
+  - Components updated:
+    - Profile, Transactions, Budgets, Goals pages - all gray colors → theme classes
+    - Table component - borders visible in dark mode using inline styles (#999999 dark, #e5e7eb light)
+    - NativePicker - full dark mode support with dynamic colors
+    - Date-time-picker - borders and backgrounds matching input fields (#0a0a0a/#ffffff backgrounds, #1a1a1a/#ebebeb borders)
+    - Select components (account/category selection) - borders matching input fields
+    - Receipt scanner modal - all backgrounds, text, and icons themed
+    - Voice input modal - all backgrounds, text, and icons themed
+    - Button component - proper text rendering without wrapper `<Text>` components
+    - Form pages (add transaction/income) - backgrounds and buttons properly styled
+  - Key Discovery: NativeWind's `dark:` variant doesn't work reliably for border colors in React Native - must use inline `style` props with `useColorScheme()` hook
+  - Files: Multiple component files across app, all forms, all modals
+  - Impact: Consistent dark mode experience across entire app
+
+- [x] **Fixed Form Button Text Display Issues** (2025-10-25)
+
+  - Issue: Buttons not displaying text in forms (Cancel, Save, Voice Input, Scan Receipt)
+  - Solution: Removed `<Text>` wrapper from button children - Button component handles text rendering internally
+  - Files: `app/addtransaction.tsx`, `app/addincome.tsx`
+  - Impact: All form buttons now display text correctly
+
+- [x] **Fixed Account Selection Error** (2025-10-25)
+
+  - Issue: Account selection throwing error due to unwr apped text in SelectItem
+  - Solution: Wrapped account display text in `<Text>` component: `<Text>{account.name} ({account.type})</Text>`
+  - Files: `app/addtransaction.tsx`, `app/addincome.tsx`
+  - Impact: Account selection now works without errors in both forms
+
+- [x] **Added Quick Add Sources for Income Form** (2025-10-25)
+
+  - Issue: Missing `quickAddSources` variable causing income form to fail
+  - Solution: Added common income categories: ["Salary", "Freelance", "Gift/Bonus", "Investment Income"]
+  - Files: `app/addincome.tsx`
+  - Impact: Quick add buttons now work in income form
+
+- [x] **Removed Excessive Console Logging** (2025-10-25)
+
+  - Issue: Dialog component logging "📋 Dialog render - visible: false" excessively
+  - Solution: Removed `console.log` from Dialog component render
+  - Files: `components/ui/dialog.tsx`
+  - Impact: Cleaner console output, better debugging experience
+
 - [x] **Configured EAS Secrets for Preview Builds** (2025-10-24)
 
   - Issue: Gemini API keys not available in preview/production builds

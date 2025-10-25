@@ -94,7 +94,55 @@ personal-finance-tracker-mobile/
 
 ## Key Implementation Patterns
 
-### 1. Data Layer (React Query)
+### 1. Dark Mode Theming Strategy
+
+**Critical Pattern**: NativeWind's `dark:` variant classes don't work reliably for certain properties (especially border colors) in React Native. Must use inline `style` props with `useColorScheme()` hook.
+
+**Standard Colors**:
+
+```typescript
+// Input-like components (inputs, selects, date-pickers)
+const colorScheme = useColorScheme();
+const isDark = colorScheme === "dark";
+
+style={{
+  borderWidth: 1,
+  borderColor: isDark ? "#1a1a1a" : "#ebebeb",      // border-light/dark
+  backgroundColor: isDark ? "#0a0a0a" : "#ffffff",  // background-light/dark
+}}
+
+// Table borders (need higher visibility in dark mode)
+style={{
+  borderColor: isDark ? "#999999" : "#e5e7eb",
+}}
+
+// Text colors
+color: isDark ? "#fcfcfc" : "#0a0a0a"  // foreground-light/dark
+color: isDark ? "#b5b5b5" : "#8e8e8e"  // muted-foreground-light/dark
+```
+
+**Components Using Inline Style Pattern**:
+
+- `components/ui/input.tsx` - All input fields
+- `components/ui/date-time-picker.tsx` - Date and time pickers
+- `components/ui/select-mobile.tsx` - Select triggers
+- `components/ui/table.tsx` - Table borders (header, footer, rows)
+- `components/ui/native-picker.tsx` - iOS/Android pickers
+
+**Button Text Rendering**:
+
+- Button component handles text rendering internally
+- Pass plain strings as children: `<Button>Save</Button>`
+- ❌ Don't wrap in Text: `<Button><Text>Save</Text></Button>`
+- Button component checks `typeof children === "string"` and wraps appropriately
+
+**React Native Text Requirements**:
+
+- All text content must be wrapped in `<Text>` components
+- JSX expressions like `{name} ({type})` create multiple text nodes - must wrap explicitly
+- Example: `<Text>{account.name} ({account.type})</Text>`
+
+### 2. Data Layer (React Query)
 
 **Centralized Query Keys** (`lib/query-keys.ts`):
 
@@ -138,7 +186,7 @@ export function useCreateTransaction() {
 }
 ```
 
-### 2. Universal Party Transaction System
+### 2. Data Layer (React Query)
 
 **Database Schema**:
 
@@ -194,7 +242,7 @@ createAccountTransfer({
 // from_party = "Checking", to_party = "Savings"
 ```
 
-### 3. Guest Mode Protection
+### 3. Universal Party Transaction System
 
 **Implementation** (`lib/guest-protection.ts`):
 
@@ -239,7 +287,7 @@ export function useCreateBudget() {
 }
 ```
 
-### 4. Platform-Aware Storage
+### 4. Guest Mode Protection
 
 **Implementation** (`lib/storage.ts`):
 
@@ -293,7 +341,7 @@ if (Platform.OS !== "web") {
 }
 ```
 
-### 5. Database Triggers for Balance Updates
+### 5. Platform-Aware Storage
 
 **PostgreSQL Triggers** (automatic balance updates):
 
@@ -328,7 +376,7 @@ $$ LANGUAGE plpgsql;
 - ✅ Reduced client-side complexity
 - ❌ Cannot preview balance before save
 
-### 6. AI Feature Implementation
+### 6. Database Triggers for Balance Updates
 
 **IMPORTANT**: AI features use **direct client-side API calls** to Google Gemini, NOT API routes. This is because Expo API routes (`app/api/*.+api.ts`) only work in development mode (`npx expo start`), not in standalone builds (preview/production APKs) or development builds.
 
@@ -435,7 +483,7 @@ export function useVoiceInput() {
 - Comprehensive console logging with emoji markers (📷, 🖼️, ✅, ❌)
 - Direct API calls work in all build types, no server required
 
-### 7. Silent Mutations for Batch Operations
+### 7. AI Feature Implementation
 
 **Problem**: Multiple deletions show success message for each item.
 
@@ -472,7 +520,7 @@ toast({
 });
 ```
 
-## Testing Strategy
+### 8. Silent Mutations for Batch Operations
 
 ### Manual Testing Checklist
 
