@@ -27,6 +27,7 @@ import { VoiceInputModal } from "../components/voice-input-modal";
 import { useAccounts } from "../hooks/queries/useAccounts";
 import { useAuth } from "../hooks/queries/useAuth";
 import { useCreateIncomeTransaction } from "../hooks/queries/useTransactions";
+import { useAccountCheck } from "../hooks/useAccountCheck";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 
 export default function AddIncomePage() {
@@ -34,6 +35,7 @@ export default function AddIncomePage() {
   const { user, isLoading: loading } = useAuth();
   const toast = useToast();
   const { data: accounts = [] } = useAccounts();
+  const { hasAccounts, isLoading: accountsLoading } = useAccountCheck();
   const createIncomeMutation = useCreateIncomeTransaction();
 
   // Redirect to login if not authenticated
@@ -42,6 +44,17 @@ export default function AddIncomePage() {
       router.replace("/login");
     }
   }, [user, loading, router]);
+
+  // Redirect to accounts page if no accounts exist
+  useEffect(() => {
+    if (!loading && user && !accountsLoading && !hasAccounts) {
+      toast.toast({
+        message: "Please create an account first to add income",
+        type: "error",
+      });
+      router.replace("/accounts");
+    }
+  }, [user, loading, hasAccounts, accountsLoading, router, toast]);
 
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -110,10 +123,21 @@ export default function AddIncomePage() {
   };
 
   const handleSubmit = async () => {
-    // Validate required fields
-    if (!amount || !description || !incomeSource || !account || !date) {
+    // Validate required fields with specific error messages
+    const missingFields: string[] = [];
+
+    if (!amount) missingFields.push("Amount");
+    if (!description) missingFields.push("Description");
+    if (!incomeSource) missingFields.push("Income Source");
+    if (!account) missingFields.push("Account");
+    if (!date) missingFields.push("Date");
+
+    if (missingFields.length > 0) {
+      const fieldList = missingFields.join(", ");
       toast.toast({
-        message: "Error: Please fill in all required fields",
+        message: `Missing Required Field${
+          missingFields.length > 1 ? "s" : ""
+        }: Please fill in ${fieldList}`,
         type: "error",
       });
       return;
@@ -121,7 +145,7 @@ export default function AddIncomePage() {
 
     if (isNaN(Number(amount)) || Number(amount) <= 0) {
       toast.toast({
-        message: "Error: Please enter a valid positive number for the amount",
+        message: "Invalid Amount: Please enter a valid positive number",
         type: "error",
       });
       return;
@@ -135,7 +159,7 @@ export default function AddIncomePage() {
         description: description,
         source: incomeSource,
         accountId: accountId,
-        date: date,
+        date: date!, // Safe assertion - validated above
       });
 
       toast.toast({

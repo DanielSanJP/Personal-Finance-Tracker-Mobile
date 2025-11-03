@@ -181,7 +181,7 @@ function SelectItem({ className, children, value, ...props }: SelectItemProps) {
       className={cn(
         "relative flex w-full items-center gap-3 rounded-lg py-4 px-3 min-h-[48px]",
         isSelected
-          ? "bg-secondary-light dark:bg-secondary-dark"
+          ? "bg-primary-light/10 dark:bg-primary-dark/20"
           : "bg-transparent active:bg-muted-light active:dark:bg-muted-dark",
         className
       )}

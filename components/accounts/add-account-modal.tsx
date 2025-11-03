@@ -55,10 +55,17 @@ export function AddAccountModal({
 
   const handleSave = async () => {
     // Validate form data - only name and type are required
-    if (!formData.name || !formData.type) {
+    const missingFields: string[] = [];
+
+    if (!formData.name) missingFields.push("Account Name");
+    if (!formData.type) missingFields.push("Account Type");
+
+    if (missingFields.length > 0) {
+      const fieldList = missingFields.join(", ");
       toast.toast({
-        message:
-          "Missing Information: Please fill in all required fields. Name and type are required.",
+        message: `Missing Required Field${
+          missingFields.length > 1 ? "s" : ""
+        }: Please fill in ${fieldList}`,
         type: "error",
       });
       return;
@@ -129,7 +136,6 @@ export function AddAccountModal({
                 onChangeText={(text) =>
                   setFormData({ ...formData, name: text })
                 }
-                className="px-4 py-3 border-gray-300 rounded-lg bg-white text-gray-600"
               />
             </View>
 
@@ -144,13 +150,15 @@ export function AddAccountModal({
                   setFormData({ ...formData, type: value })
                 }
               >
-                <SelectTrigger className="w-full px-4 py-3 border-gray-300 rounded-lg bg-white">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select account type..." />
                 </SelectTrigger>
                 <SelectContent>
                   {accountTypes.map((type) => (
                     <SelectItem key={type} value={type}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                      <Text>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </Text>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -171,9 +179,8 @@ export function AddAccountModal({
                 keyboardType="decimal-pad"
                 returnKeyType="done"
                 blurOnSubmit={true}
-                className="px-4 py-3 border-gray-300 rounded-lg bg-white text-gray-600"
               />
-              <Text className="text-sm text-gray-500">
+              <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                 Leave blank to start with $0.00
               </Text>
             </View>
@@ -189,7 +196,6 @@ export function AddAccountModal({
                 onChangeText={(text) =>
                   setFormData({ ...formData, accountNumber: text })
                 }
-                className="px-4 py-3 border-gray-300 rounded-lg bg-white text-gray-600"
               />
             </View>
 

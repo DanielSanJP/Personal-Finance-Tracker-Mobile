@@ -65,9 +65,18 @@ export function EditSingleTransactionModal({
   const handleSave = async () => {
     if (!transaction) return;
 
-    if (!description || !category || !date) {
+    const missingFields: string[] = [];
+
+    if (!description) missingFields.push("Description");
+    if (!category) missingFields.push("Category");
+    if (!date) missingFields.push("Date");
+
+    if (missingFields.length > 0) {
+      const fieldList = missingFields.join(", ");
       toast.toast({
-        message: "Please fill in all required fields",
+        message: `Missing Required Field${
+          missingFields.length > 1 ? "s" : ""
+        }: Please fill in ${fieldList}`,
         type: "error",
       });
       return;
@@ -80,7 +89,7 @@ export function EditSingleTransactionModal({
           description,
           category,
           status,
-          date: date.toISOString(),
+          date: date!.toISOString(), // Safe assertion - validated above
         },
       });
 

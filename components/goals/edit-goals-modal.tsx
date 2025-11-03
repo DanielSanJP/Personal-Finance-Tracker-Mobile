@@ -68,13 +68,13 @@ export function EditGoalsModal({
             .map((goal, index) => (
               <View
                 key={goal.id}
-                className={`space-y-3 p-4 border border-gray-200 rounded-lg bg-white ${
+                className={`space-y-3 p-4 border border-border-light dark:border-border-dark rounded-lg bg-card-light dark:bg-card-dark ${
                   index > 0 ? "mt-2" : ""
                 }`}
               >
                 {/* Goal Name with Delete Icon */}
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-base font-semibold">
+                  <Text className="text-base font-semibold text-foreground-light dark:text-foreground-dark">
                     {editedGoals[goal.id]?.name ?? goal.name}
                   </Text>
                   <Pressable
@@ -124,7 +124,7 @@ export function EditGoalsModal({
                   <Input
                     value={formatCurrency(goal.currentAmount)}
                     editable={false}
-                    className="w-full bg-gray-100 text-gray-600"
+                    className="w-full bg-muted-light dark:bg-muted-dark text-muted-foreground-light dark:text-muted-foreground-dark"
                   />
                 </View>
 
@@ -147,7 +147,7 @@ export function EditGoalsModal({
                   />
                 </View>
 
-                <Text className="text-sm text-gray-600">
+                <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                   Progress: {formatCurrency(goal.currentAmount)} of{" "}
                   {formatCurrency(goal.targetAmount)} (
                   {Math.round((goal.currentAmount / goal.targetAmount) * 100)}%)

@@ -89,13 +89,13 @@ export function EditTransactionsModal({
               return (
                 <View
                   key={transaction.id}
-                  className="space-y-3 p-4 border border-gray-200 rounded-lg bg-white shadow-sm mb-4"
+                  className="space-y-3 p-4 border border-border-light dark:border-border-dark rounded-lg bg-card-light dark:bg-card-dark shadow-sm mb-4"
                 >
                   <View className="flex-row items-center justify-between">
-                    <Text className="text-base font-medium">
+                    <Text className="text-base font-medium text-foreground-light dark:text-foreground-dark">
                       {transaction.description}
                     </Text>
-                    <Text className="text-sm text-gray-500">
+                    <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                       {formatDate(transaction.date)}
                     </Text>
                   </View>
@@ -113,7 +113,7 @@ export function EditTransactionsModal({
                     <Input
                       value={`$${Math.abs(transaction.amount).toFixed(2)}`}
                       editable={false}
-                      className="w-full bg-gray-100 text-gray-500"
+                      className="w-full bg-muted-light dark:bg-muted-dark text-muted-foreground-light dark:text-muted-foreground-dark"
                     />
                   </View>
 
@@ -126,7 +126,7 @@ export function EditTransactionsModal({
                         transaction.type.slice(1)
                       }
                       editable={false}
-                      className="w-full bg-gray-100 text-gray-500"
+                      className="w-full bg-muted-light dark:bg-muted-dark text-muted-foreground-light dark:text-muted-foreground-dark"
                     />
                   </View>
 
@@ -147,9 +147,9 @@ export function EditTransactionsModal({
                       <Input
                         value={transaction.category || ""}
                         editable={false}
-                        className="w-full bg-gray-100 text-gray-500"
+                        className="w-full bg-muted-light dark:bg-muted-dark text-muted-foreground-light dark:text-muted-foreground-dark"
                       />
-                      <Text className="text-xs text-gray-500">
+                      <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
                         {isSpecialCategory
                           ? "💡 System-managed category (cannot be changed)"
                           : "💡 Legacy category from previous version (cannot be changed)"}
@@ -168,7 +168,7 @@ export function EditTransactionsModal({
                     />
                   )}
 
-                  <Text className="text-sm text-gray-600">
+                  <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                     Status: {transaction.status}
                   </Text>
                 </View>
@@ -177,7 +177,7 @@ export function EditTransactionsModal({
           </View>
         </ScrollView>
 
-        <DialogFooter className="gap-2 flex-row border-t border-gray-200 pt-4 mt-4">
+        <DialogFooter className="gap-2 flex-row border-t border-border-light dark:border-border-dark pt-4 mt-4">
           <Button variant="outline" onPress={onClose} className="flex-1">
             Cancel
           </Button>

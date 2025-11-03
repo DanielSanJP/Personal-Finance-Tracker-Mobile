@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Switch, Text, View } from "react-native";
-import { useUpdateAccount } from "../hooks/queries/useAccounts";
+import {
+  useDeleteAccount,
+  useUpdateAccount,
+} from "../hooks/queries/useAccounts";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 import type { Account } from "../lib/types";
+import { formatCurrency } from "../lib/utils";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -42,8 +47,11 @@ export function EditAccountModal({
     accountNumber: "",
     isActive: true,
   });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const toast = useToast();
+  const { currency, showCents } = useUserPreferences();
   const updateAccountMutation = useUpdateAccount();
+  const deleteAccountMutation = useDeleteAccount();
 
   // Populate form when account changes
   useEffect(() => {
@@ -114,6 +122,38 @@ export function EditAccountModal({
     }
   };
 
+  const handleDelete = async () => {
+    if (!account) return;
+
+    try {
+      await deleteAccountMutation.mutateAsync(account.id);
+
+      toast.toast({
+        message: `Account "${account.name}" deleted successfully`,
+        type: "success",
+      });
+
+      setShowDeleteDialog(false);
+      onAccountUpdated();
+      onClose();
+    } catch (error) {
+      console.error("Error deleting account:", error);
+
+      // Show the full error message from backend
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to delete account. Please try again.";
+
+      toast.toast({
+        message: errorMessage,
+        type: "error",
+      });
+
+      setShowDeleteDialog(false);
+    }
+  };
+
   if (!account) return null;
 
   return (
@@ -137,7 +177,6 @@ export function EditAccountModal({
               placeholder="Enter account name"
               value={formData.name}
               onChangeText={(text) => setFormData({ ...formData, name: text })}
-              className="!h-auto !px-4 !py-3 !border-gray-300 !rounded-lg !bg-white !text-gray-600"
             />
           </View>
 
@@ -184,7 +223,6 @@ export function EditAccountModal({
                 setFormData({ ...formData, balance: text })
               }
               keyboardType="numeric"
-              className="!h-auto !px-4 !py-3 !border-gray-300 !rounded-lg !bg-white !text-gray-600"
             />
           </View>
 
@@ -199,15 +237,14 @@ export function EditAccountModal({
               onChangeText={(text) =>
                 setFormData({ ...formData, accountNumber: text })
               }
-              className="!h-auto !px-4 !py-3 !border-gray-300 !rounded-lg !bg-white !text-gray-600"
             />
           </View>
 
           {/* Active Status */}
           <View className="space-y-2">
             <Label className="text-base font-medium">Active Status</Label>
-            <View className="flex-row items-center justify-between bg-gray-50 p-4 rounded-lg">
-              <Text className="text-gray-600">
+            <View className="flex-row items-center justify-between bg-muted-light dark:bg-muted-dark p-4 rounded-lg">
+              <Text className="text-foreground-light dark:text-foreground-dark">
                 {formData.isActive
                   ? "Account is active"
                   : "Account is inactive"}
@@ -227,16 +264,33 @@ export function EditAccountModal({
         <DialogFooter>
           <View className="flex-row gap-3 justify-center">
             <Button
+              variant="destructive"
+              onPress={() => setShowDeleteDialog(true)}
+              disabled={
+                updateAccountMutation.isPending ||
+                deleteAccountMutation.isPending
+              }
+              className="flex-1"
+            >
+              Delete
+            </Button>
+            <Button
               variant="outline"
               onPress={handleClose}
-              disabled={updateAccountMutation.isPending}
+              disabled={
+                updateAccountMutation.isPending ||
+                deleteAccountMutation.isPending
+              }
               className="flex-1"
             >
               Cancel
             </Button>
             <Button
               onPress={handleSave}
-              disabled={updateAccountMutation.isPending}
+              disabled={
+                updateAccountMutation.isPending ||
+                deleteAccountMutation.isPending
+              }
               className="flex-1"
             >
               {updateAccountMutation.isPending ? "Saving..." : "Save"}
@@ -244,6 +298,71 @@ export function EditAccountModal({
           </View>
         </DialogFooter>
       </DialogContent>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent onClose={() => setShowDeleteDialog(false)}>
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl">
+              Delete Account
+            </DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              This action cannot be undone
+            </DialogDescription>
+          </DialogHeader>
+
+          <View className="py-4">
+            <View className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 p-4 rounded-lg mb-4">
+              <Text className="text-foreground-light dark:text-foreground-dark text-center font-medium mb-2">
+                Are you sure you want to delete &quot;{account.name}&quot;?
+              </Text>
+              <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-center text-sm">
+                This will permanently remove this account and all associated
+                data.
+              </Text>
+            </View>
+
+            {account.balance !== 0 && (
+              <View className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-900 p-4 rounded-lg">
+                <Text className="text-foreground-light dark:text-foreground-dark text-center font-medium mb-2">
+                  ⚠️ Account Has Balance
+                </Text>
+                <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-center text-sm">
+                  Current balance:{" "}
+                  {formatCurrency(account.balance, currency, showCents)}
+                  {"\n"}
+                  Transfer all funds before deleting.
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <DialogFooter>
+            <View className="flex-row gap-3 w-full">
+              <Button
+                variant="outline"
+                onPress={() => setShowDeleteDialog(false)}
+                disabled={deleteAccountMutation.isPending}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onPress={handleDelete}
+                disabled={
+                  deleteAccountMutation.isPending || account.balance !== 0
+                }
+                className="flex-1"
+              >
+                {deleteAccountMutation.isPending
+                  ? "Deleting..."
+                  : "Delete Account"}
+              </Button>
+            </View>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

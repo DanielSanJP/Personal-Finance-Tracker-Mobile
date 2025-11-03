@@ -64,13 +64,13 @@ export function EditBudgetsModal({
             .map((budget, index) => (
               <View
                 key={budget.id}
-                className={`space-y-3 p-4 border border-gray-200 rounded-lg bg-white ${
+                className={`space-y-3 p-4 border border-border-light dark:border-border-dark rounded-lg bg-card-light dark:bg-card-dark ${
                   index > 0 ? "mt-2" : ""
                 }`}
               >
                 {/* Budget Category with Delete Icon */}
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-base font-semibold">
+                  <Text className="text-base font-semibold text-foreground-light dark:text-foreground-dark">
                     {budget.category}
                   </Text>
                   <Pressable
@@ -102,7 +102,7 @@ export function EditBudgetsModal({
                   />
                 </View>
 
-                <Text className="text-sm text-gray-600">
+                <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                   Current spending: ${budget.spentAmount.toFixed(2)}
                 </Text>
               </View>

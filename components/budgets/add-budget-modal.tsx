@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import { CategorySelect } from "../category-select";
 import { Button } from "../ui/button";
 import {
@@ -105,7 +105,7 @@ export function AddBudgetModal({
               <SelectContent>
                 {periodOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    <Text>{option.label}</Text>
                   </SelectItem>
                 ))}
               </SelectContent>

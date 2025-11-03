@@ -2,6 +2,7 @@ import { router, useFocusEffect } from "expo-router";
 import React, { useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AccountRequiredModal } from "../../components/account-required-modal";
 import { AddBudgetModal } from "../../components/budgets/add-budget-modal";
 import {
   calculatePeriodDates,
@@ -19,6 +20,7 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { useToast } from "../../components/ui/sonner";
+import { useAccounts } from "../../hooks/queries/useAccounts";
 import { useAuth } from "../../hooks/queries/useAuth";
 import {
   useBudgets,
@@ -34,9 +36,13 @@ export default function Budgets() {
   const { currency, showCents, compactView } = useUserPreferences();
   const { toast } = useToast();
   const { data: budgets = [], isLoading, refetch } = useBudgets();
+  const { data: accounts = [] } = useAccounts();
   const createBudgetMutation = useCreateBudget();
   const updateBudgetMutation = useUpdateBudget({ silent: true });
   const deleteBudgetMutation = useDeleteBudget({ silent: true });
+
+  // Check if user has any accounts
+  const hasAccounts = accounts.length > 0;
 
   const [addBudgetOpen, setAddBudgetOpen] = useState(false);
   const [editBudgetsOpen, setEditBudgetsOpen] = useState(false);
@@ -74,9 +80,18 @@ export default function Budgets() {
 
   // Handle create budget
   const handleCreateBudget = async () => {
-    if (!selectedCategory || !budgetAmount || !budgetPeriod) {
+    const missingFields: string[] = [];
+
+    if (!selectedCategory) missingFields.push("Category");
+    if (!budgetAmount) missingFields.push("Budget Amount");
+    if (!budgetPeriod) missingFields.push("Budget Period");
+
+    if (missingFields.length > 0) {
+      const fieldList = missingFields.join(", ");
       toast({
-        message: "Please fill in all fields",
+        message: `Missing Required Field${
+          missingFields.length > 1 ? "s" : ""
+        }: Please fill in ${fieldList}`,
         type: "error",
       });
       return;
@@ -85,7 +100,7 @@ export default function Budgets() {
     const amount = parseFloat(budgetAmount);
     if (isNaN(amount) || amount <= 0) {
       toast({
-        message: "Please enter a valid budget amount",
+        message: "Invalid Budget Amount: Please enter a valid positive number",
         type: "error",
       });
       return;
@@ -541,6 +556,9 @@ export default function Budgets() {
           )}
         </View>
       </ScrollView>
+
+      {/* Account Required Modal - Shows when user has no accounts */}
+      <AccountRequiredModal visible={!isLoading && !hasAccounts} />
     </SafeAreaView>
   );
 }

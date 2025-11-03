@@ -171,6 +171,31 @@ export function TransferModal({
 
         <ScrollView className="max-h-[500px]">
           <View className="gap-4 p-1">
+            {/* No Accounts Warning */}
+            {accounts.length === 0 && (
+              <View className="bg-muted-light dark:bg-muted-dark p-4 rounded-lg mb-4">
+                <Text className="text-foreground-light dark:text-foreground-dark font-semibold mb-2">
+                  No Accounts Available
+                </Text>
+                <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-sm">
+                  You need to create at least two accounts to transfer funds
+                  between them. Go to the Accounts page to create your accounts.
+                </Text>
+              </View>
+            )}
+
+            {accounts.length === 1 && (
+              <View className="bg-muted-light dark:bg-muted-dark p-4 rounded-lg mb-4">
+                <Text className="text-foreground-light dark:text-foreground-dark font-semibold mb-2">
+                  Need More Accounts
+                </Text>
+                <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-sm">
+                  You need at least two accounts to make a transfer. Create
+                  another account on the Accounts page.
+                </Text>
+              </View>
+            )}
+
             {/* From Account */}
             <View className="gap-2">
               <Label nativeID="fromAccountId">
@@ -185,13 +210,15 @@ export function TransferModal({
                 <SelectContent>
                   {activeAccounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
-                      {account.name} - {formatCurrency(account.balance)}
+                      <Text>
+                        {account.name} - {formatCurrency(account.balance)}
+                      </Text>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {fromAccount && (
-                <Text className="text-sm text-gray-500">
+                <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
                   Available: {formatCurrency(fromAccount.balance)}
                 </Text>
               )}
@@ -218,12 +245,14 @@ export function TransferModal({
                   {availableDestinations.length > 0 ? (
                     availableDestinations.map((account) => (
                       <SelectItem key={account.id} value={account.id}>
-                        {account.name} - {formatCurrency(account.balance)}
+                        <Text>
+                          {account.name} - {formatCurrency(account.balance)}
+                        </Text>
                       </SelectItem>
                     ))
                   ) : (
                     <SelectItem value="none">
-                      No other active accounts available
+                      <Text>No other active accounts available</Text>
                     </SelectItem>
                   )}
                 </SelectContent>
@@ -262,46 +291,58 @@ export function TransferModal({
               <View
                 className={`p-4 rounded-lg gap-2 ${
                   amountNum > fromAccount.balance
-                    ? "bg-red-50 border border-red-200"
-                    : "bg-gray-50"
+                    ? "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900"
+                    : "bg-muted-light dark:bg-muted-dark"
                 }`}
               >
-                <Text className="font-semibold text-sm">Transfer Summary</Text>
+                <Text className="font-semibold text-sm text-foreground-light dark:text-foreground-dark">
+                  Transfer Summary
+                </Text>
                 <View className="gap-1">
                   <View className="flex-row justify-between">
-                    <Text className="text-gray-600">From:</Text>
-                    <Text className="font-medium">{fromAccount.name}</Text>
+                    <Text className="text-muted-foreground-light dark:text-muted-foreground-dark">
+                      From:
+                    </Text>
+                    <Text className="font-medium text-foreground-light dark:text-foreground-dark">
+                      {fromAccount.name}
+                    </Text>
                   </View>
                   <View className="flex-row justify-between">
-                    <Text className="text-gray-600">To:</Text>
-                    <Text className="font-medium">{toAccount.name}</Text>
+                    <Text className="text-muted-foreground-light dark:text-muted-foreground-dark">
+                      To:
+                    </Text>
+                    <Text className="font-medium text-foreground-light dark:text-foreground-dark">
+                      {toAccount.name}
+                    </Text>
                   </View>
                   <View className="flex-row justify-between">
-                    <Text className="text-gray-600">Amount:</Text>
-                    <Text className="font-semibold text-blue-600">
+                    <Text className="text-muted-foreground-light dark:text-muted-foreground-dark">
+                      Amount:
+                    </Text>
+                    <Text className="font-semibold text-blue-600 dark:text-blue-400">
                       {formatCurrency(amountNum)}
                     </Text>
                   </View>
-                  <View className="border-t border-gray-200 pt-2 mt-2 gap-1">
+                  <View className="border-t border-border-light dark:border-border-dark pt-2 mt-2 gap-1">
                     <View className="flex-row justify-between">
-                      <Text className="text-xs text-gray-600">
+                      <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
                         New balance in {fromAccount.name}:
                       </Text>
                       <Text
                         className={`text-xs ${
                           fromAccount.balance - amountNum < 0
-                            ? "text-red-600 font-bold"
-                            : "font-medium"
+                            ? "text-red-600 dark:text-red-400 font-bold"
+                            : "text-foreground-light dark:text-foreground-dark font-medium"
                         }`}
                       >
                         {formatCurrency(fromAccount.balance - amountNum)}
                       </Text>
                     </View>
                     <View className="flex-row justify-between">
-                      <Text className="text-xs text-gray-600">
+                      <Text className="text-xs text-muted-foreground-light dark:text-muted-foreground-dark">
                         New balance in {toAccount.name}:
                       </Text>
-                      <Text className="text-xs">
+                      <Text className="text-xs text-foreground-light dark:text-foreground-dark">
                         {formatCurrency(toAccount.balance + amountNum)}
                       </Text>
                     </View>
@@ -310,11 +351,11 @@ export function TransferModal({
 
                 {/* Insufficient Funds Warning */}
                 {amountNum > fromAccount.balance && (
-                  <View className="bg-red-100 border border-red-300 rounded-md p-3 mt-2">
-                    <Text className="text-sm font-semibold text-red-800">
+                  <View className="bg-red-100 dark:bg-red-950/50 border border-red-300 dark:border-red-900 rounded-md p-3 mt-2">
+                    <Text className="text-sm font-semibold text-red-800 dark:text-red-400">
                       ⚠️ Insufficient Funds
                     </Text>
-                    <Text className="text-xs text-red-700 mt-1">
+                    <Text className="text-xs text-red-700 dark:text-red-300 mt-1">
                       The transfer amount exceeds the available balance by{" "}
                       <Text className="font-bold">
                         {formatCurrency(amountNum - fromAccount.balance)}

@@ -3,6 +3,7 @@ import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AccountRequiredModal } from "../../components/account-required-modal";
 import { TransactionsListSkeleton } from "../../components/loading-states";
 import Nav from "../../components/nav";
 import {
@@ -32,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
+import { useAccounts } from "../../hooks/queries/useAccounts";
 import { useAuth } from "../../hooks/queries/useAuth";
 import {
   useDeleteTransaction,
@@ -49,6 +51,7 @@ import { formatCurrency } from "../../lib/utils";
 export default function Transactions() {
   useAuth(); // Keep auth context active
   const { currency, showCents, compactView } = useUserPreferences();
+  const { data: accounts = [] } = useAccounts();
 
   // Use React Query hooks for transactions and filter options
   const {
@@ -63,6 +66,9 @@ export default function Transactions() {
   const transactions = useMemo(() => {
     return transactionsData?.pages.flatMap((page) => page) || [];
   }, [transactionsData]);
+
+  // Check if user has any accounts
+  const hasAccounts = accounts.length > 0;
 
   const { data: filterOptions } = useTransactionFilterOptions();
   const deleteTransactionMutation = useDeleteTransaction();
@@ -919,6 +925,9 @@ export default function Transactions() {
           )}
         </View>
       </ScrollView>
+
+      {/* Account Required Modal - Shows when user has no accounts */}
+      <AccountRequiredModal visible={!isLoading && !hasAccounts} />
     </SafeAreaView>
   );
 }

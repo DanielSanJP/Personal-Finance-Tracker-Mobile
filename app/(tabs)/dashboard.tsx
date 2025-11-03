@@ -2,6 +2,7 @@ import { router, useFocusEffect } from "expo-router";
 import React, { useRef } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AccountRequiredModal } from "../../components/account-required-modal";
 import { DashboardSkeleton } from "../../components/loading-states";
 import Nav from "../../components/nav";
 import { SpendingChart } from "../../components/spending-chart";
@@ -28,6 +29,9 @@ export default function Dashboard() {
   // Extract data from dashboard response
   const accounts = dashboardData?.accounts || [];
   const summary = dashboardData?.summary || null;
+
+  // Check if user has accounts - use actual accounts array from dashboard
+  const hasAccounts = accounts.length > 0;
 
   // Refresh data when tab is focused
   useFocusEffect(
@@ -284,6 +288,9 @@ export default function Dashboard() {
           )}
         </View>
       </ScrollView>
+
+      {/* Account Required Modal - Shows when user has no accounts */}
+      <AccountRequiredModal visible={!isLoading && !hasAccounts} />
     </SafeAreaView>
   );
 }

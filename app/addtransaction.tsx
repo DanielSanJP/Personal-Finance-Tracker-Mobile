@@ -28,6 +28,7 @@ import { VoiceInputModal } from "../components/voice-input-modal";
 import { useAccounts } from "../hooks/queries/useAccounts";
 import { useAuth } from "../hooks/queries/useAuth";
 import { useCreateExpenseTransaction } from "../hooks/queries/useTransactions";
+import { useAccountCheck } from "../hooks/useAccountCheck";
 import { useReceiptScan } from "../hooks/useReceiptScan";
 import { useVoiceInput } from "../hooks/useVoiceInput";
 
@@ -37,6 +38,7 @@ export default function AddTransactionPage() {
   const { user, isLoading: loading } = useAuth();
   const toast = useToast();
   const { data: accounts = [] } = useAccounts();
+  const { hasAccounts, isLoading: accountsLoading } = useAccountCheck();
   const createExpenseMutation = useCreateExpenseTransaction();
 
   // Redirect to login if not authenticated
@@ -45,6 +47,17 @@ export default function AddTransactionPage() {
       router.replace("/login");
     }
   }, [user, loading, router]);
+
+  // Redirect to accounts page if no accounts exist
+  useEffect(() => {
+    if (!loading && user && !accountsLoading && !hasAccounts) {
+      toast.toast({
+        message: "Please create an account first to add transactions",
+        type: "error",
+      });
+      router.replace("/accounts");
+    }
+  }, [user, loading, hasAccounts, accountsLoading, router, toast]);
 
   const [formData, setFormData] = useState({
     amount: "",
@@ -172,18 +185,22 @@ export default function AddTransactionPage() {
   };
 
   const handleSave = async () => {
-    // Validate required fields
-    if (
-      !formData.amount ||
-      !formData.description ||
-      !formData.category ||
-      !formData.merchant ||
-      !formData.account ||
-      !formData.date
-    ) {
+    // Validate required fields with specific error messages
+    const missingFields: string[] = [];
+
+    if (!formData.amount) missingFields.push("Amount");
+    if (!formData.description) missingFields.push("Description");
+    if (!formData.category) missingFields.push("Category");
+    if (!formData.merchant) missingFields.push("Paid To");
+    if (!formData.account) missingFields.push("Account");
+    if (!formData.date) missingFields.push("Date");
+
+    if (missingFields.length > 0) {
+      const fieldList = missingFields.join(", ");
       toast.toast({
-        message:
-          "Error: Please fill in all required fields (amount, description, category, paid to, and account)",
+        message: `Missing Required Field${
+          missingFields.length > 1 ? "s" : ""
+        }: Please fill in ${fieldList}`,
         type: "error",
       });
       return;
@@ -191,7 +208,7 @@ export default function AddTransactionPage() {
 
     if (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
       toast.toast({
-        message: "Error: Please enter a valid positive number for the amount",
+        message: "Invalid Amount: Please enter a valid positive number",
         type: "error",
       });
       return;
@@ -207,7 +224,7 @@ export default function AddTransactionPage() {
         merchant: formData.merchant || undefined,
         accountId: accountId,
         status: formData.status, // Already using correct lowercase database values
-        date: formData.date,
+        date: formData.date!, // Safe assertion - validated above
       });
 
       toast.toast({

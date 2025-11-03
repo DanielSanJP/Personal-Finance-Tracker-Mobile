@@ -2,6 +2,7 @@ import { useFocusEffect } from "expo-router";
 import React, { useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AccountRequiredModal } from "../../components/account-required-modal";
 import {
   AddGoalModal,
   ContributionModal,
@@ -30,6 +31,7 @@ import {
   useMakeGoalContribution,
   useUpdateGoal,
 } from "../../hooks/queries/useGoals";
+import { useAccountCheck } from "../../hooks/useAccountCheck";
 import { useUserPreferences } from "../../hooks/useUserPreferences";
 import type { Goal } from "../../lib/types";
 import { formatCurrency } from "../../lib/utils";
@@ -38,6 +40,7 @@ export default function Goals() {
   useAuth();
   const { currency, showCents, compactView } = useUserPreferences();
   const { toast } = useToast();
+  const { hasAccounts } = useAccountCheck();
   const { data: goals = [], isLoading, refetch: refetchGoals } = useGoals();
   const { data: accounts = [], refetch: refetchAccounts } = useAccounts();
   const createGoalMutation = useCreateGoal();
@@ -99,9 +102,17 @@ export default function Goals() {
   // Handle creating a new goal
   const handleCreateGoal = async () => {
     try {
-      if (!goalName.trim() || !targetAmount) {
+      const missingFields: string[] = [];
+
+      if (!goalName.trim()) missingFields.push("Goal Name");
+      if (!targetAmount) missingFields.push("Target Amount");
+
+      if (missingFields.length > 0) {
+        const fieldList = missingFields.join(", ");
         toast({
-          message: "Please fill in the goal name and target amount",
+          message: `Missing Required Field${
+            missingFields.length > 1 ? "s" : ""
+          }: Please fill in ${fieldList}`,
           type: "error",
         });
         return;
@@ -110,7 +121,8 @@ export default function Goals() {
       const targetAmountNum = parseFloat(targetAmount);
       if (isNaN(targetAmountNum) || targetAmountNum <= 0) {
         toast({
-          message: "Please enter a valid target amount",
+          message:
+            "Invalid Target Amount: Please enter a valid positive number",
           type: "error",
         });
         return;
@@ -177,9 +189,27 @@ export default function Goals() {
 
   // Handle contribution submission
   const handleContributionSubmit = async () => {
-    if (!selectedGoal || !contributionAmount || !sourceAccount) {
+    // Check for accounts first
+    if (!hasAccounts) {
       toast({
-        message: "Please fill in all required fields",
+        message: "Please create an account first to make goal contributions",
+        type: "error",
+      });
+      return;
+    }
+
+    const missingFields: string[] = [];
+
+    if (!selectedGoal) missingFields.push("Goal");
+    if (!contributionAmount) missingFields.push("Amount");
+    if (!sourceAccount) missingFields.push("Source Account");
+
+    if (missingFields.length > 0) {
+      const fieldList = missingFields.join(", ");
+      toast({
+        message: `Missing Required Field${
+          missingFields.length > 1 ? "s" : ""
+        }: Please fill in ${fieldList}`,
         type: "error",
       });
       return;
@@ -188,7 +218,7 @@ export default function Goals() {
     const amount = parseFloat(contributionAmount);
     if (isNaN(amount) || amount <= 0) {
       toast({
-        message: "Please enter a valid amount",
+        message: "Invalid Amount: Please enter a valid positive number",
         type: "error",
       });
       return;
@@ -377,7 +407,17 @@ export default function Goals() {
                     <Button
                       variant="outline"
                       className="min-w-[120px] p-6"
-                      onPress={() => setContributionOpen(true)}
+                      onPress={() => {
+                        if (!hasAccounts) {
+                          toast({
+                            message:
+                              "Please create an account first to make goal contributions",
+                            type: "error",
+                          });
+                          return;
+                        }
+                        setContributionOpen(true);
+                      }}
                     >
                       Make Contribution
                     </Button>
@@ -546,6 +586,9 @@ export default function Goals() {
         onSubmit={handleContributionSubmit}
         onClose={handleContributionClose}
       />
+
+      {/* Account Required Modal - Shows when user has no accounts */}
+      <AccountRequiredModal visible={!isLoading && !hasAccounts} />
     </SafeAreaView>
   );
 }

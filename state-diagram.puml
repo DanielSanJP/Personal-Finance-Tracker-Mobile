@@ -1,0 +1,111 @@
+@startuml Personal Finance Tracker Mobile - Simplified GUI State Diagram
+
+' Portrait-friendly layout (top to bottom)
+top to bottom direction
+
+skinparam state {
+  BackgroundColor<<main>> LightBlue
+  BackgroundColor<<modal>> LightYellow
+  BackgroundColor<<page>> LightGreen
+  BorderColor Black
+  FontSize 10
+}
+
+skinparam nodesep 40
+skinparam ranksep 60
+
+title Personal Finance Tracker Mobile - GUI State Diagram
+
+' ========== MAIN STATES ==========
+state "Landing" as landing
+state "Login" as login
+state "Register" as register
+state "Dashboard" as dashboard
+state "Transactions" as transactions
+state "Budgets" as budgets
+state "Goals" as goals
+state "Add Expense" as addExpense
+state "Add Income" as addIncome
+state "Profile" as profile
+state "Settings" as settings
+state "Preferences" as preferences
+state "Accounts" as accounts
+state "Receipt Scanner" as scanner
+state "Voice Input" as voice
+
+' ========== TRANSITIONS =====
+
+[*] --> landing
+
+' Auth flow (straight down)
+landing --> login
+landing --> register
+login --> dashboard
+register --> dashboard
+
+' Main tab navigation (vertical stack)
+dashboard --> transactions
+transactions --> budgets
+budgets --> goals
+
+' Back navigation between tabs
+transactions --> dashboard
+budgets --> transactions
+goals --> budgets
+
+' Quick actions
+dashboard --> addExpense : Add Expense
+dashboard --> addIncome : Add Income
+addExpense --> transactions : Save
+addIncome --> transactions : Save
+
+' AI tools
+addExpense --> scanner : Scan Receipt
+addExpense --> voice : Voice Input
+addIncome --> voice : Voice Input
+scanner --> addExpense : Close
+voice --> addExpense : Close
+
+' Settings navigation
+goals --> profile : User Menu
+profile --> settings
+settings --> preferences
+preferences --> accounts
+
+' Return flows
+accounts --> dashboard : Back
+profile --> dashboard : Back
+
+' Sign out (from key screens)
+dashboard --> landing : Sign Out
+transactions --> landing : Sign Out
+goals --> landing : Sign Out
+accounts --> landing : Sign Out
+
+' ========== NOTES ==========
+note right of landing
+  <b>Entry Point</b>
+  Guest mode available
+end note
+
+note right of dashboard
+  <b>4 Main Tabs</b>
+  Dashboard → Transactions
+  → Budgets → Goals
+  (Bidirectional)
+end note
+
+note right of scanner
+  <b>AI Tools</b>
+  Receipt Scanner
+  Voice Input
+  (Gemini API)
+end note
+
+note right of profile
+  <b>Settings Flow</b>
+  Profile → Settings
+  → Preferences → Accounts
+end note
+
+@enduml

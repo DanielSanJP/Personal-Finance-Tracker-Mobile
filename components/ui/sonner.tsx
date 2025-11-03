@@ -1,5 +1,5 @@
 import * as React from "react";
-import { View, Text, TouchableOpacity, Animated } from "react-native";
+import { Animated, Text, TouchableOpacity, View } from "react-native";
 import { cn } from "../../lib/utils";
 
 interface Toast {
@@ -141,11 +141,16 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
           borderWidth: 1,
         }}
       >
-        <View className="flex flex-row items-center gap-3 flex-1">
+        <View className="flex flex-row items-start gap-3 flex-1">
           <Text className={cn("text-base", getTextColor())}>
             {getTypeIcon()}
           </Text>
-          <Text className="text-black text-sm flex-1">{toast.message}</Text>
+          <Text
+            className="text-black text-sm flex-1"
+            style={{ lineHeight: 20 }}
+          >
+            {toast.message}
+          </Text>
         </View>
         <TouchableOpacity
           onPress={onClose}
