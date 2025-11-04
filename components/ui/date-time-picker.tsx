@@ -322,7 +322,7 @@ export function DateTimePicker({
                 value={selectedDate || new Date()}
                 mode="time"
                 display="spinner"
-                textColor="#000000"
+                textColor={isDark ? "#ffffff" : "#000000"}
                 is24Hour={false}
                 onChange={(event, newTime) => {
                   if (newTime) {

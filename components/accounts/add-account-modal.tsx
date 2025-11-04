@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, Text, View } from "react-native";
 import { useCreateAccount } from "../../hooks/queries/useAccounts";
+import {
+  getCurrencyValidationError,
+  parseCurrencyInput,
+} from "../../lib/currency-utils";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
@@ -72,20 +76,31 @@ export function AddAccountModal({
     }
 
     // Validate balance only if provided
-    if (formData.balance && isNaN(Number(formData.balance))) {
-      toast.toast({
-        message:
-          "Invalid Balance: Please enter a valid number for the balance.",
-        type: "error",
-      });
-      return;
+    if (formData.balance) {
+      const validationError = getCurrencyValidationError(formData.balance);
+      if (validationError) {
+        // Show native alert for better visibility
+        Alert.alert("Invalid Balance", validationError, [
+          { text: "OK", style: "default" },
+        ]);
+
+        // Also show toast
+        toast.toast({
+          message: `Invalid Balance: ${validationError}`,
+          type: "error",
+        });
+        return;
+      }
     }
 
     try {
+      const parsedBalance = formData.balance
+        ? parseCurrencyInput(formData.balance)
+        : undefined;
       const result = await createAccountMutation.mutateAsync({
         name: formData.name,
         type: formData.type,
-        balance: formData.balance ? Number(formData.balance) : undefined, // Undefined will default to 0
+        balance: parsedBalance, // Undefined will default to 0
         accountNumber: formData.accountNumber || "",
         isActive: true,
       });

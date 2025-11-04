@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CategorySelect } from "../components/category-select";
 import { FormSkeleton } from "../components/loading-states";
@@ -31,6 +31,125 @@ import { useCreateExpenseTransaction } from "../hooks/queries/useTransactions";
 import { useAccountCheck } from "../hooks/useAccountCheck";
 import { useReceiptScan } from "../hooks/useReceiptScan";
 import { useVoiceInput } from "../hooks/useVoiceInput";
+import {
+  getCurrencyValidationError,
+  parseCurrencyInput,
+} from "../lib/currency-utils";
+import type { Account } from "../lib/types";
+
+// Wrapper component for ReceiptScannerModal that contains the hook
+function ReceiptScannerWrapper({
+  visible,
+  onClose,
+  onReceiptData,
+  onError,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onReceiptData: (data: {
+    merchant?: string;
+    amount?: string;
+    date?: Date;
+    category?: string;
+  }) => void;
+  onError: (error: string) => void;
+}) {
+  const {
+    isProcessing,
+    previewUrl,
+    parsedData,
+    confidence,
+    scanFromCamera,
+    scanFromFile,
+    clearPreview,
+  } = useReceiptScan({
+    onReceiptData,
+    onError,
+  });
+
+  return (
+    <ReceiptScannerModal
+      visible={visible}
+      onClose={() => {
+        clearPreview();
+        onClose();
+      }}
+      onCamera={scanFromCamera}
+      onGallery={scanFromFile}
+      previewUrl={previewUrl}
+      isProcessing={isProcessing}
+      parsedData={parsedData}
+      confidence={confidence}
+    />
+  );
+}
+
+// Wrapper component for VoiceInputModal that contains the hook
+function VoiceInputWrapper({
+  visible,
+  onClose,
+  onResult,
+  accounts,
+  transactionType,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onResult: (result: {
+    amount?: string;
+    description?: string;
+    merchant?: string;
+    category?: string;
+    account?: string;
+    date?: string;
+  }) => void;
+  accounts: Account[];
+  transactionType: "expense" | "income";
+}) {
+  const {
+    isRecording,
+    isProcessing,
+    isSupported,
+    parsedData,
+    confidence,
+    startVoiceInput,
+    stopVoiceInput,
+  } = useVoiceInput({
+    onResult,
+    accounts,
+    transactionType,
+  });
+
+  return (
+    <VoiceInputModal
+      visible={visible}
+      onClose={() => {
+        if (isRecording) {
+          stopVoiceInput();
+        }
+        onClose();
+      }}
+      onStartListening={startVoiceInput}
+      onStopListening={stopVoiceInput}
+      isRecording={isRecording}
+      isProcessing={isProcessing}
+      isSupported={isSupported}
+      parsedData={
+        parsedData
+          ? {
+              amount: parsedData.amount,
+              description: parsedData.description,
+              merchant: parsedData.merchant,
+              category: parsedData.category,
+              account: parsedData.account,
+              date: parsedData.date ? new Date(parsedData.date) : undefined,
+            }
+          : undefined
+      }
+      confidence={confidence}
+      type={transactionType}
+    />
+  );
+}
 
 export default function AddTransactionPage() {
   const router = useRouter();
@@ -79,83 +198,74 @@ export default function AddTransactionPage() {
     }
   }, [params.openScanner]);
 
-  // Receipt scanning hook
-  const {
-    isProcessing: isScanning,
-    previewUrl,
-    parsedData,
-    confidence,
-    scanFromCamera,
-    scanFromFile,
-    clearPreview,
-  } = useReceiptScan({
-    onReceiptData: (data) => {
-      // Auto-fill form with receipt data
-      setFormData((prev) => ({
-        ...prev,
-        amount: data.amount?.toString() || prev.amount,
-        description: data.merchant || prev.description,
-        category: data.category || prev.category,
-        merchant: data.merchant || prev.merchant,
-        date: data.date ? new Date(data.date) : prev.date,
-      }));
-
-      toast.toast({
-        message: "Receipt scanned successfully!",
-        type: "success",
-      });
-
-      // Modal stays open - user can review data and click Done button to close
-    },
-    onError: (error) => {
-      console.error("❌ Receipt scan error:", error);
-      toast.toast({
-        message: `Failed to scan receipt: ${error}`,
-        type: "error",
-      });
-    },
-  });
-
   // Voice input state
   const [showVoiceInput, setShowVoiceInput] = useState(false);
 
-  // Voice input hook
-  const {
-    isRecording,
-    isProcessing: isVoiceProcessing,
-    isSupported: isVoiceSupported,
-    parsedData: voiceParsedData,
-    confidence: voiceConfidence,
-    startVoiceInput,
-    stopVoiceInput,
-  } = useVoiceInput({
-    onResult: (result) => {
-      // Auto-fill form with voice data
-      setFormData((prev) => ({
-        ...prev,
-        amount: result.amount?.toString() || prev.amount,
-        description: result.description || prev.description,
-        category: result.category || prev.category,
-        merchant: result.merchant || prev.merchant,
-        account: result.account
-          ? `${result.account} (${
-              accounts.find((a) => a.name === result.account)?.type ||
-              "checking"
-            })`
-          : prev.account,
-        date: result.date ? new Date(result.date) : prev.date,
-      }));
+  // Handlers for receipt data
+  const handleReceiptData = (data: {
+    merchant?: string;
+    amount?: string;
+    date?: Date;
+    category?: string;
+  }) => {
+    // Auto-fill form with receipt data
+    setFormData((prev) => ({
+      ...prev,
+      amount: data.amount?.toString() || prev.amount,
+      description: data.merchant || prev.description,
+      category: data.category || prev.category,
+      merchant: data.merchant || prev.merchant,
+      date: data.date ? new Date(data.date) : prev.date,
+    }));
 
-      toast.toast({
-        message: "Voice input processed successfully!",
-        type: "success",
-      });
+    toast.toast({
+      message: "Receipt scanned successfully!",
+      type: "success",
+    });
+  };
 
-      // Modal stays open - user can click Done button to close
-    },
-    accounts,
-    transactionType: "expense",
-  });
+  const handleReceiptError = (error: string) => {
+    console.error("❌ Receipt scan error:", error);
+    toast.toast({
+      message: `Failed to scan receipt: ${error}`,
+      type: "error",
+    });
+  };
+
+  // Handlers for voice data
+  const handleVoiceResult = (result: {
+    amount?: string;
+    description?: string;
+    merchant?: string;
+    category?: string;
+    account?: string;
+    date?: string;
+  }) => {
+    // Auto-fill form with voice data
+    // Only set account if we find an exact match, otherwise leave blank for user to select
+    const matchedAccount = result.account
+      ? accounts.find(
+          (a) => a.name.toLowerCase() === result.account?.toLowerCase()
+        )
+      : undefined;
+
+    setFormData((prev) => ({
+      ...prev,
+      amount: result.amount?.toString() || prev.amount,
+      description: result.description || prev.description,
+      category: result.category || prev.category,
+      merchant: result.merchant || prev.merchant,
+      account: matchedAccount
+        ? `${matchedAccount.name} (${matchedAccount.type})`
+        : prev.account,
+      date: result.date ? new Date(result.date) : prev.date,
+    }));
+
+    toast.toast({
+      message: "Voice input processed successfully!",
+      type: "success",
+    });
+  };
 
   // Status options with display labels and database values
   const statusOptions = [
@@ -206,19 +316,29 @@ export default function AddTransactionPage() {
       return;
     }
 
-    if (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0) {
+    // Validate and parse the amount
+    const validationError = getCurrencyValidationError(formData.amount);
+    if (validationError) {
+      // Show native alert for better visibility
+      Alert.alert("Invalid Amount", validationError, [
+        { text: "OK", style: "default" },
+      ]);
+
+      // Also show toast
       toast.toast({
-        message: "Invalid Amount: Please enter a valid positive number",
+        message: `Invalid Amount: ${validationError}`,
         type: "error",
       });
       return;
     }
 
+    const parsedAmount = parseCurrencyInput(formData.amount);
+
     try {
       const accountId = getAccountIdFromDisplayValue(formData.account);
 
       await createExpenseMutation.mutateAsync({
-        amount: Number(formData.amount),
+        amount: parsedAmount,
         description: formData.description,
         category: formData.category || undefined,
         merchant: formData.merchant || undefined,
@@ -259,26 +379,14 @@ export default function AddTransactionPage() {
 
   const handleCloseVoiceInput = () => {
     setShowVoiceInput(false);
-    if (isRecording) {
-      stopVoiceInput();
-    }
   };
 
   const handleScanReceipt = () => {
     setShowReceiptScanner(true);
   };
 
-  const handleCameraPress = async () => {
-    await scanFromCamera();
-  };
-
-  const handleGalleryPress = async () => {
-    await scanFromFile();
-  };
-
   const handleCloseScanner = () => {
     setShowReceiptScanner(false);
-    clearPreview();
   };
 
   // Show loading while checking auth state
@@ -480,44 +588,26 @@ export default function AddTransactionPage() {
         </View>
       </ScrollView>
 
-      {/* Receipt Scanner Modal */}
-      <ReceiptScannerModal
-        visible={showReceiptScanner}
-        onClose={handleCloseScanner}
-        onCamera={handleCameraPress}
-        onGallery={handleGalleryPress}
-        previewUrl={previewUrl}
-        isProcessing={isScanning}
-        parsedData={parsedData}
-        confidence={confidence}
-      />
+      {/* Receipt Scanner Modal - Only mount when visible */}
+      {showReceiptScanner && (
+        <ReceiptScannerWrapper
+          visible={showReceiptScanner}
+          onClose={handleCloseScanner}
+          onReceiptData={handleReceiptData}
+          onError={handleReceiptError}
+        />
+      )}
 
-      {/* Voice Input Modal */}
-      <VoiceInputModal
-        visible={showVoiceInput}
-        onClose={handleCloseVoiceInput}
-        onStartListening={startVoiceInput}
-        onStopListening={stopVoiceInput}
-        isRecording={isRecording}
-        isProcessing={isVoiceProcessing}
-        isSupported={isVoiceSupported}
-        parsedData={
-          voiceParsedData
-            ? {
-                amount: voiceParsedData.amount,
-                description: voiceParsedData.description,
-                merchant: voiceParsedData.merchant,
-                category: voiceParsedData.category,
-                account: voiceParsedData.account,
-                date: voiceParsedData.date
-                  ? new Date(voiceParsedData.date)
-                  : undefined,
-              }
-            : undefined
-        }
-        confidence={voiceConfidence}
-        type="expense"
-      />
+      {/* Voice Input Modal - Only mount when visible */}
+      {showVoiceInput && (
+        <VoiceInputWrapper
+          visible={showVoiceInput}
+          onClose={handleCloseVoiceInput}
+          onResult={handleVoiceResult}
+          accounts={accounts}
+          transactionType="expense"
+        />
+      )}
     </SafeAreaView>
   );
 }

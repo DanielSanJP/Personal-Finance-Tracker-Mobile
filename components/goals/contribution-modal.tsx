@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import type { Goal } from "../../lib/types";
 import { formatCurrency } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -86,8 +86,10 @@ export function ContributionModal({
                       goal.currentAmount
                     )} / ${formatCurrency(goal.targetAmount)})`}
                   >
-                    {goal.name} ({formatCurrency(goal.currentAmount)} /{" "}
-                    {formatCurrency(goal.targetAmount)})
+                    <Text className="text-foreground-light dark:text-foreground-dark">
+                      {goal.name} ({formatCurrency(goal.currentAmount)} /{" "}
+                      {formatCurrency(goal.targetAmount)})
+                    </Text>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -121,7 +123,9 @@ export function ContributionModal({
                       account.balance
                     )})`}
                   >
-                    {account.name} ({formatCurrency(account.balance)})
+                    <Text className="text-foreground-light dark:text-foreground-dark">
+                      {account.name} ({formatCurrency(account.balance)})
+                    </Text>
                   </SelectItem>
                 ))}
               </SelectContent>

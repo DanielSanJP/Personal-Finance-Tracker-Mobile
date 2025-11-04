@@ -194,8 +194,9 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
     year: number;
     month: number;
   }>(() => {
-    // Use October 2025 as current date
-    return { year: 2025, month: 10 };
+    // Use actual current date
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() + 1 };
   });
   const [isCurrentMonth, setIsCurrentMonth] = useState(true);
   const [selectedSlice, setSelectedSlice] = useState<{
@@ -374,13 +375,17 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
               <SelectContent>
                 <SelectItem value="current">
                   <View className="flex-row items-center gap-2">
-                    <Text>{getCurrentMonthDisplay()}</Text>
+                    <Text className="text-foreground-light dark:text-foreground-dark">
+                      {getCurrentMonthDisplay()}
+                    </Text>
                     <Badge className="text-xs">Current</Badge>
                   </View>
                 </SelectItem>
                 {monthOptions.slice(1).map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    <Text className="text-foreground-light dark:text-foreground-dark">
+                      {option.label}
+                    </Text>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -393,28 +398,26 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
             </Badge>
           )}
         </CardHeader>
-        <CardContent className="flex-1 pb-0">
-          <View className="mx-auto flex items-center justify-center py-8">
-            <View className="items-center">
-              <Feather name="pie-chart" size={48} color="#9CA3AF" />
-              <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark mt-4 text-center">
-                No spending data available
-              </Text>
-              <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-center mt-2 px-4">
-                {isCurrentMonth
-                  ? "Start tracking your expenses to see spending analysis and category breakdown"
-                  : `No spending data found for ${new Date(
-                      selectedDate.year,
-                      selectedDate.month - 1
-                    ).toLocaleDateString("en-US", {
-                      month: "long",
-                      year: "numeric",
-                    })}`}
-              </Text>
-            </View>
+        <CardContent className="pb-4">
+          <View className="items-center justify-center py-8 px-4">
+            <Feather name="pie-chart" size={48} color="#9CA3AF" />
+            <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark mt-4 text-center">
+              No spending data available
+            </Text>
+            <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-center mt-2 max-w-xs">
+              {isCurrentMonth
+                ? "Start tracking your expenses to see spending analysis and category breakdown"
+                : `No spending data found for ${new Date(
+                    selectedDate.year,
+                    selectedDate.month - 1
+                  ).toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })}`}
+            </Text>
           </View>
         </CardContent>
-        <CardFooter className="flex-col gap-2 text-sm border-t-0">
+        <CardFooter className="flex-col gap-2 text-sm pt-0 border-t-0">
           <View className="flex-row items-center justify-center gap-2">
             <Text className="font-medium text-foreground-light dark:text-foreground-dark">
               Total spending: {formatCurrency(0)}
@@ -490,7 +493,9 @@ export function PieChart({ spendingData: propSpendingData }: PieChartProps) {
               </SelectItem>
               {monthOptions.slice(1).map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+                  <Text className="text-foreground-light dark:text-foreground-dark">
+                    {option.label}
+                  </Text>
                 </SelectItem>
               ))}
             </SelectContent>

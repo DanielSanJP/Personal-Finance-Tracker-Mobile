@@ -15,7 +15,8 @@ export interface LoginFormProps {
 export function LoginForm({ className }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
 
   const handleLogin = async () => {
     // Only proceed if both email and password are filled
@@ -24,7 +25,7 @@ export function LoginForm({ className }: LoginFormProps) {
       return;
     }
 
-    setLoading(true);
+    setLoginLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -41,7 +42,7 @@ export function LoginForm({ className }: LoginFormProps) {
         "Login Error",
         error instanceof Error ? error.message : "Failed to sign in"
       );
-      setLoading(false); // Only reset loading on error
+      setLoginLoading(false); // Only reset loading on error
     }
   };
 
@@ -54,9 +55,13 @@ export function LoginForm({ className }: LoginFormProps) {
   };
 
   const handleContinueAsGuest = async () => {
-    setLoading(true);
+    setGuestLoading(true);
     try {
-      const { error } = await supabase.auth.signInAnonymously();
+      // Sign in with the guest account credentials
+      const { error } = await supabase.auth.signInWithPassword({
+        email: "guest@demo.app",
+        password: "guest-password-123",
+      });
 
       if (error) throw error;
 
@@ -68,7 +73,7 @@ export function LoginForm({ className }: LoginFormProps) {
         "Guest Login Error",
         error instanceof Error ? error.message : "Failed to sign in as guest"
       );
-      setLoading(false); // Only reset loading on error
+      setGuestLoading(false); // Only reset loading on error
     }
   };
 
@@ -116,9 +121,9 @@ export function LoginForm({ className }: LoginFormProps) {
                 onPress={handleLogin}
                 className="w-full"
                 size="lg"
-                disabled={loading}
+                disabled={loginLoading || guestLoading}
               >
-                {loading ? "Signing in..." : "Login"}
+                {loginLoading ? "Signing in..." : "Login"}
               </Button>
               <View className="mt-4 text-center">
                 <Text className="text-center text-sm text-muted-foreground-light dark:text-muted-foreground-dark">
@@ -130,9 +135,9 @@ export function LoginForm({ className }: LoginFormProps) {
                 onPress={handleContinueAsGuest}
                 className="w-full"
                 size="lg"
-                disabled={loading}
+                disabled={loginLoading || guestLoading}
               >
-                {loading ? "Signing in as Guest..." : "Continue as Guest"}
+                {guestLoading ? "Signing in as Guest..." : "Continue as Guest"}
               </Button>
             </View>
           </View>

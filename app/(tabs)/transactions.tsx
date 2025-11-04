@@ -442,14 +442,20 @@ export default function Transactions() {
                 <CardContent>
                   <View className="flex-row flex-wrap justify-center gap-4">
                     <View className="items-center flex-1 min-w-[120px]">
-                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-2">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-2 text-center">
                         Total Income
                       </Text>
                       <Badge
                         variant="default"
-                        className="text-base font-bold px-4 py-2 bg-green-600 dark:bg-green-600"
+                        className="font-bold px-3 py-2 bg-green-600 dark:bg-green-600 min-w-0 max-w-full"
                       >
-                        <Text className="text-white dark:text-white">
+                        <Text
+                          className="text-white dark:text-white font-bold"
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.7}
+                          style={{ fontSize: 14 }}
+                        >
                           +
                           {formatCurrency(
                             filteredTransactions
@@ -463,14 +469,20 @@ export default function Transactions() {
                     </View>
 
                     <View className="items-center flex-1 min-w-[120px]">
-                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-2">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-2 text-center">
                         Total Expenses
                       </Text>
                       <Badge
                         variant="destructive"
-                        className="text-base font-bold px-4 py-2"
+                        className="font-bold px-3 py-2 min-w-0 max-w-full"
                       >
-                        <Text className="text-white dark:text-white">
+                        <Text
+                          className="text-white dark:text-white font-bold"
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.7}
+                          style={{ fontSize: 14 }}
+                        >
                           {formatCurrency(
                             filteredTransactions
                               .filter((t) => t.type === "expense")
@@ -483,7 +495,7 @@ export default function Transactions() {
                     </View>
 
                     <View className="items-center flex-1 min-w-[120px]">
-                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-2">
+                      <Text className="text-sm text-muted-foreground-light dark:text-muted-foreground-dark font-medium mb-2 text-center">
                         Net Total
                       </Text>
                       <Badge
@@ -495,7 +507,7 @@ export default function Transactions() {
                             ? "default"
                             : "destructive"
                         }
-                        className={`text-base font-bold px-4 py-2 ${
+                        className={`font-bold px-3 py-2 min-w-0 max-w-full ${
                           filteredTransactions.reduce(
                             (sum, t) => sum + t.amount,
                             0
@@ -504,7 +516,13 @@ export default function Transactions() {
                             : ""
                         }`}
                       >
-                        <Text className="text-white dark:text-white">
+                        <Text
+                          className="text-white dark:text-white font-bold"
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.7}
+                          style={{ fontSize: 14 }}
+                        >
                           {formatCurrency(
                             filteredTransactions.reduce(
                               (sum, t) => sum + t.amount,

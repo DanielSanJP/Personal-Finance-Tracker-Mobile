@@ -51,7 +51,15 @@ function ToastContainer() {
   const { toasts, removeToast } = context;
 
   return (
-    <View className="absolute top-16 left-4 right-4 z-50">
+    <View
+      className="absolute left-4 right-4"
+      style={{
+        top: 60,
+        zIndex: 9999,
+        elevation: 9999, // Android
+      }}
+      pointerEvents="box-none"
+    >
       {toasts.map((toast) => (
         <ToastItem
           key={toast.id}
@@ -132,13 +140,18 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
     >
       <View
         className={cn(
-          "rounded-lg border p-4 shadow-lg flex flex-row items-center justify-between",
+          "rounded-lg border p-4 flex flex-row items-center justify-between",
           getTypeStyles()
         )}
         style={{
           backgroundColor: "white",
           borderColor: "#e2e8f0",
           borderWidth: 1,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 3.84,
+          elevation: 5,
         }}
       >
         <View className="flex flex-row items-start gap-3 flex-1">

@@ -29,7 +29,7 @@ interface ReceiptScannerModalProps {
   confidence?: number;
 }
 
-export function ReceiptScannerModal({
+export const ReceiptScannerModal = React.memo(function ReceiptScannerModal({
   visible,
   onClose,
   onCamera,
@@ -247,4 +247,4 @@ export function ReceiptScannerModal({
       </DialogContent>
     </Dialog>
   );
-}
+});

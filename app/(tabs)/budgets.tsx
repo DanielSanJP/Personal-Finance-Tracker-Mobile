@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from "expo-router";
 import React, { useRef, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AccountRequiredModal } from "../../components/account-required-modal";
 import { AddBudgetModal } from "../../components/budgets/add-budget-modal";
@@ -29,6 +29,10 @@ import {
   useUpdateBudget,
 } from "../../hooks/queries/useBudgets";
 import { useUserPreferences } from "../../hooks/useUserPreferences";
+import {
+  getCurrencyValidationError,
+  parseCurrencyInput,
+} from "../../lib/currency-utils";
 import { formatCurrency } from "../../lib/utils";
 
 export default function Budgets() {
@@ -97,14 +101,22 @@ export default function Budgets() {
       return;
     }
 
-    const amount = parseFloat(budgetAmount);
-    if (isNaN(amount) || amount <= 0) {
+    const validationError = getCurrencyValidationError(budgetAmount);
+    if (validationError) {
+      // Show native alert for better visibility
+      Alert.alert("Invalid Budget Amount", validationError, [
+        { text: "OK", style: "default" },
+      ]);
+
+      // Also show toast
       toast({
-        message: "Invalid Budget Amount: Please enter a valid positive number",
+        message: `Invalid Budget Amount: ${validationError}`,
         type: "error",
       });
       return;
     }
+
+    const amount = parseCurrencyInput(budgetAmount);
 
     try {
       const { startDate, endDate } = calculatePeriodDates(budgetPeriod);
@@ -168,14 +180,20 @@ export default function Budgets() {
           break;
         }
 
-        const amount = parseFloat(editedAmount);
-        if (isNaN(amount) || amount <= 0) {
+        const validationError = getCurrencyValidationError(editedAmount);
+        if (validationError) {
+          // Show native alert for better visibility
+          Alert.alert("Invalid Budget Amount", validationError, [
+            { text: "OK", style: "default" },
+          ]);
+
+          // Also show toast
           toast({
-            message: "Please enter valid budget amounts greater than 0",
+            message: `Invalid Budget Amount: ${validationError}`,
             type: "error",
           });
           hasErrors = true;
-          break;
+          continue;
         }
       }
 
@@ -183,7 +201,7 @@ export default function Budgets() {
 
       // Update all edited budgets
       for (const [budgetId, editedAmount] of Object.entries(editedBudgets)) {
-        const amount = parseFloat(editedAmount);
+        const amount = parseCurrencyInput(editedAmount);
         await updateBudgetMutation.mutateAsync({
           id: budgetId,
           budgetData: { budgetAmount: amount },

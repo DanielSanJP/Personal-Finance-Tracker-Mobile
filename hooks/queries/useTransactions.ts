@@ -383,6 +383,17 @@ export async function createExpenseTransaction(expenseData: {
   const user = await getCurrentUser();
   if (!user) throw new Error('User not authenticated');
   
+  // DEBUG: Log the amount being sent
+  console.log('💳 Creating expense transaction with amount:', expenseData.amount);
+  console.log('💳 Amount type:', typeof expenseData.amount);
+  console.log('💳 Is valid number:', !isNaN(expenseData.amount) && isFinite(expenseData.amount));
+  
+  // SAFETY: Validate amount is within database limits (NUMERIC(10,2) max = 99,999,999.99)
+  const MAX_AMOUNT = 99999999.99;
+  if (expenseData.amount > MAX_AMOUNT) {
+    throw new Error(`Amount ${expenseData.amount} exceeds maximum limit of ${MAX_AMOUNT}`);
+  }
+  
   // Get account name for from_party
   const { data: account } = await supabase
     .from('accounts')
@@ -443,6 +454,17 @@ export async function createIncomeTransaction(incomeData: {
 }): Promise<Transaction> {
   const user = await getCurrentUser();
   if (!user) throw new Error('User not authenticated');
+  
+  // DEBUG: Log the amount being sent
+  console.log('💰 Creating income transaction with amount:', incomeData.amount);
+  console.log('💰 Amount type:', typeof incomeData.amount);
+  console.log('💰 Is valid number:', !isNaN(incomeData.amount) && isFinite(incomeData.amount));
+  
+  // SAFETY: Validate amount is within database limits (NUMERIC(10,2) max = 99,999,999.99)
+  const MAX_AMOUNT = 99999999.99;
+  if (incomeData.amount > MAX_AMOUNT) {
+    throw new Error(`Amount ${incomeData.amount} exceeds maximum limit of ${MAX_AMOUNT}`);
+  }
   
   // Get account name for to_party
   const { data: account } = await supabase

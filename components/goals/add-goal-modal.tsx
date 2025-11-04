@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import { Button } from "../ui/button";
 import { DateTimePicker } from "../ui/date-time-picker";
 import {
@@ -127,7 +127,9 @@ export function AddGoalModal({
               <SelectContent>
                 {priorityOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    {option.label}
+                    <Text className="text-foreground-light dark:text-foreground-dark">
+                      {option.label}
+                    </Text>
                   </SelectItem>
                 ))}
               </SelectContent>

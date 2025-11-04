@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Switch, Text, View } from "react-native";
+import { Alert, Switch, Text, View } from "react-native";
 import {
   useDeleteAccount,
   useUpdateAccount,
 } from "../hooks/queries/useAccounts";
 import { useUserPreferences } from "../hooks/useUserPreferences";
+import {
+  getCurrencyValidationError,
+  parseCurrencyInput,
+} from "../lib/currency-utils";
 import type { Account } from "../lib/types";
 import { formatCurrency } from "../lib/utils";
 import { Button } from "./ui/button";
@@ -93,21 +97,26 @@ export function EditAccountModal({
       return;
     }
 
-    if (isNaN(Number(formData.balance))) {
-      showAlert(
-        "Invalid Input",
-        "Please enter a valid number for the balance."
-      );
+    const validationError = getCurrencyValidationError(formData.balance);
+    if (validationError) {
+      // Show native alert for better visibility
+      Alert.alert("Invalid Balance", validationError, [
+        { text: "OK", style: "default" },
+      ]);
+
+      // Also show toast
+      showAlert("Invalid Balance", validationError);
       return;
     }
 
     try {
+      const parsedBalance = parseCurrencyInput(formData.balance);
       await updateAccountMutation.mutateAsync({
         accountId: account.id,
         accountData: {
           name: formData.name,
           type: formData.type,
-          balance: Number(formData.balance),
+          balance: parsedBalance,
           accountNumber: formData.accountNumber || "",
           isActive: formData.isActive,
         },

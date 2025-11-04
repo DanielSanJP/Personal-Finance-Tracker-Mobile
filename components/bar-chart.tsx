@@ -294,22 +294,20 @@ export function BarChart({ data: propData }: BarChartProps = {}) {
             </Select>
           </View>
         </CardHeader>
-        <CardContent className="flex-1 pb-0">
-          <View className="mx-auto flex items-center justify-center py-8">
-            <View className="items-center">
-              <Feather name="bar-chart-2" size={48} color="#9CA3AF" />
-              <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark mt-4 text-center">
-                No spending data available
-              </Text>
-              <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-center mt-2 px-4">
-                {isCurrentYear
-                  ? "Start tracking your expenses to see yearly spending analysis and trends"
-                  : `No budget data found for ${selectedYear}. This year has no recorded transactions.`}
-              </Text>
-            </View>
+        <CardContent className="pb-4">
+          <View className="items-center justify-center py-8 px-4">
+            <Feather name="bar-chart-2" size={48} color="#9CA3AF" />
+            <Text className="text-lg font-medium text-foreground-light dark:text-foreground-dark mt-4 text-center">
+              No spending data available
+            </Text>
+            <Text className="text-muted-foreground-light dark:text-muted-foreground-dark text-center mt-2 max-w-xs">
+              {isCurrentYear
+                ? "Start tracking your expenses to see yearly spending analysis and trends"
+                : `No budget data found for ${selectedYear}. This year has no recorded transactions.`}
+            </Text>
           </View>
         </CardContent>
-        <CardFooter className="flex-col gap-2 text-sm border-t-0">
+        <CardFooter className="flex-col gap-2 text-sm pt-0 border-t-0">
           <View className="flex-row items-center justify-center gap-2">
             <Text className="font-medium text-foreground-light dark:text-foreground-dark">
               Budget utilization: 0%

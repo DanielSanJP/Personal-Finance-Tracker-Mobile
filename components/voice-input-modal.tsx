@@ -28,7 +28,7 @@ interface VoiceInputModalProps {
   type?: "expense" | "income";
 }
 
-export function VoiceInputModal({
+export const VoiceInputModal = React.memo(function VoiceInputModal({
   visible,
   onClose,
   onStartListening,
@@ -250,4 +250,4 @@ export function VoiceInputModal({
       </DialogContent>
     </Dialog>
   );
-}
+});

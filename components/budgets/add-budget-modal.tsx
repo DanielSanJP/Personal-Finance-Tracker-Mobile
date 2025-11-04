@@ -105,7 +105,9 @@ export function AddBudgetModal({
               <SelectContent>
                 {periodOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
-                    <Text>{option.label}</Text>
+                    <Text className="text-foreground-light dark:text-foreground-dark">
+                      {option.label}
+                    </Text>
                   </SelectItem>
                 ))}
               </SelectContent>

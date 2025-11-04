@@ -1,8 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, Text, View } from "react-native";
 import { useAccounts } from "../../hooks/queries/useAccounts";
 import { getCurrentUser } from "../../hooks/queries/useAuth";
+import {
+  getCurrencyValidationError,
+  parseCurrencyInput,
+} from "../../lib/currency-utils";
 import { queryKeys } from "../../lib/query-keys";
 import { supabase } from "../../lib/supabase";
 import type { Account } from "../../lib/types";
@@ -72,21 +76,40 @@ export function TransferModal({
   };
 
   const handleSubmit = async () => {
-    const amountNum = parseFloat(amount);
-
     if (!fromAccountId || !toAccountId) {
+      Alert.alert("Missing Information", "Please select both accounts", [
+        { text: "OK", style: "default" },
+      ]);
       return;
     }
 
     if (fromAccountId === toAccountId) {
+      Alert.alert("Invalid Transfer", "Cannot transfer to the same account", [
+        { text: "OK", style: "default" },
+      ]);
       return;
     }
 
-    if (isNaN(amountNum) || amountNum <= 0) {
+    const validationError = getCurrencyValidationError(amount);
+    if (validationError) {
+      Alert.alert("Invalid Amount", validationError, [
+        { text: "OK", style: "default" },
+      ]);
       return;
     }
+
+    const amountNum = parseCurrencyInput(amount);
 
     if (fromAccount && amountNum > fromAccount.balance) {
+      Alert.alert(
+        "Insufficient Balance",
+        `Transfer amount exceeds available balance of ${formatCurrency(
+          fromAccount.balance,
+          "USD",
+          true
+        )}`,
+        [{ text: "OK", style: "default" }]
+      );
       return;
     }
 
@@ -153,7 +176,10 @@ export function TransferModal({
     onOpenChange(newOpen);
   };
 
-  const amountNum = parseFloat(amount) || 0;
+  const amountNum =
+    amount && !getCurrencyValidationError(amount)
+      ? parseCurrencyInput(amount)
+      : 0;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

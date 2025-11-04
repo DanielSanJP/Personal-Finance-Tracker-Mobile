@@ -1,6 +1,6 @@
 import { useFocusEffect } from "expo-router";
 import React, { useRef, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AccountRequiredModal } from "../../components/account-required-modal";
 import {
@@ -33,6 +33,10 @@ import {
 } from "../../hooks/queries/useGoals";
 import { useAccountCheck } from "../../hooks/useAccountCheck";
 import { useUserPreferences } from "../../hooks/useUserPreferences";
+import {
+  getCurrencyValidationError,
+  parseCurrencyInput,
+} from "../../lib/currency-utils";
 import type { Goal } from "../../lib/types";
 import { formatCurrency } from "../../lib/utils";
 
@@ -118,26 +122,41 @@ export default function Goals() {
         return;
       }
 
-      const targetAmountNum = parseFloat(targetAmount);
-      if (isNaN(targetAmountNum) || targetAmountNum <= 0) {
+      const targetValidationError = getCurrencyValidationError(targetAmount);
+      if (targetValidationError) {
+        // Show native alert for better visibility
+        Alert.alert("Invalid Target Amount", targetValidationError, [
+          { text: "OK", style: "default" },
+        ]);
+
+        // Also show toast
         toast({
-          message:
-            "Invalid Target Amount: Please enter a valid positive number",
+          message: `Invalid Target Amount: ${targetValidationError}`,
           type: "error",
         });
         return;
       }
 
+      const targetAmountNum = parseCurrencyInput(targetAmount);
+
       let currentAmountNum = 0;
       if (currentAmount) {
-        currentAmountNum = parseFloat(currentAmount);
-        if (isNaN(currentAmountNum) || currentAmountNum < 0) {
+        const currentValidationError =
+          getCurrencyValidationError(currentAmount);
+        if (currentValidationError) {
+          // Show native alert for better visibility
+          Alert.alert("Invalid Current Amount", currentValidationError, [
+            { text: "OK", style: "default" },
+          ]);
+
+          // Also show toast
           toast({
-            message: "Please enter a valid current amount",
+            message: `Invalid Current Amount: ${currentValidationError}`,
             type: "error",
           });
           return;
         }
+        currentAmountNum = parseCurrencyInput(currentAmount);
       }
 
       // Validate target date is not in the past (today or future is OK)
@@ -215,14 +234,22 @@ export default function Goals() {
       return;
     }
 
-    const amount = parseFloat(contributionAmount);
-    if (isNaN(amount) || amount <= 0) {
+    const validationError = getCurrencyValidationError(contributionAmount);
+    if (validationError) {
+      // Show native alert for better visibility
+      Alert.alert("Invalid Amount", validationError, [
+        { text: "OK", style: "default" },
+      ]);
+
+      // Also show toast
       toast({
-        message: "Invalid Amount: Please enter a valid positive number",
+        message: `Invalid Amount: ${validationError}`,
         type: "error",
       });
       return;
     }
+
+    const amount = parseCurrencyInput(contributionAmount);
 
     try {
       const goalId = getGoalIdFromDisplayValue(selectedGoal, goals);
@@ -244,9 +271,25 @@ export default function Goals() {
         type: "success",
       });
     } catch (err) {
-      console.error("Error making contribution:", err);
+      console.error("🚨 Error making contribution:", err);
+      console.log("🚨 Error type:", typeof err);
+      console.log("🚨 Error instanceof Error:", err instanceof Error);
+
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to make contribution. Please try again.";
+
+      console.log("🚨 Showing alert with message:", errorMessage);
+
+      // Show native alert for better visibility
+      Alert.alert("Contribution Failed", errorMessage, [
+        { text: "OK", style: "default" },
+      ]);
+
+      // Also show toast
       toast({
-        message: "Failed to make contribution. Please try again.",
+        message: errorMessage,
         type: "error",
       });
     }
@@ -275,10 +318,18 @@ export default function Goals() {
       // Validate all edited goals
       for (const editedGoal of Object.values(editedGoals)) {
         if (editedGoal.targetAmount !== undefined) {
-          const amount = parseFloat(editedGoal.targetAmount);
-          if (isNaN(amount) || amount <= 0) {
+          const validationError = getCurrencyValidationError(
+            editedGoal.targetAmount
+          );
+          if (validationError) {
+            // Show native alert for better visibility
+            Alert.alert("Invalid Target Amount", validationError, [
+              { text: "OK", style: "default" },
+            ]);
+
+            // Also show toast
             toast({
-              message: "Please enter valid target amounts greater than 0",
+              message: `Invalid Target Amount: ${validationError}`,
               type: "error",
             });
             hasErrors = true;
@@ -306,7 +357,7 @@ export default function Goals() {
         }
 
         if (editedGoal.targetAmount !== undefined) {
-          const amount = parseFloat(editedGoal.targetAmount);
+          const amount = parseCurrencyInput(editedGoal.targetAmount);
           updates.targetAmount = amount;
         }
 

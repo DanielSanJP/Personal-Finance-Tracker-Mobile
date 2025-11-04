@@ -148,6 +148,9 @@ export default function Dashboard() {
                     className={`font-bold text-card-foreground-light dark:text-card-foreground-dark text-center ${
                       compactView ? "text-base" : "text-lg"
                     }`}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.6}
                   >
                     {formatCurrency(
                       summary?.totalBalance || 0,
@@ -176,6 +179,9 @@ export default function Dashboard() {
                         ? "text-green-600 dark:text-green-400"
                         : "text-red-600 dark:text-red-400"
                     }`}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.6}
                   >
                     {(summary?.monthlyChange || 0) >= 0 ? "+" : ""}
                     {formatCurrency(
@@ -203,6 +209,9 @@ export default function Dashboard() {
                     className={`font-bold text-green-600 dark:text-green-400 text-center ${
                       compactView ? "text-base" : "text-lg"
                     }`}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.6}
                   >
                     +
                     {formatCurrency(
@@ -228,6 +237,9 @@ export default function Dashboard() {
                     className={`font-bold text-card-foreground-light dark:text-card-foreground-dark text-center ${
                       compactView ? "text-base" : "text-lg"
                     }`}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.6}
                   >
                     {formatCurrency(
                       summary?.budgetRemaining || 0,

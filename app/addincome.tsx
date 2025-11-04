@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CategorySelect } from "../components/category-select";
 import { FormSkeleton } from "../components/loading-states";
@@ -29,6 +29,78 @@ import { useAuth } from "../hooks/queries/useAuth";
 import { useCreateIncomeTransaction } from "../hooks/queries/useTransactions";
 import { useAccountCheck } from "../hooks/useAccountCheck";
 import { useVoiceInput } from "../hooks/useVoiceInput";
+import {
+  getCurrencyValidationError,
+  parseCurrencyInput,
+} from "../lib/currency-utils";
+import type { Account } from "../lib/types";
+
+// Wrapper component for VoiceInputModal that contains the hook
+function VoiceInputWrapper({
+  visible,
+  onClose,
+  onResult,
+  accounts,
+  transactionType,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onResult: (result: {
+    amount?: string;
+    description?: string;
+    merchant?: string;
+    category?: string;
+    account?: string;
+    date?: string;
+  }) => void;
+  accounts: Account[];
+  transactionType: "expense" | "income";
+}) {
+  const {
+    isRecording,
+    isProcessing,
+    isSupported,
+    parsedData,
+    confidence,
+    startVoiceInput,
+    stopVoiceInput,
+  } = useVoiceInput({
+    onResult,
+    accounts,
+    transactionType,
+  });
+
+  return (
+    <VoiceInputModal
+      visible={visible}
+      onClose={() => {
+        if (isRecording) {
+          stopVoiceInput();
+        }
+        onClose();
+      }}
+      onStartListening={startVoiceInput}
+      onStopListening={stopVoiceInput}
+      isRecording={isRecording}
+      isProcessing={isProcessing}
+      isSupported={isSupported}
+      parsedData={
+        parsedData
+          ? {
+              amount: parsedData.amount,
+              description: parsedData.description,
+              merchant: parsedData.merchant,
+              category: parsedData.category,
+              account: parsedData.account,
+              date: parsedData.date ? new Date(parsedData.date) : undefined,
+            }
+          : undefined
+      }
+      confidence={confidence}
+      type={transactionType}
+    />
+  );
+}
 
 export default function AddIncomePage() {
   const router = useRouter();
@@ -65,41 +137,39 @@ export default function AddIncomePage() {
   // Voice input state
   const [showVoiceInput, setShowVoiceInput] = useState(false);
 
-  // Voice input hook
-  const {
-    isRecording,
-    isProcessing: isVoiceProcessing,
-    isSupported: isVoiceSupported,
-    parsedData: voiceParsedData,
-    confidence: voiceConfidence,
-    startVoiceInput,
-    stopVoiceInput,
-  } = useVoiceInput({
-    onResult: (result) => {
-      // Auto-fill form with voice data
-      setAmount(result.amount || amount);
-      setDescription(result.description || description);
-      setIncomeSource(result.category || incomeSource);
-      if (result.account) {
-        const foundAccount = accounts.find((a) => a.name === result.account);
-        if (foundAccount) {
-          setAccount(`${foundAccount.name} (${foundAccount.type})`);
-        }
-      }
-      if (result.date) {
-        setDate(new Date(result.date));
-      }
+  // Handler for voice data
+  const handleVoiceResult = (result: {
+    amount?: string;
+    description?: string;
+    merchant?: string;
+    category?: string;
+    account?: string;
+    date?: string;
+  }) => {
+    // Auto-fill form with voice data
+    setAmount(result.amount || amount);
+    setDescription(result.description || description);
+    setIncomeSource(result.category || incomeSource);
 
-      toast.toast({
-        message: "Voice input processed successfully!",
-        type: "success",
-      });
+    // Only set account if we find an exact match (case-insensitive)
+    if (result.account) {
+      const foundAccount = accounts.find(
+        (a) => a.name.toLowerCase() === result.account?.toLowerCase()
+      );
+      if (foundAccount) {
+        setAccount(`${foundAccount.name} (${foundAccount.type})`);
+      }
+    }
 
-      // Modal stays open - user can click Done button to close
-    },
-    accounts,
-    transactionType: "income",
-  });
+    if (result.date) {
+      setDate(new Date(result.date));
+    }
+
+    toast.toast({
+      message: "Voice input processed successfully!",
+      type: "success",
+    });
+  };
 
   // Quick add sources - common income categories
   const quickAddSources = [
@@ -143,19 +213,35 @@ export default function AddIncomePage() {
       return;
     }
 
-    if (isNaN(Number(amount)) || Number(amount) <= 0) {
+    // Validate and parse the amount
+    console.log("📝 Form validation - Raw amount input:", amount);
+    const validationError = getCurrencyValidationError(amount);
+    console.log("📝 Validation error:", validationError);
+
+    if (validationError) {
+      console.log("❌ Validation failed, showing error alert");
+
+      // Show native alert for better visibility
+      Alert.alert("Invalid Amount", validationError, [
+        { text: "OK", style: "default" },
+      ]);
+
+      // Also show toast
       toast.toast({
-        message: "Invalid Amount: Please enter a valid positive number",
+        message: `Invalid Amount: ${validationError}`,
         type: "error",
       });
       return;
     }
 
+    const parsedAmount = parseCurrencyInput(amount);
+    console.log("✅ Validation passed, parsed amount:", parsedAmount);
+
     try {
       const accountId = getAccountIdFromDisplayValue(account);
 
       await createIncomeMutation.mutateAsync({
-        amount: Number(amount),
+        amount: parsedAmount,
         description: description,
         source: incomeSource,
         accountId: accountId,
@@ -345,37 +431,16 @@ export default function AddIncomePage() {
         </View>
       </ScrollView>
 
-      {/* Voice Input Modal */}
-      <VoiceInputModal
-        visible={showVoiceInput}
-        onClose={() => {
-          setShowVoiceInput(false);
-          if (isRecording) {
-            stopVoiceInput();
-          }
-        }}
-        onStartListening={startVoiceInput}
-        onStopListening={stopVoiceInput}
-        isRecording={isRecording}
-        isProcessing={isVoiceProcessing}
-        isSupported={isVoiceSupported}
-        parsedData={
-          voiceParsedData
-            ? {
-                amount: voiceParsedData.amount,
-                description: voiceParsedData.description,
-                merchant: voiceParsedData.merchant,
-                category: voiceParsedData.category,
-                account: voiceParsedData.account,
-                date: voiceParsedData.date
-                  ? new Date(voiceParsedData.date)
-                  : undefined,
-              }
-            : undefined
-        }
-        confidence={voiceConfidence}
-        type="income"
-      />
+      {/* Voice Input Modal - Only mount when visible */}
+      {showVoiceInput && (
+        <VoiceInputWrapper
+          visible={showVoiceInput}
+          onClose={() => setShowVoiceInput(false)}
+          onResult={handleVoiceResult}
+          accounts={accounts}
+          transactionType="income"
+        />
+      )}
     </SafeAreaView>
   );
 }
