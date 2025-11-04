@@ -4,6 +4,7 @@ import { Linking, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../hooks/queries/useAuth";
 import { useThemeToggle } from "../hooks/useThemeToggle";
+import { queryClient } from "../lib/query-provider";
 import { supabase } from "../lib/supabase";
 import Breadcrumbs from "./breadcrumbs";
 import { Button } from "./ui/button";
@@ -46,7 +47,12 @@ export default function Nav() {
   // Handle sign out with navigation
   const handleSignOut = async () => {
     try {
+      // Clear all React Query cache to prevent data mixing between users
+      queryClient.clear();
+
+      // Sign out from Supabase
       await supabase.auth.signOut();
+
       // Navigate to login page after signing out
       router.replace("/login");
     } catch (error) {
